@@ -1,0 +1,83 @@
+<%- include('partials/head', { site, pageTitle }) %>
+<body class="home">
+<%- include('partials/header', { site, nav }) %>
+
+<main id="main">
+  <!-- Hero -->
+  <section class="hero" style="--hero-image: url('<%= home.hero.image %>')">
+    <div class="hero-text">
+      <h1 class="hero-name reveal"><%= home.hero.name %></h1>
+      <h2 class="hero-tagline reveal"><%= home.hero.tagline %></h2>
+    </div>
+    <p class="hero-bigword" aria-hidden="true"><%= home.hero.bigWord %></p>
+  </section>
+
+  <!-- Editable sections: each one is its own layout board, edited in the admin
+       panel under "Home page" → Sections. -->
+  <% (home.sections || []).forEach(function (section) { %>
+    <%- include('partials/section', { section }) %>
+  <% }) %>
+
+  <!-- Works -->
+  <section class="works">
+    <div class="works-side">
+      <div class="works-sticky">
+        <p class="decor decor-works decor-flip" aria-hidden="true"><%- lines(home.works.decorText) %></p>
+        <h2 class="title-highlight reveal"><span><%= home.works.heading %></span></h2>
+        <div class="works-desc reveal"><%- paragraphs(home.works.description) %></div>
+      </div>
+      <p class="decor decor-works decor-works-bottom" aria-hidden="true"><%- lines(home.works.decorText) %></p>
+    </div>
+    <ul class="works-grid">
+      <% home.works.cards.forEach((card, i) => { %>
+        <li class="reveal">
+          <a class="work-card" href="<%= card.link || '#' %>"<% if (isExternal(card.link)) { %> target="_blank" rel="noopener"<% } %>>
+            <img src="<%= card.image %>" alt="<%= card.label %>" loading="lazy">
+            <span class="work-num"><%= String(i + 1).padStart(2, '0') %></span>
+            <h6 class="work-label"><%= card.label %></h6>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+
+  <!-- Contact -->
+  <section class="contact" id="contact">
+    <div class="contact-info reveal">
+      <h3><%= home.contact.heading %></h3>
+      <%- paragraphs(home.contact.text) %>
+      <p class="contact-email"><%= home.contact.emailLine %></p>
+      <%- include('partials/socials', { site }) %>
+    </div>
+    <form class="contact-form reveal" action="/contact" method="post" novalidate>
+      <label>
+        <span><%= home.contact.labelName %> <i>*</i></span>
+        <input type="text" name="name" required maxlength="200" autocomplete="name">
+      </label>
+      <label>
+        <span><%= home.contact.labelEmail %> <i>*</i></span>
+        <input type="email" name="email" required maxlength="200" autocomplete="email">
+      </label>
+      <label>
+        <span><%= home.contact.labelSubject %> <i>*</i></span>
+        <input type="text" name="subject" required maxlength="300">
+      </label>
+      <label>
+        <span><%= home.contact.labelMessage %> <i>*</i></span>
+        <textarea name="message" required maxlength="5000" rows="4"></textarea>
+      </label>
+      <label class="hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+      <button type="submit"><%= home.contact.labelSubmit %></button>
+      <p class="form-status" role="status" data-success="<%= home.contact.successMessage %>"></p>
+    </form>
+  </section>
+
+  <!-- Marquee -->
+  <section class="marquee" aria-label="<%= home.marquee %>">
+    <div class="marquee-track" aria-hidden="true">
+      <% for (let i = 0; i < 8; i++) { %><span><%= home.marquee %> • </span><% } %>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer', { site }) %>

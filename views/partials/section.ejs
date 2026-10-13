@@ -1,0 +1,124 @@
+<%
+  // One section of a page: either the classic image layout (gallery) or a
+  // "layout canvas" board with freely placed layers.
+  // Called as: include('partials/section', { section }) — the helpers below
+  // are on app.locals, the same ones the admin preview mirrors.
+%>
+<%
+  const __s = section;
+  const __canvas = (__s.layout || 'gallery') === 'canvas';
+  const __layers = (__s.layers || []).filter(l => l && l.hidden !== true);
+  const __h = Number(__s.canvasHeight) > 0 ? Math.min(Math.max(Number(__s.canvasHeight), 200), 4000) : 720;
+  // safeColor() only lets plain CSS colours through, so a stray value can never
+  // break out of the style attribute on the board below.
+  const __colours = [esc(safeColor(__s.canvasBg) || 'transparent')];
+%>
+<% if (__canvas) { %>
+  <section class="content-section layout-canvas"
+    style="--canvas-h: <%= __h %>; --canvas-bg: <%= __colours[0] %>"
+    <% if (__s.heading) { %>aria-label="<%= __s.heading %>"<% } %>>
+    <div class="canvas-board">
+      <% __layers.forEach(function (l) {
+           const name = l.name || l.type;
+           const anim = animationAttrs(l);
+           const animate = (anim || l.anim === 'float' || l.anim === 'pulse')
+             ? (l.animated === false ? '' : ' canvas-anim')
+             : '';
+           const box = layerBox(l, __h);
+           const style = styleToCss(l);
+      %>
+        <div class="layer layer-<%= l.type %><%= animate ? ' is-animated' : '' %>"
+             style="<%= box %>"
+             data-layer="<%= name ? esc(name) : '' %>"
+             <%- anim %>>
+          <% if (l.type === 'heading') { %>
+            <h2 class="layer-heading" style="<%= style %>"><%- layerText(l.text) %></h2>
+          <% } else if (l.type === 'text') { %>
+            <div class="layer-text" style="<%= style %>"><%- paragraphs(l.text) %></div>
+          <% } else if (l.type === 'image') { %>
+            <% if (l.src) { %>
+              <% if (l.link) { %><a href="<%= safeUrl(l.link) %>"<% if (isExternal(l.link)) { %> target="_blank" rel="noopener"<% } %> class="layer-link"><% } %>
+              <% if (/\.(mp4|webm)(\?|$)/i.test(l.src)) { %>
+                <video class="layer-media" src="<%= safeUrl(l.src) %>" muted loop playsinline controls style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>"></video>
+              <% } else { %>
+                <img class="layer-media" src="<%= safeUrl(l.src) %>" alt="<%= l.alt || '' %>" loading="lazy" style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>">
+              <% } %>
+              <% if (l.link) { %></a><% } %>
+            <% } %>
+          <% } else if (l.type === 'gallery') { %>
+            <% const imgs = (l.images || []);
+               const galAspect = String(l.aspect || 'natural');
+               const galRatio = galAspect !== 'natural' ? galAspect.replace(':', ' / ') : ''; %>
+            <ul class="layer-gallery cols-<%= Math.min(Math.max(Number(l.columns) || 3, 1), 4) %> aspect-<%= galAspect.replace(':', 'x') %>"
+                style="gap:<%= Math.min(Math.max(Number(l.gap) || 16, 0), 120) %>px">
+              <% imgs.forEach(function (item, i) { %>
+                <li>
+                  <button class="zoom gallery-tile" type="button"
+                          style="<%= galRatio ? 'aspect-ratio:' + galRatio : '' %>"
+                          data-full="<%= safeUrl(item.image) %>"
+                          data-caption="<%= item.caption || '' %>"
+                          data-link="<%= safeUrl(item.link) %>"
+                          aria-label="<%= item.caption || 'Enlarge image' %>">
+                    <img src="<%= safeUrl(item.image) %>" alt="<%= item.caption || '' %>" loading="lazy"
+                         style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>">
+                    <span class="tile-overlay">
+                      <span class="tile-num"><%= String(i + 1).padStart(2, '0') %></span>
+                      <% if (item.caption) { %><span class="tile-caption"><%- lines(item.caption) %></span><% } %>
+                    </span>
+                  </button>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else if (l.type === 'button') { %>
+            <span class="layer-button-slot" style="justify-content:<%= LAYER_ALIGN.has(l.align) ? (l.align === 'center' ? 'center' : l.align === 'right' ? 'flex-end' : 'flex-start') : 'flex-start' %>">
+              <a class="layer-button style-<%= ['pill', 'solid', 'outline'].includes(l.buttonStyle) ? l.buttonStyle : 'pill' %>"
+                 href="<%= safeUrl(l.link) || '#' %>"
+                 style="<%= style %>"
+                 <% if (l.newTab !== false && isExternal(l.link)) { %>target="_blank" rel="noopener"<% } %>><%= l.text || 'Read more' %></a>
+            </span>
+          <% } else if (l.type === 'divider') { %>
+            <span class="layer-divider" style="background:<%= esc(safeColor(l.color) || '#0A192F') %>;border-radius:<%= Math.min(Math.max(Number(l.radius) || 0, 0), 500) %>px"></span>
+          <% } else if (l.type === 'shape') { %>
+            <span class="layer-shape" style="<%= style %><%= l.bg ? '' : ';background:#E1E5EB' %>"></span>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+<% } else { %>
+  <%
+    const items = __s.items || [];
+    const aspect = __s.aspect || 'natural';
+    const cols = Math.min(Math.max(Number(__s.columns) || 3, 1), 4);
+  %>
+  <section class="content-section align-<%= __s.align || 'left' %> layout-<%= __s.layout || 'gallery' %>">
+    <% if (__s.heading) { %><h2 class="section-heading reveal"><%- lines(__s.heading) %></h2><% } %>
+    <% if (__s.text) { %><div class="section-text reveal"><%- paragraphs(__s.text) %></div><% } %>
+
+    <% if (items.length) { %>
+      <ul class="items cols-<%= cols %> aspect-<%= aspect.replace(':', 'x') %>">
+        <% items.forEach(function (item, i) { %>
+          <li class="item reveal<% if (item.wide) { %> wide<% } %>">
+            <button class="zoom gallery-tile" type="button" data-full="<%= safeUrl(item.image) %>" data-caption="<%= item.caption %>" data-link="<%= safeUrl(item.link) %>" aria-label="<%= item.caption || 'Enlarge image' %>">
+              <img src="<%= safeUrl(item.image) %>" alt="<%= item.caption %>" loading="lazy">
+              <span class="tile-overlay">
+                <span class="tile-num"><%= String(i + 1).padStart(2, '0') %></span>
+                <% if (item.caption) { %><span class="tile-caption"><%- lines(item.caption) %></span><% } %>
+              </span>
+            </button>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+
+    <% if (__s.textAfter) { %><div class="section-text after reveal"><%- paragraphs(__s.textAfter) %></div><% } %>
+
+    <% if ((__s.buttons || []).length) { %>
+      <div class="section-buttons">
+        <% __s.buttons.forEach(function (b) { %>
+          <a class="pill-button" href="<%= safeUrl(b.url) %>"<% if (isExternal(b.url)) { %> target="_blank" rel="noopener"<% } %>><%= b.label %></a>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+<% } %>

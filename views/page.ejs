@@ -1,0 +1,19 @@
+<%- include('partials/head', { site, pageTitle }) %>
+<body class="subpage">
+<%- include('partials/header', { site, nav }) %>
+
+<main id="main">
+  <section class="page-hero"<% if (page.heroImage) { %> style="--hero-image: url('<%= page.heroImage %>')"<% } %>>
+    <div class="page-hero-inner">
+      <h2 class="title-highlight page-title reveal"><span><%= page.title %></span></h2>
+      <span class="page-hero-rule" aria-hidden="true"></span>
+      <% if (page.subtitle) { %><h6 class="page-subtitle reveal"><%= page.subtitle %></h6><% } %>
+    </div>
+  </section>
+
+  <% (page.sections || []).forEach(function (section) { %>
+    <%- include('partials/section', { section }) %>
+  <% }) %>
+</main>
+
+<%- include('partials/footer', { site }) %>

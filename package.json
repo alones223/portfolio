@@ -1,0 +1,23 @@
+{
+  "name": "abbie-portfolio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portfolio website of Yeung Tsz Yu (Abbie) with a built-in admin backend.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "dev": "node --watch --env-file-if-exists=.env server.js",
+    "fetch-images": "node scripts/fetch-wix-images.js",
+    "migrate-sections": "node scripts/migrate-home-sections.js"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "dependencies": {
+    "ejs": "^7.0.1",
+    "express": "^5.3.0",
+    "express-session": "^1.19.0",
+    "multer": "^2.4.0"
+  }
+}

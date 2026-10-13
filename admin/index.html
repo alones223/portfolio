@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Admin · Portfolio</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+  <link rel="stylesheet" href="/css/canvas.css">
+</head>
+<body>
+  <!-- Login -->
+  <div id="login" class="login" hidden>
+    <form class="login-card" id="login-form">
+      <h1>Portfolio admin</h1>
+      <p class="muted">Enter the admin password to edit your website.</p>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+      <button class="btn primary" type="submit">Log in</button>
+      <p class="login-error" id="login-error" role="alert"></p>
+    </form>
+  </div>
+
+  <!-- App -->
+  <div id="app" class="app" hidden>
+    <aside class="sidebar">
+      <div class="brand">
+        <strong>Portfolio admin</strong>
+        <a href="/" target="_blank" rel="noopener" class="muted small">Open website ↗</a>
+      </div>
+      <nav id="sidebar-nav"></nav>
+      <button class="btn ghost small logout" id="logout" type="button">Log out</button>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">
+          <h2 id="view-title"></h2>
+          <a id="view-link" class="small" target="_blank" rel="noopener" hidden>View on website ↗</a>
+        </div>
+        <div class="topbar-actions">
+          <span id="save-state" class="save-state"></span>
+          <button class="btn" id="discard" type="button" hidden>Discard changes</button>
+          <button class="btn primary" id="save" type="button" disabled>Save changes</button>
+        </div>
+      </header>
+      <main id="editor" class="editor"></main>
+    </div>
+  </div>
+
+  <!-- Media picker -->
+  <dialog id="picker" class="picker">
+    <div class="picker-head">
+      <h3>Choose an image</h3>
+      <div class="picker-actions">
+        <label class="btn primary small">Upload new…<input type="file" accept="image/*,video/mp4,video/webm" multiple hidden id="picker-upload"></label>
+        <button class="btn small" type="button" id="picker-close">Cancel</button>
+      </div>
+    </div>
+    <div class="picker-tools">
+      <input type="search" id="picker-search" placeholder="Filter by file name…">
+      <select id="picker-folder" aria-label="Folder"></select>
+    </div>
+    <div class="picker-grid" id="picker-grid"></div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="/admin/canvas-model.js"></script>
+  <script src="/admin/canvas-editor.js"></script>
+  <script src="/admin/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<%
+  const t = site.theme || {};
+  const f = site.fonts || {};
+  const fontsUrl = googleFontsUrl(f);
+%><!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>document.documentElement.classList.add('js')</script>
+  <title><%= pageTitle %> | <%= site.title %></title>
+  <meta name="description" content="<%= site.name %> — portfolio">
+  <% if (site.logo) { %><link rel="icon" href="<%= site.logo %>"><% } %>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <% if (fontsUrl) { %><link rel="stylesheet" href="<%= fontsUrl %>"><% } %>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/canvas.css">
+  <style>
+    :root {
+      --navy: <%= t.navy || '#0A192F' %>;
+      --slate: <%= t.slate || '#4F5E75' %>;
+      --header-bg: <%= t.headerBg || '#D1D9E6' %>;
+      --highlight: <%= t.highlight || '#95B8FE' %>;
+      --hero-bg: <%= t.heroBg || '#617092' %>;
+      --about-bg: <%= t.aboutBg || '#E1E5EB' %>;
+      --page-bg: <%= t.pageBg || '#FDFDFD' %>;
+      --decor: <%= t.decorText || '#F2F4F7' %>;
+      --big-word: <%= t.bigWord || '#00FFFF' %>;
+      --button: <%= t.button || '#FF5722' %>;
+      --marquee-bg: <%= t.marqueeBg || '#4F5E75' %>;
+      --marquee-text: <%= t.marqueeText || '#0A192F' %>;
+      --font-display: "<%= fontFamily(f.display) || 'Krona One' %>", "Arial Black", sans-serif;
+      --font-serif: "<%= fontFamily(f.serif) || 'Playfair Display' %>", "Times New Roman", serif;
+      --font-body: "<%= fontFamily(f.body) || 'Zen Kaku Gothic New' %>", "Yu Gothic", "YuGothic", "Microsoft JhengHei", sans-serif;
+    }
+  </style>
+</head>

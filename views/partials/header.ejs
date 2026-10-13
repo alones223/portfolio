@@ -1,0 +1,18 @@
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="logo" href="/" aria-label="<%= site.name %> — Home">
+      <% if (site.logo) { %><img src="<%= site.logo %>" alt="<%= site.name %> logo" width="81" height="81"><% } %>
+    </a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <nav id="site-nav" class="site-nav" aria-label="Site">
+      <ul>
+        <% nav.forEach(item => { %>
+          <li><a href="<%= item.href %>"<% if (item.active) { %> class="active" aria-current="page"<% } %>><%= item.label %></a></li>
+        <% }) %>
+      </ul>
+    </nav>
+  </div>
+</header>

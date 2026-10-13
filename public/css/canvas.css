@@ -1,0 +1,257 @@
+/* ===========================================================================
+   Layout canvas
+   ---------------------------------------------------------------------------
+   A canvas section is a fixed-width board (1425px — exactly what the admin
+   editor shows) with freely placed layers on top of it.
+
+   The board is scaled to the width the visitor's screen gives us, so the
+   arrangement made in the editor is what visitors see, on every screen size.
+   =========================================================================== */
+
+/* The admin panel's layer font picker offers "Display" and "Serif". The admin
+   stylesheet does not load any web fonts, so they are pulled in here. On the
+   live site these families already arrive from Site settings → Fonts. */
+@import url("https://fonts.googleapis.com/css2?family=Krona+One&family=Playfair+Display:wght@400;500&display=swap");
+
+:root {
+  --canvas-w: 1425;
+}
+
+.content-section.layout-canvas {
+  max-width: none;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  background: var(--canvas-bg, transparent);
+  /* Height and board scale are set per section by public/js/site.js. */
+  height: calc(var(--canvas-h, 720) * 1px);
+}
+
+.canvas-board {
+  position: relative;
+  width: calc(var(--canvas-w) * 1px);
+  /* Every layer is absolutely positioned, so the board has no content to give
+     it height and would otherwise collapse to 0px. The section above it clips
+     with overflow:hidden, which would then cut every layer off. The board is
+     therefore as tall as the board the admin editor draws. */
+  height: calc(var(--canvas-h, 720) * 1px);
+  transform-origin: top left;
+}
+
+.content-section.layout-canvas.is-scaled {
+  height: calc(var(--canvas-h, 720) * var(--canvas-scale, 1) * 1px);
+}
+
+.content-section.layout-canvas.is-scaled .canvas-board {
+  transform: scale(var(--canvas-scale, 1));
+}
+
+/* ------------------------------------------------------------------ layers */
+
+.layer {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.layer-heading,
+.layer-text {
+  margin: 0;
+  font-family: var(--font-body);
+  line-height: 1.3;
+}
+
+.layer-heading {
+  font-family: var(--font-display);
+  color: var(--navy);
+  font-size: 46px;
+}
+
+.layer-text {
+  color: var(--slate);
+  font-size: 18px;
+}
+
+.layer-text p + p {
+  margin-top: 0;
+}
+
+.layer-media {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.layer-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.layer-gallery {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  align-content: stretch;
+}
+
+.layer-gallery.cols-1 { grid-template-columns: repeat(1, 1fr); }
+.layer-gallery.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.layer-gallery.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.layer-gallery.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+.layer-gallery li {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.layer-gallery .gallery-tile {
+  width: 100%;
+  height: 100%;
+}
+
+.layer-gallery img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.layer-gallery.aspect-natural {
+  align-content: start;
+}
+
+.layer-gallery.aspect-natural img {
+  height: auto;
+  object-fit: contain;
+}
+
+.layer-button-slot {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.layer-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 28px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  text-decoration: none;
+  transition: transform .3s ease, background .3s ease, color .3s ease;
+}
+
+.layer-button.style-pill { border-radius: 999px; background: var(--button); color: #fff; }
+.layer-button.style-solid { background: var(--navy); color: #fff; }
+.layer-button.style-outline { border: 2px solid var(--navy); color: var(--navy); }
+.layer-button:hover { transform: translateY(-2px); }
+
+.layer-divider {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* A plain coloured block: a background colour, a border and rounded corners,
+   all set on the element itself by styleToCss(). It can sit behind other
+   layers to act as a banner or card panel. */
+.layer-shape {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* -------------------------------------------------------------- animations */
+
+/* Layers are visible by default, so nothing disappears if JavaScript is off.
+   The site sets .js on <html> only when scripting is available. */
+.js .canvas-anim.is-animated[data-anim] {
+  opacity: 0;
+}
+
+.canvas-anim.is-animated[data-anim].anim-in {
+  animation-duration: var(--anim-duration, .9s);
+  animation-delay: var(--anim-delay, 0s);
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(.22, .61, .36, 1);
+}
+
+.canvas-anim.is-animated[data-anim="fade"].anim-in { animation-name: cvFade; }
+.canvas-anim.is-animated[data-anim="up"].anim-in { animation-name: cvUp; }
+.canvas-anim.is-animated[data-anim="down"].anim-in { animation-name: cvDown; }
+.canvas-anim.is-animated[data-anim="left"].anim-in { animation-name: cvLeft; }
+.canvas-anim.is-animated[data-anim="right"].anim-in { animation-name: cvRight; }
+.canvas-anim.is-animated[data-anim="zoom"].anim-in { animation-name: cvZoom; }
+.canvas-anim.is-animated[data-anim="zoomOut"].anim-in { animation-name: cvZoomOut; }
+
+/* Looping effects stay visible and never start from a hidden state. */
+.canvas-anim.is-animated[data-anim="float"] { opacity: 1; }
+.canvas-anim.is-animated[data-anim="pulse"] { opacity: 1; }
+.canvas-anim.is-animated[data-anim="float"].anim-in { animation: cvFloat var(--anim-duration, 4s) ease-in-out infinite; }
+.canvas-anim.is-animated[data-anim="pulse"].anim-in { animation: cvPulse var(--anim-duration, 2.4s) ease-in-out infinite; }
+
+@keyframes cvFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cvUp { from { opacity: 0; transform: translateY(38px); } to { opacity: 1; transform: none; } }
+@keyframes cvDown { from { opacity: 0; transform: translateY(-38px); } to { opacity: 1; transform: none; } }
+@keyframes cvLeft { from { opacity: 0; transform: translateX(-46px); } to { opacity: 1; transform: none; } }
+@keyframes cvRight { from { opacity: 0; transform: translateX(46px); } to { opacity: 1; transform: none; } }
+@keyframes cvZoom { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes cvZoomOut { from { opacity: 0; transform: scale(1.08); } to { opacity: 1; transform: none; } }
+@keyframes cvFloat { 0%, 100% { transform: translateY(-8px); } 50% { transform: translateY(8px); } }
+@keyframes cvPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-anim.is-animated[data-anim] { opacity: 1; animation: none !important; }
+}
+
+/* ------------------------------------------------------------ small screens */
+
+/* Below this width the board would shrink to the point where the text is too
+   small to read. Instead, the layers stack in the order they are listed, each
+   one full width, and the board becomes as tall as the content needs. */
+@media (max-width: 900px) {
+  .content-section.layout-canvas,
+  .content-section.layout-canvas.is-scaled {
+    height: auto;
+    padding: 48px 20px;
+  }
+
+  .canvas-board,
+  .content-section.layout-canvas.is-scaled .canvas-board {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    height: auto !important;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .layer {
+    position: static;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0;
+  }
+
+  .layer-heading { font-size: clamp(26px, 7vw, 44px) !important; letter-spacing: 0 !important; }
+  .layer-text { font-size: 16px !important; letter-spacing: 0 !important; }
+
+  .layer-gallery { height: auto; }
+  .layer-gallery img { height: auto; }
+  .layer-media { height: auto; }
+  .layer-button-slot { height: auto; }
+  .layer-divider { height: 4px; }
+  /* A full-width colour block has no content to give it height, so on phones it
+     keeps a sensible minimum instead of collapsing to a hairline. */
+  .layer-shape { height: auto !important; min-height: 96px; }
+
+  /* Wide image groups become two columns so the pictures stay visible. */
+  .layer-gallery.cols-3,
+  .layer-gallery.cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+}

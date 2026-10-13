@@ -1,0 +1,1270 @@
+{
+  "site": {
+    "title": "Yeung Tsz Yu Abbie",
+    "name": "Yeung Tsz Yu",
+    "logo": "/uploads/0b0535_04813ec0b0994c6385868ea4144935a1.jpg",
+    "email": "alones223@gmail.com",
+    "footerContactTitle": "Contact me",
+    "copyright": "© 2026 Yeung Tsz Yu. all rights reserved.",
+    "homeNavLabel": "Home",
+    "socials": [
+      {
+        "type": "instagram",
+        "url": "https://www.instagram.com/akarizu223/"
+      },
+      {
+        "type": "x",
+        "url": "https://x.com/Akarizu223"
+      }
+    ],
+    "theme": {
+      "navy": "#0A192F",
+      "slate": "#4F5E75",
+      "headerBg": "#D1D9E6",
+      "highlight": "#95B8FE",
+      "heroBg": "#617092",
+      "aboutBg": "#E1E5EB",
+      "pageBg": "#FDFDFD",
+      "decorText": "#F2F4F7",
+      "bigWord": "#00FFFF",
+      "button": "#FF5722",
+      "marqueeBg": "#4F5E75",
+      "marqueeText": "#0A192F"
+    },
+    "fonts": {
+      "display": "Krona One",
+      "serif": "Playfair Display:wght@400;500",
+      "body": "Zen Kaku Gothic New:wght@400;500;700"
+    }
+  },
+  "home": {
+    "seoTitle": "Home",
+    "hero": {
+      "image": "/uploads/0b0535_2d1f1a4f20714b4ba7366fc1a9069e06.jpg",
+      "name": "Yeung Tsz Yu",
+      "tagline": "#Multimedia Designer& Illustrator",
+      "bigWord": "portfolio"
+    },
+    "works": {
+      "heading": "Works",
+      "decorText": "WO\nRKS",
+      "description": "Exploration of personal creative visions using traditional and digital media, focusing on expressive visual storytelling.",
+      "cards": [
+        {
+          "label": "Artworks",
+          "image": "/uploads/0b0535_441ee70cd48d499db00bd0535b26dc8f.jpg",
+          "link": "/portfolio"
+        },
+        {
+          "label": "Illustrator works",
+          "image": "/uploads/0b0535_ad8c3868a5bc477ab0f62d9428e20eae.jpg",
+          "link": "/portfolio-1"
+        },
+        {
+          "label": "CHARACTER DESIGN",
+          "image": "/uploads/0b0535_b25493dde44b4c0ab561d2fcfbf2460c.jpeg",
+          "link": "/portfolio-3"
+        },
+        {
+          "label": "PRODUCT DESIGN",
+          "image": "/uploads/0b0535_ba49d4be933243ffb4ecc321fdef61b7.jpg",
+          "link": "/product-design"
+        },
+        {
+          "label": "FYP PROJECT",
+          "image": "/uploads/0b0535_89cbd98bfdb34473863cea29739bdd6e.jpg",
+          "link": "/portfolio-2"
+        }
+      ]
+    },
+    "contact": {
+      "heading": "Say Hello",
+      "text": "Feel free to reach out for collaborations or project inquiries. I look forward to hearing from you and will respond as soon as possible.",
+      "emailLine": "Email: alones223@gmail.com",
+      "labelName": "姓名",
+      "labelEmail": "電子郵件",
+      "labelSubject": "主旨",
+      "labelMessage": "訊息",
+      "labelSubmit": "提交",
+      "successMessage": "感謝你的訊息！我會盡快回覆。"
+    },
+    "marquee": "CREATIVE PROJECTS • DESIGN STRATEGY • VISUAL DIRECTION",
+    "sections": [
+      {
+        "id": "s-about-canvas",
+        "name": "About Me",
+        "heading": "About Me",
+        "layout": "canvas",
+        "canvasHeight": 820,
+        "canvasBg": "#E1E5EB",
+        "layers": [
+          {
+            "id": "l-decor-top",
+            "type": "heading",
+            "name": "Ghost word (top)",
+            "x": 60,
+            "y": 30,
+            "w": 1305,
+            "h": 210,
+            "text": "ABOUT ME",
+            "size": 200,
+            "weight": 700,
+            "align": "center",
+            "color": "#F2F4F7",
+            "letterSpacing": 4,
+            "anim": "none",
+            "animated": false,
+            "z": 1
+          },
+          {
+            "id": "l-heading",
+            "type": "heading",
+            "name": "Heading \"About Me\"",
+            "x": 176,
+            "y": 171,
+            "w": 700,
+            "h": 80,
+            "text": "About Me",
+            "size": 54,
+            "weight": 700,
+            "align": "left",
+            "color": "#0A192F",
+            "anim": "up",
+            "duration": 0.9,
+            "delay": 0,
+            "z": 2
+          },
+          {
+            "id": "l-rule",
+            "type": "divider",
+            "name": "Accent bar",
+            "x": 255,
+            "y": 318,
+            "w": 230,
+            "h": 8,
+            "color": "#95B8FE",
+            "anim": "up",
+            "duration": 0.9,
+            "delay": 0.15,
+            "z": 3
+          },
+          {
+            "id": "l-intro",
+            "type": "text",
+            "name": "Intro paragraph",
+            "x": 255,
+            "y": 360,
+            "w": 520,
+            "h": 220,
+            "hugging": true,
+            "size": 17,
+            "lineHeight": 1.55,
+            "color": "#4F5E75",
+            "anim": "up",
+            "duration": 0.9,
+            "delay": 0.25,
+            "text": "Hi , I am Abbie Yeung ! A Graduated Student from Creative Media.\nI am an artist focused on multimedia and illustration design, skilled at blending delicate visual language into digital media. My design style is clean yet expressive, with a strong sense of storytelling. Through my work, I aim to build visual experiences that are both aesthetically pleasing and emotionally engaging.",
+            "z": 4
+          },
+          {
+            "id": "l-outro",
+            "type": "text",
+            "name": "Second paragraph",
+            "x": 833,
+            "y": 360,
+            "w": 520,
+            "h": 220,
+            "hugging": true,
+            "size": 17,
+            "lineHeight": 1.55,
+            "color": "#4F5E75",
+            "anim": "up",
+            "duration": 0.9,
+            "delay": 0.4,
+            "text": "I believe that great design is more than a visual outcome; it’s a vessel for meaning. In every project, I remain committed to a core concept, solving problems through pure form to build a sincere connection between brand and audience.",
+            "z": 5
+          }
+        ],
+        "buttons": [],
+        "items": [],
+        "text": "",
+        "textAfter": "Hi , I am Abbie Yeung ! A Graduated Student from Creative Media.\nI am an artist focused on multimedia and illustration design, skilled at blending delicate visual language into digital media. My design style is clean yet expressive, with a strong sense of storytelling. Through my work, I aim to build visual experiences that are both aesthetically pleasing and emotionally engaging."
+      }
+    ]
+  },
+  "pages": [
+    {
+      "id": "p-artworks",
+      "slug": "portfolio",
+      "navLabel": "Artworks",
+      "showInNav": true,
+      "title": "ARTWORKS",
+      "subtitle": "A selection of my visual art projects and experiments, exploring different styles, moods and storytelling through images.",
+      "heroImage": "/uploads/0b0535_5507d038a9634f0a99e315eac213887a.jpg",
+      "sections": [
+        {
+          "id": "s-songjacket",
+          "heading": "Song Jacket Design",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "gallery",
+          "columns": 3,
+          "aspect": "square",
+          "items": [
+            {
+              "image": "/uploads/0b0535_7f0f213a841e4b76a496f506d95448ce.png",
+              "caption": "collab w/ @Wunton.\nSong Jacket :Elegance Protocol",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_d616a93ca451424c97dc06256ba25b28.jpg",
+              "caption": "collab w/ @linlin\nSong Jacket : 稜鏡軌跡",
+              "link": "https://www.youtube.com/watch?v=ddudvrJfHWo&list=RDddudvrJfHWo&start_radio=1"
+            },
+            {
+              "image": "/uploads/0b0535_4e30b5c5c3c74d8d8323017f09a031b5.jpg",
+              "caption": "Fanart ot music game : maimaiDX",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_6799b4490e064aa181be3842b830696c.png",
+              "caption": "Fanart ot music game : maimaiDX",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_ec83defde03c4b0899c0189f7c70c61d.png",
+              "caption": "Fanart ot music game : maimaiDX",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_22d8e04d7365485eb214b59f56ba1e92.png",
+              "caption": "Fanart ot music game : maimaiDX",
+              "link": ""
+            }
+          ],
+          "buttons": [],
+          "layers": []
+        },
+        {
+          "id": "s-illus-bg",
+          "heading": "Illustration (with background)",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "gallery",
+          "columns": 3,
+          "aspect": "square",
+          "items": [
+            {
+              "image": "/uploads/0b0535_c9792f421fbb49efb34ced569fdcc39f.jpg",
+              "caption": "Fanart ot music game : Chunithm",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg",
+              "caption": "Fanart ot music game : maimaiDX",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_e5faeefca5e04f88a15d586f3c2a3ada.jpg",
+              "caption": "Fanart ot music game : maimaiDX",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_2be2be01ad8b46738942ddc8c7ec17b3.jpg",
+              "caption": "Fanart ot music game : maimaiDX",
+              "link": ""
+            }
+          ],
+          "buttons": []
+        },
+        {
+          "id": "s-illus-simple",
+          "heading": "Illustrations (with simple background)",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "gallery",
+          "columns": 3,
+          "aspect": "square",
+          "items": [
+            {
+              "image": "/uploads/0b0535_99192f009421451483e30ce7bd7ce7cf.jpg",
+              "caption": "",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_99831b40dac1473a9cd40955d9c88c99.jpg",
+              "caption": "",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_7bad77e8822140929ddac9723dc8de39.jpg",
+              "caption": "",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_323c7c976d154246bec74eb59066d9c7.jpg",
+              "caption": "",
+              "link": ""
+            }
+          ],
+          "buttons": []
+        }
+      ]
+    },
+    {
+      "id": "p-illustrator",
+      "slug": "portfolio-1",
+      "navLabel": "illustrator works",
+      "showInNav": true,
+      "title": "ILLUSTRATOR WORK",
+      "subtitle": "A selection of my works using illustrator to create.",
+      "heroImage": "/uploads/0b0535_3503c79805ef4c88a6c371464ba316f1.jpg",
+      "sections": [
+        {
+          "id": "s-fanbooks",
+          "heading": "Fanbooks",
+          "align": "center",
+          "text": "",
+          "textAfter": "",
+          "layout": "canvas",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
+              "caption": "",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_432a7366437c4a409df85bf34cfeae4d.jpg",
+              "caption": "",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_6e74dfe04ae5430099698383be6714ec.jpg",
+              "caption": "",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_fe9f25ee1d934171b053c50cf8318af3.jpg",
+              "caption": "",
+              "link": ""
+            }
+          ],
+          "buttons": [],
+          "layers": [
+            {
+              "id": "l-oucnepl",
+              "type": "heading",
+              "name": "Heading",
+              "x": 572,
+              "y": 57,
+              "w": 900,
+              "h": 90,
+              "text": "Fanbooks",
+              "src": "",
+              "alt": "",
+              "link": "",
+              "hidden": false,
+              "locked": false,
+              "z": 0,
+              "color": "",
+              "bg": "",
+              "font": "",
+              "size": 46,
+              "weight": 700,
+              "align": "left",
+              "lineHeight": 1.25,
+              "letterSpacing": 0,
+              "radius": 0,
+              "borderWidth": 0,
+              "borderColor": "",
+              "fit": "cover",
+              "animated": true,
+              "anim": "up",
+              "delay": 0,
+              "duration": 0.9,
+              "images": [],
+              "columns": 3,
+              "gap": 16,
+              "aspect": "natural",
+              "hugging": false,
+              "buttonStyle": "pill",
+              "newTab": true
+            },
+            {
+              "id": "l-spwoanw",
+              "type": "gallery",
+              "name": "Images",
+              "x": 60,
+              "y": 213,
+              "w": 1305,
+              "h": 1213,
+              "text": "",
+              "src": "",
+              "alt": "",
+              "link": "",
+              "hidden": false,
+              "locked": false,
+              "z": 0,
+              "color": "",
+              "bg": "",
+              "font": "",
+              "size": 28,
+              "weight": 700,
+              "align": "left",
+              "lineHeight": 1.25,
+              "letterSpacing": 0,
+              "radius": 0,
+              "borderWidth": 0,
+              "borderColor": "",
+              "fit": "cover",
+              "animated": true,
+              "anim": "up",
+              "delay": 0,
+              "duration": 0.9,
+              "images": [
+                {
+                  "image": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
+                  "caption": "",
+                  "link": ""
+                },
+                {
+                  "image": "/uploads/0b0535_432a7366437c4a409df85bf34cfeae4d.jpg",
+                  "caption": "",
+                  "link": ""
+                },
+                {
+                  "image": "/uploads/0b0535_6e74dfe04ae5430099698383be6714ec.jpg",
+                  "caption": "",
+                  "link": ""
+                },
+                {
+                  "image": "/uploads/0b0535_fe9f25ee1d934171b053c50cf8318af3.jpg",
+                  "caption": "",
+                  "link": ""
+                }
+              ],
+              "columns": 2,
+              "gap": 16,
+              "aspect": "natural",
+              "hugging": false,
+              "buttonStyle": "pill",
+              "newTab": true
+            },
+            {
+              "id": "l-l5bvn35",
+              "type": "divider",
+              "name": "Divider line 3",
+              "x": 481,
+              "y": 157,
+              "w": 420,
+              "h": 2,
+              "text": "",
+              "src": "",
+              "alt": "",
+              "link": "",
+              "hidden": true,
+              "locked": false,
+              "z": 1,
+              "color": "#0A192F",
+              "bg": "",
+              "font": "",
+              "size": 28,
+              "weight": 700,
+              "align": "left",
+              "lineHeight": 1.25,
+              "letterSpacing": 0,
+              "radius": 0,
+              "borderWidth": 0,
+              "borderColor": "",
+              "fit": "cover",
+              "animated": true,
+              "anim": "fade",
+              "delay": 0,
+              "duration": 0.9,
+              "images": [],
+              "columns": 3,
+              "gap": 16,
+              "aspect": "natural",
+              "hugging": false,
+              "buttonStyle": "pill",
+              "newTab": true
+            }
+          ],
+          "canvasHeight": 2160
+        },
+        {
+          "id": "s-ff47",
+          "heading": "Price List Design @ Fancy Frontier 47",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "gallery",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_62e265d403904d4da15447c3200e8ed0.jpg",
+              "caption": "",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_358d0d96f3744bf294e1d3666298e8ec.jpg",
+              "caption": "",
+              "link": ""
+            }
+          ],
+          "buttons": [],
+          "layers": []
+        },
+        {
+          "id": "s-if16",
+          "heading": "Price List Design @ Illusion Feather 16",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "gallery",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_82719dab230a4eec8c2ba8385fd9e26d.png",
+              "caption": "",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_ad6f51ffb9254266b3b890abf5d2c150.jpg",
+              "caption": "",
+              "link": ""
+            }
+          ],
+          "buttons": [],
+          "layers": []
+        },
+        {
+          "id": "s-rg33",
+          "heading": "Price List Design @ Rainbow Gala 33",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "gallery",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_943c0778d8a840d0bac067721644a028.jpg",
+              "caption": "",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_1246863b2d134ec289eb823f3c9e9668.jpg",
+              "caption": "",
+              "link": ""
+            }
+          ],
+          "buttons": [],
+          "layers": []
+        },
+        {
+          "id": "s-ff45",
+          "heading": "Price List Design @ Fancy Frontier 45",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "gallery",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_9631d0f0feb14af3bb5644b08f784235.jpg",
+              "caption": "",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_505cd74046ab413497817849fe4dfd6c.jpg",
+              "caption": "",
+              "link": ""
+            }
+          ],
+          "buttons": [],
+          "layers": []
+        }
+      ]
+    },
+    {
+      "id": "p-character",
+      "slug": "portfolio-3",
+      "navLabel": "Character Design",
+      "showInNav": true,
+      "title": "Character Design",
+      "subtitle": "A selection of my previous character design work.",
+      "heroImage": "/uploads/0b0535_1a2b6f24ec994d4bbd52386f05e021ab.jpg",
+      "sections": [
+        {
+          "id": "s-prism",
+          "heading": "Character Design for - \"稜鏡軌跡\"",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "showcase",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_5f625af70b8e47d9bd992628ecd9b5f1.jpg",
+              "caption": "Final Work",
+              "link": "",
+              "wide": true
+            },
+            {
+              "image": "/uploads/0b0535_c927adecefdb49799afda354bb5d4c69.jpg",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_6b4345e0326d40af89f2fa93f17c2bad.jpeg",
+              "caption": "Clothes design for 稜鏡軌跡\n\nidea based on\n\"Umbrella\" \"Raining\"\n\"Glass Prism\"",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_4311912102fb4045b31a58f136732ae7.png",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_9b3ba633b6dd4ee9a528f2b1910d1f03.png",
+              "caption": "",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": [],
+          "layers": []
+        },
+        {
+          "id": "s-elegance",
+          "heading": "Character Design for - \"Elegance Protocol\"",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "showcase",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_96e92602ac9b4483a978ac2cf80422f2.jpg",
+              "caption": "Final Work",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_b25493dde44b4c0ab561d2fcfbf2460c.jpeg",
+              "caption": "Clothes Design for Elegance Procotol\nIt shares the same characrer with 稜鏡軌跡",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_3048fd87cc01436bb0dd1e98ce136bb2.jpg",
+              "caption": "1st Draft of Elegance Procotol",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": [],
+          "layers": []
+        },
+        {
+          "id": "s-silvercord",
+          "heading": "Character Design for\nSilvercord Game Centre",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "showcase",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_a92e30a5d71b4494960f7056e3bff07e.jpeg",
+              "caption": "There were two different colour plans and compositions.\nRight side was chosen.",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_786cb18bf3d84ce5a168214282ea8830.jpeg",
+              "caption": "As Silvercord Game Centre is called \"新宿駅新港機城\", and the target audience for the app is rhythm game player,\nI had created a train conductor with some music related element,\nthats why she is wearing headphones and holding a MP3.",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_1f026abbd2224876bcfa71046fe73f74.jpg",
+              "caption": "Final Work",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
+              "caption": "Arcade Live stream cover",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": [],
+          "layers": []
+        },
+        {
+          "id": "s-mermaid",
+          "heading": "Character Design - Mermaid",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "showcase",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_ddee362f77904042b00238806c6b04c1.jpg",
+              "caption": "Final Work",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_36a02aae5dce4e4f9bec82e3c52df540.jpeg",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_ebf5c5d5284d4cfabf1e40ae065e4ec4.jpg",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_579679073098465789305a35e85b7eca.jpg",
+              "caption": "1st apperance of the mermaid character.",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": [],
+          "layers": []
+        },
+        {
+          "id": "s-fyp-chars",
+          "heading": "Character Design For FYP animation",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "showcase",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_7fc30f8ac4d845f281d860dd8212907d.jpeg",
+              "caption": "",
+              "link": "",
+              "wide": true
+            },
+            {
+              "image": "/uploads/0b0535_0569b4903a724a8994cadca8ce6684f9.png",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_b18d0b9404614e73b304467561e0a558.png",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_99c3758cfef84d45868a618e76805329.png",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_218bcbce999c49c5983174db40288a2c.png",
+              "caption": "",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": [],
+          "layers": []
+        },
+        {
+          "id": "s-oc",
+          "heading": "Original Character",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "showcase",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_9052d7555d844942bde8d19cc82d3f5f.png",
+              "caption": "Final work",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_d64175f85a6e4068ab93c5ef57eb27f4.jpeg",
+              "caption": "Design Draft",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": [],
+          "layers": []
+        }
+      ]
+    },
+    {
+      "id": "p-product",
+      "slug": "product-design",
+      "navLabel": "product design",
+      "showInNav": true,
+      "title": "Product Design",
+      "subtitle": "A collection of my products in my previous Artist Alley.",
+      "heroImage": "/uploads/0b0535_ba49d4be933243ffb4ecc321fdef61b7.jpg",
+      "sections": [
+        {
+          "id": "s-ff47-products",
+          "heading": "Fancy Froniter 47 series",
+          "align": "center",
+          "text": "",
+          "textAfter": "",
+          "layout": "cards",
+          "columns": 2,
+          "aspect": "4:3",
+          "items": [
+            {
+              "image": "/uploads/0b0535_ba49d4be933243ffb4ecc321fdef61b7.jpg",
+              "caption": "Acrylic Stand",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_b1ac92ee6b724b9f8d1064e5a8fc5c1c.jpg",
+              "caption": "Artwork Book",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_7140d249395f499aa8dbe33bc6082455.jpg",
+              "caption": "Acrylic Keychain",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_2b6c21c359974f78ae164bf14b987cce.jpg",
+              "caption": "Acrylic Art Board",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_40818952c7ee4012916e2f4a73ebc4c3.jpg",
+              "caption": "Card Stickers",
+              "link": ""
+            }
+          ],
+          "buttons": []
+        },
+        {
+          "id": "s-rg33-products",
+          "heading": "Rainbow Gala 33 series",
+          "align": "center",
+          "text": "",
+          "textAfter": "",
+          "layout": "cards",
+          "columns": 3,
+          "aspect": "4:5",
+          "items": [
+            {
+              "image": "/uploads/0b0535_6f890c9065f84201b15cefd3d4d88484.jpg",
+              "caption": "Bag Design",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_cb3b0e4356504be7b927696b30a8e6ad.jpg",
+              "caption": "Sticker & Acrylic Keychain",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_330b0356f42c4fb4b898c37852330eac.jpg",
+              "caption": "Books & Prints",
+              "link": ""
+            }
+          ],
+          "buttons": []
+        }
+      ]
+    },
+    {
+      "id": "p-fyp",
+      "slug": "portfolio-2",
+      "navLabel": "Animations(FYP)",
+      "showInNav": true,
+      "title": "FYP project",
+      "subtitle": "A selection of my FYP group project animation show case.",
+      "heroImage": "/uploads/0b0535_c0fb2991261b48079a9af65d228f5c5e.jpg",
+      "sections": [
+        {
+          "id": "s-about-project",
+          "heading": "About This Project",
+          "align": "center",
+          "text": "Garden of Sound and Memory is an immersive installation that blends interactive animation with real-time audio. Audiences navigate a seasonal cycle, experiencing a poignant narrative of connection and separation through music they help generate.\nThe plot of the animation is based on our memories, and we use those experiences to write a story to express the feelings in those memories.\nOne of the stories is about the connection between the environment and humans, and the other story is about the connection between people.",
+          "textAfter": "",
+          "layout": "showcase",
+          "columns": 1,
+          "aspect": "natural",
+          "items": [],
+          "buttons": [],
+          "layers": []
+        },
+        {
+          "id": "s-artwork",
+          "heading": "The artwork",
+          "align": "center",
+          "text": "",
+          "textAfter": "The installation keeps looping the both sides of the story from spring to winter,\nthe audiance can generate music in the interactive part to help the story continues.",
+          "layout": "showcase",
+          "columns": 1,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
+              "caption": "",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": [
+            {
+              "label": "Demo Full Video",
+              "url": "https://youtu.be/KHLJnf5X_5g"
+            }
+          ]
+        },
+        {
+          "id": "s-role",
+          "heading": "My role - Animator & Illustrator",
+          "align": "center",
+          "text": "",
+          "textAfter": "Clips from the animation.",
+          "layout": "showcase",
+          "columns": 1,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_fd3f565288874af89c02a5fb0b2c9f25.webp",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_767a8977782b438589fea9f9d5321fba.webp",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_6900dad63e2c492894a2203b7d9e3570.webp",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_683790f796904d08917ff3143f5d9d6b.webp",
+              "caption": "",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": [
+            {
+              "label": "Animation Full Video",
+              "url": "https://youtu.be/L4Cxz96hIxQ"
+            }
+          ]
+        },
+        {
+          "id": "s-clips",
+          "heading": "Animation Clips",
+          "align": "left",
+          "text": "In four seasons",
+          "textAfter": "",
+          "layout": "showcase",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_acf47a340f20429997482d47abeab09a.gif",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_ef213fb0acca48d98061b993547ad652.gif",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_d14ef67d853e423d9dac5b82033719ba.gif",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_eb32c762b9c546aea03bb932b0cd678d.gif",
+              "caption": "",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": []
+        },
+        {
+          "id": "s-scene",
+          "heading": "Scene Changes Clips",
+          "align": "left",
+          "text": "Switching between Seasons",
+          "textAfter": "",
+          "layout": "showcase",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_092cea2ffa9444fbad661891ae3c1da1.gif",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_d14698a587344e0bbc4f7153d739624b.gif",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_0d030761ce7f4c7796f1fd2c07f44d22.gif",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_218f135020544e30b1e23d63d478e2ca.gif",
+              "caption": "",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": []
+        },
+        {
+          "id": "s-breakdown",
+          "heading": "Animation Breakdown",
+          "align": "left",
+          "text": "The animation part of Garden of Sound and Memory is based on motion graphic,\nincluding character modeling, rigging, and animating.",
+          "textAfter": "",
+          "layout": "showcase",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_914fbf39ec0f429697952ba3842a84aa.webp",
+              "caption": "The model breakdown.",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_4dd0cfd889584a748f4dc59e90533da7.png",
+              "caption": "Editable model after rigging using dulk angela(after effects plugin)",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_4af543160b464ebbbefc2939c255bca6.gif",
+              "caption": "The model is able to move left and right",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_cc6b404f625648f3980599d89f7fa5af.gif",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_98f8d5dec5484988b2971255c3e9c567.gif",
+              "caption": "Walk + Running cycle animation",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": []
+        },
+        {
+          "id": "s-breakdown2",
+          "heading": "Animation Breakdown2",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "showcase",
+          "columns": 2,
+          "aspect": "natural",
+          "items": [
+            {
+              "image": "/uploads/0b0535_465ef922775d4d54a0e5ee7dde1b55fd.gif",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_0536884c8e2d4de3acde4a80c53f1940.gif",
+              "caption": "Combined animation clips.",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_8d340ff43f1043359a1eb8296ba37574.png",
+              "caption": "Each animations has a seperate folder, different layers are used for connecting them together.",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_320f7fb98cf543e598cdce701c42150c.gif",
+              "caption": "Final outcome with shading.",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_0b35f68d050542758773bd7cbf6dcf56.gif",
+              "caption": "",
+              "link": "",
+              "wide": false
+            },
+            {
+              "image": "/uploads/0b0535_8f93114da8f44539951c7b5a4dd90fe2.png",
+              "caption": "Face expressions controlled by different layers.",
+              "link": "",
+              "wide": false
+            }
+          ],
+          "buttons": []
+        }
+      ]
+    },
+    {
+      "id": "p-jwyrym",
+      "slug": "ai-projects",
+      "navLabel": "Nigga",
+      "showInNav": true,
+      "title": "NEW PAGE",
+      "subtitle": "",
+      "heroImage": "/uploads/IMG1207-b9c037.jpg",
+      "sections": [
+        {
+          "heading": "New section",
+          "align": "left",
+          "text": "",
+          "textAfter": "",
+          "layout": "canvas",
+          "canvasHeight": 640,
+          "canvasBg": "",
+          "layers": [
+            {
+              "type": "heading",
+              "name": "Heading",
+              "x": 60,
+              "y": 70,
+              "w": 900,
+              "h": 80,
+              "text": "New section",
+              "src": "",
+              "alt": "",
+              "link": "",
+              "hidden": false,
+              "locked": false,
+              "z": 0,
+              "color": "",
+              "bg": "",
+              "font": "",
+              "size": 46,
+              "weight": 700,
+              "align": "left",
+              "lineHeight": 1.25,
+              "letterSpacing": 0,
+              "radius": 0,
+              "borderWidth": 0,
+              "borderColor": "",
+              "fit": "cover",
+              "animated": true,
+              "anim": "up",
+              "delay": 0,
+              "duration": 0.9,
+              "images": [],
+              "columns": 3,
+              "gap": 16,
+              "aspect": "square",
+              "hugging": false,
+              "buttonStyle": "pill",
+              "newTab": true,
+              "id": "l-44a5e7"
+            },
+            {
+              "type": "text",
+              "name": "Text",
+              "x": 60,
+              "y": 170,
+              "w": 620,
+              "h": 120,
+              "text": "Write something here.",
+              "src": "",
+              "alt": "",
+              "link": "",
+              "hidden": false,
+              "locked": false,
+              "z": 0,
+              "color": "",
+              "bg": "",
+              "font": "",
+              "size": 18,
+              "weight": 400,
+              "align": "left",
+              "lineHeight": 1.25,
+              "letterSpacing": 0,
+              "radius": 0,
+              "borderWidth": 0,
+              "borderColor": "",
+              "fit": "cover",
+              "animated": true,
+              "anim": "fade",
+              "delay": 0,
+              "duration": 0.9,
+              "images": [],
+              "columns": 3,
+              "gap": 16,
+              "aspect": "square",
+              "hugging": true,
+              "buttonStyle": "pill",
+              "newTab": true,
+              "id": "l-edc309"
+            }
+          ],
+          "columns": 3,
+          "aspect": "square",
+          "items": [],
+          "buttons": [],
+          "id": "s-5aa1b0"
+        }
+      ]
+    }
+  ]
+}
