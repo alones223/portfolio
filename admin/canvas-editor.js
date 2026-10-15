@@ -318,6 +318,16 @@ window.CanvasEditorUI = (function () {
         : h('img', { src: safeUrl(l.src), alt: '', draggable: 'false', style: mediaStyle });
       return [media];
     }
+    if (l.type === 'group') {
+      const board = h('div', { class: 'cv-group-board' });
+      (l.children || []).forEach((child) => {
+        board.append(h('div', {
+          class: 'cv-group-child',
+          style: `left:${Math.round(Number(child.x) || 0)}px;top:${Math.round(Number(child.y) || 0)}px;width:${Math.max(1, Number(child.w) || 1)}px;height:${Math.max(1, Number(child.h) || 1)}px;${layerStyle(child)}${layerTurn(child)}`,
+        }, ...drawLayerContent(child)));
+      });
+      return [board];
+    }
     if (l.type === 'gallery') {
       const images = l.images || [];
       if (l.freeform) {
@@ -826,24 +836,112 @@ window.CanvasEditorUI = (function () {
       const list = layers();
       const index = list.findIndex((item) => item.id === l.id);
       if (index < 0) return;
+      const cols = clamp(Number(l.columns) || 3, 1, 4);
+      const gap = Number(l.gap) || 0;
+      const cellW = Math.max(20, Math.round((Number(l.w) - gap * Math.max(0, cols - 1)) / cols));
       const made = images.map((item, i) => {
-        const grid = cellBox(l, i);
+        const col = i % cols;
         return M.defaultLayer('image', {
           name: item.caption || `Image ${i + 1}`,
           src: item.image || '',
           alt: item.caption || '',
           link: item.link || '',
-          fit: l.fit || 'cover',
-          x: Math.round(l.x + (l.freeform ? (Number(item.x) || 0) : grid.x)),
-          y: Math.round(l.y + (l.freeform ? (Number(item.y) || 0) : grid.y)),
-          w: Math.max(20, Math.round(l.freeform ? (Number(item.w) || grid.w) : grid.w)),
-          h: Math.max(20, Math.round(l.freeform ? (Number(item.h) || grid.h) : grid.h)),
+          fit: 'contain',
+          x: Math.round(l.x + col * (cellW + gap)),
+          y: Math.round(l.y),
+          w: cellW,
+          h: cellW,
         });
       });
       list.splice(index, 1, ...made);
       applyOrder(ordered());
+      const reflow = () => {
+        let y = Math.round(l.y);
+        for (let row = 0; row < Math.ceil(made.length / cols); row++) {
+          const line = made.slice(row * cols, row * cols + cols);
+          let rowH = cellW;
+          line.forEach((layer) => {
+            const ratio = Number(layer.aspectRatio);
+            if (ratio > 0) layer.h = Math.max(20, Math.round(layer.w / ratio));
+            rowH = Math.max(rowH, Number(layer.h) || cellW);
+          });
+          line.forEach((layer) => { layer.y = y; });
+          y += rowH + gap;
+        }
+        paintBoard();
+      };
+      let waiting = 0;
+      made.forEach((layer) => {
+        if (!layer.src) return;
+        waiting += 1;
+        const img = new Image();
+        const done = () => {
+          if (img.naturalWidth > 0 && img.naturalHeight > 0) layer.aspectRatio = img.naturalWidth / img.naturalHeight;
+          waiting -= 1;
+          reflow();
+          if (waiting <= 0) onChange();
+        };
+        img.onload = done;
+        img.onerror = done;
+        img.src = layer.src;
+      });
+      reflow();
       onChange();
       selectOnly(made[0] ? made[0].id : null);
+    }
+
+    function groupSelection() {
+      const members = ordered().filter((l) => selectedIds.has(l.id) && !l.locked);
+      if (members.length < 2) return;
+      record();
+      const list = layers();
+      const minX = Math.min(...members.map((l) => l.x));
+      const minY = Math.min(...members.map((l) => l.y));
+      const maxX = Math.max(...members.map((l) => l.x + (Number(l.w) || 0)));
+      const maxY = Math.max(...members.map((l) => l.y + (boxHeight(l) || Number(l.h) || 0)));
+      const children = members.map((l) => {
+        const copy = JSON.parse(JSON.stringify(l));
+        copy.x = Math.round(l.x - minX);
+        copy.y = Math.round(l.y - minY);
+        return copy;
+      });
+      const ids = new Set(members.map((l) => l.id));
+      for (let i = list.length - 1; i >= 0; i--) if (ids.has(list[i].id)) list.splice(i, 1);
+      const group = M.defaultLayer('group', {
+        name: 'Group',
+        x: Math.round(minX),
+        y: Math.round(minY),
+        w: Math.max(20, Math.round(maxX - minX)),
+        h: Math.max(20, Math.round(maxY - minY)),
+        z: nextZ(),
+        children,
+      });
+      list.push(group);
+      applyOrder(ordered());
+      onChange();
+      selectOnly(group.id);
+    }
+
+    function ungroupLayer(l) {
+      const kids = l.children || [];
+      if (!kids.length) return;
+      record();
+      const list = layers();
+      const index = list.findIndex((item) => item.id === l.id);
+      if (index < 0) return;
+      const made = kids.map((child) => {
+        const copy = JSON.parse(JSON.stringify(child));
+        copy.id = copy.id || `l-${Math.random().toString(36).slice(2, 9)}`;
+        copy.x = Math.round(l.x + (Number(child.x) || 0));
+        copy.y = Math.round(l.y + (Number(child.y) || 0));
+        copy.z = nextZ();
+        return copy;
+      });
+      list.splice(index, 1, ...made);
+      applyOrder(ordered());
+      onChange();
+      selectedIds = new Set(made.map((item) => item.id));
+      render();
     }
 
     function selectOnly(id) {
@@ -1696,7 +1794,7 @@ window.CanvasEditorUI = (function () {
           h('button', { class: 'btn small', type: 'button', title: 'Fit the whole board in the panel', onclick: () => setScale(1, true) }, 'Fit')));
     }
 
-    const ICONS = { heading: 'T', text: '¶', paragraph: '☰', image: '▣', gallery: '▦', button: '⬭', divider: '—', shape: '▭' };
+    const ICONS = { heading: 'T', text: '¶', paragraph: '☰', image: '▣', gallery: '▦', group: '⧉', button: '⬭', divider: '—', shape: '▭' };
 
     // A paragraph keeps its width and grows downward as the words wrap.
     function fitParagraphHeight(el, box, l) {
@@ -2077,7 +2175,9 @@ window.CanvasEditorUI = (function () {
       groups.unshift(inspectorTabs());
 
       if (count > 1) {
-        groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Selection'), layerMenu([...selectedIds])));
+        groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Selection'),
+          layerMenu([...selectedIds], [{ label: 'Group', run: () => groupSelection() }]),
+          h('button', { class: 'btn small', type: 'button', onclick: () => groupSelection() }, 'Group')));
         groups.push(alignPanel(count));
         mountFunctions(...groups);
         finish();
@@ -2116,22 +2216,15 @@ window.CanvasEditorUI = (function () {
           content.push(h('p', { class: 'cv-hint' }, 'Original shape locks every image to its own proportions. The height of the group follows the pictures, so they are not cropped.'));
         }
         content.push(galleryField(l));
-        content.push((() => {
-          const box = h('input', { type: 'checkbox', checked: Boolean(l.freeform) });
-          box.addEventListener('change', () => {
-            record();
-            l.freeform = box.checked;
-            if (l.freeform) layoutFreeform(l);
-            onChange();
-            render();
-          });
-          return h('label', { class: 'cv-check' }, box, 'Freeform layout');
-        })());
-        content.push(h('p', { class: 'cv-hint' }, 'Freeform lets you drag each image inside the group, and drag its corner to resize it. Turning it on starts from the current grid.'));
         content.push(h('button', {
           class: 'btn small', type: 'button',
           onclick: () => separateGallery(l),
         }, 'Separate into images'));
+        content.push(h('p', { class: 'cv-hint' }, 'Each picture becomes its own layer and keeps its full shape. Nothing is cropped.'));
+      }
+      if (l.type === 'group') {
+        content.push(h('p', { class: 'cv-hint' }, `${(l.children || []).length} layers move together.`));
+        content.push(h('button', { class: 'btn small', type: 'button', onclick: () => ungroupLayer(l) }, 'Ungroup'));
       }
       if (l.type === 'shape') {
         const shapeSel = h('select', null, [
@@ -2194,6 +2287,7 @@ window.CanvasEditorUI = (function () {
         isTextual(l) ? h('p', { class: 'cv-hint' }, 'Double-click or double-tap the text on the board to edit it. Drag a corner to scale it. Drag an edge to change the box without changing the type size.') : null,
         h('div', { class: 'cv-btnrow' },
           layerMenu([l.id], [
+            l.type === 'group' ? { label: 'Ungroup', run: () => ungroupLayer(l) } : null,
             { label: 'Duplicate layer', run: () => duplicateLayer(l.id) },
             { label: 'Delete layer', danger: true, run: () => removeLayer(l.id) },
           ])));

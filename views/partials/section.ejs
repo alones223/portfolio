@@ -57,6 +57,27 @@
               </span>
               <% if (l.link) { %></a><% } %>
             <% } %>
+          <% } else if (l.type === 'group') { %>
+            <div class="layer-group">
+              <% (l.children || []).forEach(function (c) {
+                   const cx = Math.round(Number(c.x) || 0);
+                   const cy = Math.round(Number(c.y) || 0);
+                   const cw = Math.max(1, Math.round(Number(c.w) || 1));
+                   const ch = Math.max(1, Math.round(Number(c.h) || 1));
+              %>
+                <div class="layer-group-child" style="left:<%= cx %>px;top:<%= cy %>px;width:<%= cw %>px;height:<%= ch %>px;">
+                  <% if (c.type === 'image' && c.src) { %>
+                    <img src="<%= safeUrl(c.src) %>" alt="<%= c.alt || '' %>" style="object-fit:<%= c.fit === 'contain' || c.fit === 'fill' ? c.fit : 'cover' %>">
+                  <% } else if (c.type === 'heading') { %>
+                    <div class="layer-heading"><%- layerText(c.text) %></div>
+                  <% } else if (c.type === 'text' || c.type === 'paragraph') { %>
+                    <div class="layer-text<%= c.type === 'paragraph' ? ' is-paragraph' : '' %>"><%- paragraphs(c.text) %></div>
+                  <% } else if (c.type === 'shape') { %>
+                    <span class="layer-shape" style="background:<%= esc(safeColor(c.bg) || '#E1E5EB') %>"></span>
+                  <% } %>
+                </div>
+              <% }) %>
+            </div>
           <% } else if (l.type === 'gallery' && l.freeform) { %>
             <div class="layer-free">
               <% (l.images || []).forEach(function (item, i) {

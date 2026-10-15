@@ -193,7 +193,7 @@ function isExternal(url) {
 // ---------------------------------------------------------------------------
 
 const ANIMATIONS = new Set(['none', 'fade', 'up', 'down', 'left', 'right', 'zoom', 'zoomOut', 'float', 'pulse']);
-const LAYER_TYPES = new Set(['heading', 'text', 'paragraph', 'image', 'gallery', 'button', 'divider', 'shape']);
+const LAYER_TYPES = new Set(['heading', 'text', 'paragraph', 'image', 'gallery', 'group', 'button', 'divider', 'shape']);
 const LAYOUT_SUPPORTED = new Set(['canvas', 'gallery']);
 const LAYER_FITS = new Set(['cover', 'contain', 'fill']);
 const MAX_LAYERS = 200;
@@ -527,6 +527,11 @@ function normLayer(rawLayer, index) {
   });
   if (type === 'gallery') {
     out.images = Array.isArray(rawLayer?.images) ? rawLayer.images.map(normCell) : [];
+  }
+  if (type === 'group') {
+    out.children = Array.isArray(rawLayer?.children)
+      ? rawLayer.children.filter((child) => child && typeof child === 'object').slice(0, 40).map((child, i) => normLayer(child, i))
+      : [];
   }
   if (out.anim != null && !ANIMATIONS.has(out.anim)) out.anim = 'fade';
   if (type === 'shape') {

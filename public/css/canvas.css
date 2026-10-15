@@ -133,6 +133,9 @@
   text-align: center;
 }
 
+.layer-group { position: relative; width: 100%; height: 100%; }
+.layer-group-child { position: absolute; overflow: hidden; }
+.layer-group-child img, .layer-group-child video { width: 100%; height: 100%; display: block; }
 .layer-free { position: absolute; inset: 0; }
 .layer-free-item { position: absolute; overflow: hidden; padding: 0; border: 0; background: none; cursor: zoom-in; }
 .layer-free-item img { width: 100%; height: 100%; object-fit: cover; display: block; }

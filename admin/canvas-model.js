@@ -25,6 +25,7 @@ window.CanvasEditor = (function () {
     ['paragraph', 'Paragraph'],
     ['image', 'Image'],
     ['gallery', 'Image group'],
+    ['group', 'Group'],
     ['button', 'Button'],
     ['divider', 'Divider line'],
     ['shape', 'Shape / block'],
@@ -119,6 +120,7 @@ window.CanvasEditor = (function () {
     });
     if (type === 'image') Object.assign(base, { w: 460, h: 320, radius: 10, anim: 'zoom' });
     if (type === 'gallery') Object.assign(base, { w: 900, h: 420, anim: 'up', images: [] });
+    if (type === 'group') Object.assign(base, { w: 200, h: 200, anim: 'none', children: [] });
     if (type === 'button') Object.assign(base, { text: 'Read more', w: 200, h: 54, size: 16, weight: 600, align: 'center', anim: 'up' });
     if (type === 'divider') Object.assign(base, { w: 420, h: 2, color: '#0A192F', anim: 'fade' });
     if (type === 'shape') Object.assign(base, { w: 420, h: 220, bg: '#E1E5EB', radius: 12, anim: 'fade', shape: 'rect', shapePoints: '' });

@@ -499,6 +499,9 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-divider-fill { display: block; width: 100%; height: 100%; }
 .cv-gallery { display: grid; width: 100%; align-content: start; height: 100%; }
 .cv-gal-cell { overflow: hidden; background: #eef1f5; }
+.cv-group-board { position: absolute; inset: 0; }
+.cv-group-child { position: absolute; overflow: hidden; }
+.cv-group-child img, .cv-group-child video { width: 100%; height: 100%; display: block; }
 .cv-free { position: absolute; inset: 0; }
 .cv-free-item { position: absolute; overflow: hidden; background: #eef1f5; cursor: move; }
 .cv-free-item img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
