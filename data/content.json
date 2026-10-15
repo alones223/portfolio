@@ -42,7 +42,7 @@
     "hero": {
       "id": "s-home-hero",
       "heading": "Hero",
-      "layout": "canvas",
+      "layout": "classic",
       "canvasLock": true,
       "canvasHeight": 774,
       "canvasBg": "#617092",
