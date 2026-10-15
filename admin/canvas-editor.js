@@ -672,18 +672,19 @@ window.CanvasEditorUI = (function () {
       e.stopPropagation();
       const startY = e.clientY;
       const startH = boardHeight();
-      beginGesture();
+      pinGesture();
       const move = (ev) => {
         const dy = (ev.clientY - startY) / scale();
         section.canvasHeight = clamp(Math.round(startH + dy), 200, 4000);
-        onChange();
         paintBoard();
       };
       const up = () => {
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
-        endGesture();
+        unpinGesture();
+        paintList();
         paintInspector();
+        onChange();
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
@@ -1241,6 +1242,36 @@ window.CanvasEditorUI = (function () {
         : 'Scroll to adjust.';
     }
 
+    // Holding a number spinner changes the value many times. The step is saved
+    // once, when the mouse button is released. Typing a value still saves on its own.
+    function bindSpinnerRelease(input, write) {
+      let pending = false;
+      input.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        pinGesture();
+        pending = false;
+        const up = () => {
+          window.removeEventListener('pointerup', up);
+          window.removeEventListener('pointercancel', up);
+          const changedNow = pending;
+          pending = false;
+          unpinGesture();
+          if (changedNow) onChange();
+        };
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', up);
+      });
+      input.addEventListener('change', () => {
+        write(Number(input.value) || 0);
+        if (gesturePinned) {
+          pending = true;
+          return;
+        }
+        record();
+        onChange();
+      });
+    }
+
     function roundToStep(value, step) {
       const decimals = (String(step).split('.')[1] || '').length;
       return Number((Math.round(value / step) * step).toFixed(decimals));
@@ -1248,7 +1279,8 @@ window.CanvasEditorUI = (function () {
 
     function numField(l, key, label, min, max, step, fallback, opts = {}) {
       const stride = step || 1;
-      const releaseStep = Boolean(opts.releaseStep);
+      // A spinner drag is one step, saved when the mouse button is released.
+      const releaseStep = opts.releaseStep !== false;
       let releasePending = false;
       const read = () => {
         const n = Number(l[key]);
@@ -1430,25 +1462,59 @@ window.CanvasEditorUI = (function () {
       const alphaRead = h('span', { class: 'cv-alpha-read' }, `${Math.round(parsed.alpha * 100)}%`);
 
       // While either control is dragged only the board is repainted. Rebuilding
-      // the inspector here would destroy the control under the pointer.
-      const writeLive = () => {
-        beginGesture();
+      // the inspector here would destroy the control under the pointer. The
+      // undo step is written when the mouse button is released.
+      const paintColor = () => {
         const next = formatColor(swatch.value, Number(alpha.value) / 100);
         l[key] = next;
         text.value = next;
         alphaRead.textContent = `${alpha.value}%`;
-        onChange();
         paintBoard();
       };
-      const commit = () => { endGesture(); paintToolbar(); };
-
-      swatch.addEventListener('input', writeLive);
-      swatch.addEventListener('change', commit);
-      alpha.addEventListener('input', writeLive);
-      alpha.addEventListener('change', commit);
+      let alphaPending = false;
+      alpha.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        pinGesture();
+        alphaPending = false;
+        const up = () => {
+          window.removeEventListener('pointerup', up);
+          window.removeEventListener('pointercancel', up);
+          const pending = alphaPending;
+          alphaPending = false;
+          unpinGesture();
+          if (pending) {
+            onChange();
+            noteColor(formatColor(swatch.value, Number(alpha.value) / 100));
+          }
+          paintToolbar();
+        };
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', up);
+      });
+      alpha.addEventListener('input', () => {
+        paintColor();
+        if (gesturePinned) alphaPending = true;
+        else { beginGesture(); onChange(); }
+      });
+      let swatchPending = false;
+      swatch.addEventListener('input', () => {
+        if (!swatchPending) pinGesture();
+        swatchPending = true;
+        paintColor();
+      });
+      swatch.addEventListener('change', () => {
+        if (!swatchPending) return;
+        swatchPending = false;
+        unpinGesture();
+        onChange();
+        noteColor(formatColor(swatch.value, Number(alpha.value) / 100));
+        paintToolbar();
+      });
       bindWheel(alpha, (dir) => {
         alpha.value = String(clamp(Number(alpha.value) + dir, 0, 100));
-        writeLive();
+        paintColor();
+        beginGesture();
+        onChange();
       });
       text.addEventListener('change', () => {
         record();
@@ -1477,8 +1543,6 @@ window.CanvasEditorUI = (function () {
         M.palette.remember(value);
         palette.paint();
       };
-      swatch.addEventListener('change', () => noteColor(formatColor(swatch.value, Number(alpha.value) / 100)));
-      alpha.addEventListener('change', () => noteColor(formatColor(swatch.value, Number(alpha.value) / 100)));
       return field(label, h('div', { class: 'cv-color' },
         swatch,
         text,
@@ -1901,23 +1965,21 @@ window.CanvasEditorUI = (function () {
 
     function boardBlock() {
       const height = h('input', { type: 'number', value: boardHeight(), min: 200, max: 4000, step: 10 });
-      const applyHeight = (value) => {
+      const writeHeight = (value) => {
         section.canvasHeight = clamp(roundToStep(value, 10), 200, 4000);
         height.value = String(section.canvasHeight);
-        onChange();
         paintBoard();
       };
-      height.addEventListener('change', () => { record(); applyHeight(Number(height.value) || M.CANVAS_H); });
-      bindWheel(height, (dir) => { beginGesture(); applyHeight(boardHeight() + dir * 10); });
+      bindSpinnerRelease(height, writeHeight);
+      bindWheel(height, (dir) => { beginGesture(); writeHeight(boardHeight() + dir * 10); onChange(); });
       const width = h('input', { type: 'number', value: boardWidth(), min: WIDTH_MIN, max: WIDTH_MAX, step: 10 });
-      const applyWidth = (value) => {
+      const writeWidth = (value) => {
         section.canvasWidth = clamp(roundToStep(value, 10), WIDTH_MIN, WIDTH_MAX);
         width.value = String(section.canvasWidth);
-        onChange();
         paintBoard();
       };
-      width.addEventListener('change', () => { record(); applyWidth(Number(width.value) || M.CANVAS_W); });
-      bindWheel(width, (dir) => { beginGesture(); applyWidth(boardWidth() + dir * 10); });
+      bindSpinnerRelease(width, writeWidth);
+      bindWheel(width, (dir) => { beginGesture(); writeWidth(boardWidth() + dir * 10); onChange(); });
       return h('div', { class: 'cv-board-block' },
         h('h4', null, 'Board'),
         field('Board height', height),
@@ -1975,17 +2037,33 @@ window.CanvasEditorUI = (function () {
         'data-bg-focus': axis, 'aria-label': label,
       });
       const read = h('span', { class: 'cv-alpha-read' }, `${current}%`);
-      const apply = (value) => {
+      const write = (value) => {
         section[key] = clamp(Math.round(Number(value) || 0), 0, 100);
         input.value = String(section[key]);
         read.textContent = `${section[key]}%`;
         paintBoard();
-        onChange();
       };
-      input.addEventListener('pointerdown', () => beginGesture());
-      input.addEventListener('input', () => apply(input.value));
-      input.addEventListener('change', () => endGesture());
-      input.addEventListener('pointerup', () => endGesture());
+      let pending = false;
+      input.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        pinGesture();
+        pending = false;
+        const up = () => {
+          window.removeEventListener('pointerup', up);
+          window.removeEventListener('pointercancel', up);
+          const changedNow = pending;
+          pending = false;
+          unpinGesture();
+          if (changedNow) onChange();
+        };
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', up);
+      });
+      input.addEventListener('input', () => {
+        write(input.value);
+        if (gesturePinned) pending = true;
+        else onChange();
+      });
       return field(label, h('span', { class: 'cv-place' }, input, read));
     }
 
@@ -2011,7 +2089,7 @@ window.CanvasEditorUI = (function () {
         if (!panning && Math.hypot(dx, dy) < 3) return;
         if (!panning) {
           panning = true;
-          beginGesture();
+          pinGesture();
           board.classList.add('is-panning-bg');
         }
         const overflow = photoOverflow();
@@ -2021,13 +2099,15 @@ window.CanvasEditorUI = (function () {
         section.canvasImageY = clamp(Math.round(nextY), 0, 100);
         paintBoard();
         syncPlaceInputs();
-        onChange();
       };
       const up = () => {
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
         board.classList.remove('is-panning-bg');
-        if (panning) endGesture();
+        if (panning) {
+          unpinGesture();
+          onChange();
+        }
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
@@ -2464,7 +2544,7 @@ window.CanvasEditorUI = (function () {
         const item = (layer.images || [])[index];
         if (item) {
           if (!selectedIds.has(layer.id)) selectOnly(layer.id);
-          beginGesture();
+          pinGesture();
           const live = elFor(layer.id);
           dragging = {
             lead: layer,
@@ -2494,9 +2574,9 @@ window.CanvasEditorUI = (function () {
       // keeping a reference to it.
       const el = elFor(layer.id);
       if (!el) return;
-      // One undo step per drag: the snapshot is taken here, before the pointer
-      // starts moving, and the gesture is closed in onPointerUp.
-      beginGesture();
+      // One undo step per drag. The snapshot is taken here, and the step is
+      // saved when the mouse button is released.
+      pinGesture();
       let mode = rotateHandle ? 'rotate' : handle ? 'resize' : 'move';
       let pointIndex = null;
       const corner = ['nw', 'ne', 'se', 'sw'].includes(handle?.dataset.resize);
@@ -2552,7 +2632,6 @@ window.CanvasEditorUI = (function () {
           : null,
       };
       if (mode === 'rotate') {
-        pinGesture();
         const boardRect = board.getBoundingClientRect();
         const s0 = scale();
         const px = (e.clientX - boardRect.left) / s0;
@@ -2623,7 +2702,6 @@ window.CanvasEditorUI = (function () {
           l.shapePoints = formatShapePoints(pts);
         }
         paintBoard();
-        onChange();
         return;
       }
 
@@ -2781,8 +2859,7 @@ window.CanvasEditorUI = (function () {
         });
       }
       paintBoard();
-      if (dragging.mode === 'resize' || dragging.mode === 'rotate') paintInspector();
-      onChange();
+      if (dragging.mode === 'resize') paintInspector();
     }
 
     function onPointerUp() {
