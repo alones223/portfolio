@@ -942,6 +942,14 @@
   function viewHome() {
     const home = content.home;
     home.sections = home.sections || [];
+    // Works is one of the home sections, so it shares their list and order.
+    if (home.works && typeof home.works === 'object') {
+      home.works.id = home.works.id || 's-home-works';
+      home.works.heading = home.works.heading || 'Works';
+      const at = home.sections.findIndex((s) => s && s.id === home.works.id);
+      if (at < 0) home.sections.push(home.works);
+      else if (home.sections[at] !== home.works) home.sections[at] = home.works;
+    }
     const sectionsWrap = h('div', { style: 'display:flex;flex-direction:column;gap:10px' });
     const drawSections = () => {
       mount(sectionsWrap, 
@@ -983,25 +991,8 @@
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, true)); drawSections(); } }, 'Expand all'),
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, false)); drawSections(); } }, 'Collapse all'))),
         h('p', { class: 'hint', style: 'margin-bottom:12px' },
-          'The part of the page between the hero and "Works". Each section is its own board: put text, images and image groups anywhere on it. Use ⧉ to copy a section as a new one and then change the copy — the original is left untouched. ⧉ keeps its own layers, so the two boards never move together.'),
+          'Everything under the hero, including Works. Each section is its own board: put text, images and image groups anywhere on it. Drag a section to change the order. Use ⧉ to copy a section as a new one — the original is left untouched.'),
         sectionsWrap),
-      homeCanvasCard({
-        title: 'Works',
-        block: home.works,
-        seed: seedWorksCanvas,
-        hint: 'Edit on canvas to place the heading, the light-blue highlight, the description and the category cards on a board. The first time copies what is in the form.',
-        classic: () => fields(
-          textField(home.works, 'heading', 'Heading', { span: 2 }),
-          textField(home.works, 'decorText', 'Big faint background text', { span: 2, multiline: true, rows: 2 }),
-          textField(home.works, 'description', 'Description', { multiline: true, rows: 3 }),
-          h('div', { class: 'span-4' },
-            tilesEditor(home.works.cards, {
-              label: 'Category cards',
-              captionKey: 'label',
-              captionLabel: 'Card title',
-              linkPlaceholder: 'Link, e.g. /portfolio',
-            }))),
-      }),
       card('Contact section',
         fields(
           textField(home.contact, 'heading', 'Heading', { span: 2 }),
@@ -1333,7 +1324,9 @@
     const name = (LAYOUTS.find(([v]) => v === layout) || LAYOUTS[0])[1].split(':')[0];
     const count = layout === 'canvas'
       ? `${(s.layers || []).length} layer${(s.layers || []).length === 1 ? '' : 's'}`
-      : `${(s.items || []).length} image${(s.items || []).length === 1 ? '' : 's'}`;
+      : Array.isArray(s.cards)
+        ? `${s.cards.length} card${s.cards.length === 1 ? '' : 's'}`
+        : `${(s.items || []).length} image${(s.items || []).length === 1 ? '' : 's'}`;
     return `${name} · ${count}`;
   };
 
@@ -1389,8 +1382,9 @@
           redraw();
         }),
         iconBtn('✕', 'Delete section', () => {
-          const what = (s.layout || 'gallery') === 'canvas' ? `${(s.layers || []).length} layers` : `${(s.items || []).length} images`;
+          const what = (s.layout || 'gallery') === 'canvas' ? `${(s.layers || []).length} layers` : `${(s.items || s.cards || []).length} images`;
           if (!confirm(`Delete the section "${s.heading || 'untitled'}" and its ${what} from this page?\n(The image files stay in the media library.)`)) return;
+          if (page.works && s === page.works) page.works = null;
           const editor = editors.get(s);
           if (editor) { editor.destroy(); editors.delete(s); }
           sections.splice(i, 1);
@@ -1452,6 +1446,7 @@
 
       // The shared top fields, then either the board or the simple image list.
       const body = h('div', { class: 'panel-body' });
+      const isWorks = page.works && s === page.works;
       const draw = () => {
         const isCanvas = (s.layout || 'gallery') === 'canvas';
         if (isCanvas) {
@@ -1504,9 +1499,24 @@
             h('div', { style: 'display:flex;justify-content:flex-end;margin-bottom:12px' },
               h('button', {
                 class: 'btn small primary', type: 'button',
-                onclick: () => { s.layout = 'canvas'; changed(); draw(); },
+                onclick: () => {
+                  if (isWorks) seedWorksCanvas(s);
+                  else s.layout = 'canvas';
+                  changed();
+                  draw();
+                },
               }, 'Edit on canvas')),
-            fields(
+            isWorks ? fields(
+              textField(s, 'heading', 'Heading', { span: 2, onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } }),
+              textField(s, 'decorText', 'Big faint background text', { span: 2, multiline: true, rows: 2 }),
+              textField(s, 'description', 'Description', { multiline: true, rows: 3 }),
+              h('div', { class: 'span-4' },
+                tilesEditor(s.cards, {
+                  label: 'Category cards',
+                  captionKey: 'label',
+                  captionLabel: 'Card title',
+                  linkPlaceholder: 'Link, e.g. /portfolio',
+                }))) : fields(
               textField(s, 'heading', 'Section heading', {
                 multiline: true, rows: 1, span: 3,
                 onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; },
