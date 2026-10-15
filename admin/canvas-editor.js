@@ -1682,6 +1682,22 @@ window.CanvasEditorUI = (function () {
       return h('div', { class: 'cv-group' }, h('h4', null, 'Align'), ...rows.filter(Boolean));
     }
 
+    let inspectorMode = 'layer';
+    let inspectorFor = '';
+
+    function inspectorTabs() {
+      const tab = (id, label) => h('button', {
+        class: `btn small${inspectorMode === id ? ' primary' : ''}`,
+        type: 'button',
+        onclick: () => {
+          inspectorMode = id;
+          paneRight.scrollTop = 0;
+          paintInspector();
+        },
+      }, label);
+      return h('div', { class: 'cv-tabs' }, tab('layer', 'Layer'), tab('board', 'Board'));
+    }
+
     function paintInspector() {
       const scrollTop = paneRight.scrollTop;
       const finish = () => { paneRight.scrollTop = scrollTop; };
@@ -1730,10 +1746,24 @@ window.CanvasEditorUI = (function () {
         h('strong', null, count > 1 ? `${count} layers selected` : M.layerTypeLabel(l.type)),
         h('span', { class: 'cv-hint' }, count > 1 ? '' : `${round(l.w)}×${round(boxHeight(l))}`))];
 
+      const selectionKey = [...selectedIds].sort().join(',');
+      if (inspectorFor !== selectionKey) {
+        inspectorFor = selectionKey;
+        inspectorMode = 'layer';
+      }
+      groups.unshift(inspectorTabs());
+
+      if (inspectorMode === 'board') {
+        paneRight.replaceChildren(
+          inspectorTabs(),
+          h('div', { class: 'cv-group' }, h('h4', null, 'Board'), ...boardSettings));
+        finish();
+        return;
+      }
+
       if (count > 1) {
         groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Selection'), layerMenu([...selectedIds])));
         groups.push(alignPanel(count));
-        groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Board'), ...boardSettings));
         paneRight.replaceChildren(...groups);
         finish();
         return;
@@ -1899,8 +1929,6 @@ window.CanvasEditorUI = (function () {
           numField(l, 'duration', 'Duration (seconds)', 0.1, 5, 0.1)),
         toggleField(l, 'animated', 'Play when the visitor scrolls to it'),
         h('p', { class: 'cv-hint' }, l.anim === 'float' || l.anim === 'pulse' ? 'This effect loops forever.' : 'This effect plays once, when the section scrolls into view.')));
-
-      groups.push(h('div', { class: 'cv-group cv-group-muted' }, h('h4', null, 'Board'), ...boardSettings));
 
       paneRight.replaceChildren(...groups);
       finish();

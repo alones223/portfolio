@@ -334,6 +334,8 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-panes { display: grid; grid-template-columns: 240px minmax(0, 1fr) 320px; gap: 12px; align-items: start; }
 .cv-pane { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .cv-pane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.cv-tabs { display: flex; gap: 6px; }
+.cv-tabs .btn { flex: 1; }
 
 /* Board + zoom viewport. The board is 1425px wide, so the viewport scrolls
    when zoomed in and pans with the middle mouse button / space-drag. */
