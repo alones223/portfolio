@@ -972,8 +972,17 @@ window.CanvasEditorUI = (function () {
     // ---------------------------------------------------------- add / remove
 
     // Shrink a text box to its words. Used while Auto-fit stays on.
+    function applyAutoFit(l) {
+      if (!l || l.autoFit !== true) return;
+      if (isTextual(l) || l.type === 'button') fitTextBox(l);
+      if (l.type === 'image') {
+        l.fit = 'contain';
+        syncContainImage(l);
+      }
+    }
+
     function fitTextBox(l) {
-      if (!l || l.autoFit !== true || !isTextual(l)) return;
+      if (!l || l.autoFit !== true || !(isTextual(l) || l.type === 'button')) return;
       const el = elFor(l.id);
       const box = el && el.querySelector('.cv-layer-box');
       if (!box) return;
@@ -998,19 +1007,14 @@ window.CanvasEditorUI = (function () {
         name: `${M.layerTypeLabel(type)} ${layers().length + 1}`,
       });
       if (type === 'gallery') layer.images = [{ image: '', caption: '', link: '' }];
-      if (type === 'heading' || type === 'text') {
-        layer.autoFit = true;
-        layer.hugging = true;
-      }
-      if (type === 'paragraph') {
-        layer.autoFit = false;
-        layer.hugging = true;
-      }
+      layer.autoFit = true;
+      layer.hugging = true;
+      if (type === 'image') layer.fit = 'contain';
       record();
       layers().push(layer);
       selectOnly(layer.id);
       onChange();
-      if (layer.autoFit) requestAnimationFrame(() => fitTextBox(layer));
+      if (layer.autoFit) requestAnimationFrame(() => applyAutoFit(layer));
     }
 
     function duplicateLayer(id) {
@@ -2271,18 +2275,18 @@ window.CanvasEditorUI = (function () {
             : numField(l, 'h', 'Height', 2, 4000),
           numField(l, 'rotate', 'Rotation (°)', -360, 360, 1, 0, { releaseStep: true })),
         h('p', { class: 'cv-hint' }, 'Drag the round handle above the layer to rotate it. Hold Shift to snap every 15°.'),
-        isTextual(l) ? (() => {
+        (() => {
           const box = h('input', { type: 'checkbox', checked: l.autoFit === true });
           box.addEventListener('change', () => {
             record();
             l.autoFit = box.checked;
             l.hugging = box.checked ? true : false;
-            if (box.checked) fitTextBox(l);
+            if (box.checked) applyAutoFit(l);
             onChange();
             render();
           });
           return h('label', { class: 'cv-check' }, box, 'Auto-fit');
-        })() : null,
+        })(),
         isTextual(l) && l.autoFit !== true ? toggleField(l, 'hugging', 'Height follows the text') : null,
         isTextual(l) ? h('p', { class: 'cv-hint' }, 'Double-click or double-tap the text on the board to edit it. Drag a corner to scale it. Drag an edge to change the box without changing the type size.') : null,
         h('div', { class: 'cv-btnrow' },
@@ -2716,10 +2720,8 @@ window.CanvasEditorUI = (function () {
           h = clamp(round(h), 2, 4000);
           placeFromAnchor(l, lead, dir, w, h);
         }
-        if (isTextual(l)) {
-          l.autoFit = false;
-          l.hugging = false;
-        }
+        l.autoFit = false;
+        l.hugging = false;
         if (l.type === 'shape' && l.radiusLock) {
           const sx = l.w / Math.max(lead.w, 1);
           const sy = (Number(l.h) || 0) / Math.max(lead.h, 1);

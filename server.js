@@ -549,7 +549,7 @@ function normLayer(rawLayer, index) {
   if (out.textShadow != null) out.textShadow = Boolean(out.textShadow);
   if (out.radiusLock != null) out.radiusLock = Boolean(out.radiusLock);
   if (type === 'gallery' && out.freeform != null) out.freeform = Boolean(out.freeform);
-  if ((type === 'text' || type === 'heading' || type === 'paragraph') && rawLayer?.autoFit != null) out.autoFit = Boolean(rawLayer.autoFit);
+  if (rawLayer?.autoFit != null) out.autoFit = Boolean(rawLayer.autoFit);
   if (type === 'image') {
     const subtitle = typeof rawLayer?.subtitle === 'string' ? rawLayer.subtitle.slice(0, 400) : '';
     if (subtitle) out.subtitle = subtitle;
