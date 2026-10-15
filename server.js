@@ -5,7 +5,7 @@ const express = require('express');
 const session = require('express-session');
 const multer = require('multer');
 
-const { presetSummaries, findPreset, layer: presetLayer } = require('./lib/section-presets');
+const { presetSummaries, findPreset, defaultTemplates, layer: presetLayer } = require('./lib/section-presets');
 
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, 'data');
@@ -819,6 +819,21 @@ function readLibrary() {
   return Array.isArray(list) ? list : [];
 }
 
+const DEFAULT_TEMPLATE_IDS = new Set(['tpl-default-hero', 'tpl-default-page']);
+
+// Built-in Hero and Page settings templates stay in the list. A saved edit
+// with the same id replaces that built-in copy.
+function libraryWithDefaults() {
+  const saved = readLibrary();
+  const defaults = defaultTemplates();
+  const merged = defaults.map((entry) => {
+    const override = saved.find((item) => item.id === entry.id);
+    if (!override) return entry;
+    return Object.assign({}, override, { builtin: true, kind: entry.kind });
+  });
+  return merged.concat(saved.filter((item) => !DEFAULT_TEMPLATE_IDS.has(item.id)));
+}
+
 app.get('/api/section-presets', requireAuth, (req, res) => {
   res.json(presetSummaries());
 });
@@ -850,19 +865,20 @@ function layoutKind(value) {
 }
 
 app.get('/api/layouts', requireAuth, (req, res) => {
-  res.json(readLibrary().map((entry) => ({
+  res.json(libraryWithDefaults().map((entry) => ({
     id: entry.id,
     name: entry.name,
     savedAt: entry.savedAt,
     page: entry.page || '',
     kind: layoutKind(entry.kind),
+    builtin: Boolean(entry.builtin),
     layers: (entry.section?.layers || []).length,
     layout: entry.section?.layout || 'canvas',
   })));
 });
 
 app.get('/api/layouts/:id', requireAuth, (req, res) => {
-  const entry = readLibrary().find((x) => x.id === req.params.id);
+  const entry = libraryWithDefaults().find((x) => x.id === req.params.id);
   if (!entry) return res.status(404).json({ error: 'That saved layout no longer exists.' });
   res.json({
     id: entry.id,
@@ -901,14 +917,20 @@ app.post('/api/layouts', requireAuth, (req, res) => {
 
 // Pull a saved layout back off the shelf as a brand new section.
 app.post('/api/layouts/:id/section', requireAuth, (req, res) => {
-  const entry = readLibrary().find((x) => x.id === req.params.id);
+  const entry = libraryWithDefaults().find((x) => x.id === req.params.id);
   if (!entry) return res.status(404).json({ error: 'That saved layout no longer exists.' });
   res.json({ section: copySection(entry.section, { rename: req.body?.rename !== false }) });
 });
 
 app.patch('/api/layouts/:id', requireAuth, (req, res) => {
   const library = readLibrary();
-  const entry = library.find((x) => x.id === req.params.id);
+  let entry = library.find((x) => x.id === req.params.id);
+  if (!entry && DEFAULT_TEMPLATE_IDS.has(req.params.id)) {
+    const builtin = defaultTemplates().find((item) => item.id === req.params.id);
+    entry = JSON.parse(JSON.stringify(builtin));
+    delete entry.builtin;
+    library.unshift(entry);
+  }
   if (!entry) return res.status(404).json({ error: 'That saved layout no longer exists.' });
   const body = req.body || {};
   if (body.name == null && body.kind == null && body.section == null) {
@@ -939,6 +961,9 @@ app.patch('/api/layouts/:id', requireAuth, (req, res) => {
 });
 
 app.delete('/api/layouts/:id', requireAuth, (req, res) => {
+  if (DEFAULT_TEMPLATE_IDS.has(req.params.id)) {
+    return res.status(400).json({ error: 'The Hero and Page settings templates stay in the list. Edit one to change its design.' });
+  }
   const library = readLibrary();
   const next = library.filter((x) => x.id !== req.params.id);
   if (next.length === library.length) return res.status(404).json({ error: 'That saved layout no longer exists.' });

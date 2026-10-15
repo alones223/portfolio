@@ -1874,8 +1874,8 @@
   }
 
   const LAYOUT_GROUPS = [
-    ['hero', 'Hero', 'Templates for a hero board.'],
-    ['page', 'Page settings', 'Templates for a page header.'],
+    ['hero', 'Hero', 'The default hero board is here. Edit it, or add another hero template.'],
+    ['page', 'Page settings', 'The default page header is here. Edit it, or add another page-header template.'],
     ['section', 'Section', 'Templates for a building block.'],
   ];
 
@@ -2052,8 +2052,9 @@
             rows.map((t) => h('div', { class: 'card', style: 'display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;margin-bottom:10px' },
               h('span', null,
                 h('strong', null, t.name),
+                t.builtin ? h('span', { class: 'tag' }, 'Default') : null,
                 h('span', { class: 'muted small' },
-                  `  ·  ${t.layers} layer${t.layers === 1 ? '' : 's'}${t.layout === 'canvas' ? '' : ` · ${t.layout}`}${t.page ? ` · from ${t.page}` : ''}  ·  ${new Date(t.savedAt).toLocaleDateString()}`)),
+                  `  ·  ${t.layers} layer${t.layers === 1 ? '' : 's'}${t.layout === 'canvas' ? '' : ` · ${t.layout}`}${t.page ? ` · from ${t.page}` : ''}${t.savedAt ? `  ·  ${new Date(t.savedAt).toLocaleDateString()}` : ''}`)),
               h('span', { class: 'group-btns' },
                 h('button', {
                   class: 'btn small primary', type: 'button',
@@ -2096,7 +2097,7 @@
                     } catch (err) { toast(err.message, true); }
                   },
                 }, 'Export'),
-                h('button', {
+                t.builtin ? null : h('button', {
                   class: 'btn small danger', type: 'button',
                   onclick: async () => {
                     if (!confirm(`Delete the saved layout "${t.name}"? Sections already on your pages are not affected.`)) return;
