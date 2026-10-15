@@ -1244,13 +1244,15 @@
   // "Save this layout" — keeps a copy on the server so it can be reused on any
   // page later. The name is asked for first, so a half-saved layout never lands
   // on the shelf.
-  async function saveSectionLayout(section, pageLabel) {
-    const suggested = String(section.heading || section.name || 'Section').replace(/\n/g, ' ').trim();
+  async function saveSectionLayout(section, pageLabel, opts = {}) {
+    const suggested = String(opts.suggested || section.heading || section.name || 'Section').replace(/\n/g, ' ').trim();
     const name = prompt('Save this layout as:', suggested || 'My layout');
     if (name == null) return;
     if (!name.trim()) return toast('Give the layout a name so you can find it later.', true);
     try {
-      await api('POST', '/api/layouts', { section, name: name.trim(), page: pageLabel || '' });
+      await api('POST', '/api/layouts', {
+        section, name: name.trim(), page: pageLabel || '', kind: opts.kind || 'section',
+      });
       toast(`Saved the layout "${name.trim()}". Add it to any page with "+ Add section".`);
     } catch (err) {
       toast(err.message, true);
@@ -1665,7 +1667,41 @@
         canvasOn ? h('p', { class: 'hint', style: 'margin:12px 0' },
           'The header is a canvas. Drag the light-blue highlight to change its length, and set its colour in the style panel. The menu label and address stay on the form.') : h('p', { class: 'hint', style: 'margin:12px 0' },
           'Edit on canvas to place the title, the highlight and the subtitle on a board. The first time copies what is in the form. The menu label and address stay on the form.'),
-        canvasOn ? headerHost : fields(
+        canvasOn ? headerHost : null,
+        canvasOn ? h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
+          h('button', {
+            class: 'btn small', type: 'button',
+            onclick: async () => {
+              try {
+                if (!page.headerBoard) return;
+                const id = await applySavedLayout(page.headerBoard);
+                if (!id) return;
+                page.headerBoard.layout = 'canvas';
+                changed();
+                render({ keepScroll: true, scrollY: window.scrollY });
+                toast('Applied a copy of that layout. The template itself is unchanged.');
+              } catch (err) { toast(err.message, true); }
+            },
+          }, 'Apply a saved layout'),
+          h('button', {
+            class: 'btn small', type: 'button',
+            onclick: () => saveSectionLayout(page.headerBoard, page.navLabel || page.title, {
+              suggested: page.navLabel || page.title || 'Page header',
+              kind: 'page',
+            }),
+          }, 'Save this layout'),
+          h('button', {
+            class: 'btn small', type: 'button',
+            onclick: async () => {
+              const copy = await copySectionOnServer(page.headerBoard);
+              page.sections.push(copy);
+              setPanelOpen(copy, true);
+              changed();
+              render({ keepScroll: true, scrollY: window.scrollY });
+              toast('Copied the header as a new section at the bottom of this page.');
+            },
+          }, 'Copy as a new section')) : null,
+        canvasOn ? null : fields(
           textField(page, 'title', 'Page title (big heading)', { span: 2 }),
           textField(page, 'subtitle', 'Subtitle', { span: 2, multiline: true, rows: 2 }),
           imageField(page, 'heroImage', 'Header background image'),
