@@ -600,7 +600,7 @@ window.CanvasEditorUI = (function () {
 
     const toolbar = h('div', { class: 'cv-toolbar' });
     const paneLeft = h('div', { class: 'cv-pane' });
-    const paneRight = h('div', { class: 'cv-pane cv-inspector' });
+    const paneRight = h('div', { class: 'cv-pane cv-inspector is-open' });
     // Clicking a number field's arrows focuses it, and the browser then scrolls
     // the panel to bring that field to the top. Handle the arrows here so the
     // number changes and the panel stays where it is.
@@ -672,11 +672,21 @@ window.CanvasEditorUI = (function () {
     });
     const centerWrap = h('div', { class: 'cv-center' }, stage);
     const viewport = h('div', { class: 'cv-viewport' }, centerWrap);
-    const fnBar = h('div', { class: 'cv-fnbar' });
-    const fnPop = h('div', { class: 'cv-fnpop', hidden: true });
-    const stageFrame = h('div', { class: 'cv-frame' }, viewport, fnBar, fnPop);
+    const stageFrame = h('div', { class: 'cv-frame' }, viewport);
+    const menuNav = h('nav', { class: 'cv-menu-nav' });
+    const menuBody = h('div', { class: 'cv-menu-body' });
+    const menuPanel = h('div', { class: 'cv-menu-panel' },
+      h('div', { class: 'cv-menu-head' },
+        h('strong', null, 'Menu'),
+        h('button', { class: 'btn small', type: 'button', title: 'Close menu', onclick: () => setMenuOpen(false) }, 'Close')),
+      menuNav,
+      menuBody);
+    const menuOpenBtn = h('button', { class: 'cv-menu-open', type: 'button', title: 'Open menu', onclick: () => setMenuOpen(true) }, 'Menu');
+    paneRight.append(menuOpenBtn, menuPanel);
     let openFn = '';
-    let barPos = { x: 16, y: 16 };
+    function setMenuOpen(open) {
+      paneRight.classList.toggle('is-open', open);
+    }
     const zoomLabel = h('span', { class: 'cv-hint cv-zoomlabel' });
     const root = h('div', { class: 'cv', tabindex: '0' },
       toolbar,
@@ -2078,38 +2088,8 @@ window.CanvasEditorUI = (function () {
         const label = title ? title.textContent.trim() : 'Edit';
         return { id: label.toLowerCase(), label, body: node };
       });
-      if (!blocks.length) {
-        openFn = '';
-        fnBar.hidden = true;
-        fnPop.hidden = true;
-        fnPop.replaceChildren();
-        fnBar.replaceChildren();
-        return;
-      }
-      fnBar.hidden = false;
       if (!blocks.some((b) => b.id === openFn)) openFn = '';
-      const grip = h('span', { class: 'cv-fnbar-grip', title: 'Drag this bar' }, '⋮⋮');
-      grip.addEventListener('pointerdown', (e) => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const orig = { ...barPos };
-        const move = (ev) => {
-          const frame = stageFrame.getBoundingClientRect();
-          barPos.x = clamp(orig.x + ev.clientX - startX, 0, Math.max(0, frame.width - fnBar.offsetWidth));
-          barPos.y = clamp(orig.y + ev.clientY - startY, 0, Math.max(0, frame.height - fnBar.offsetHeight));
-          placeFnBar();
-        };
-        const up = () => {
-          window.removeEventListener('pointermove', move);
-          window.removeEventListener('pointerup', up);
-        };
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up);
-      });
-      fnBar.replaceChildren(grip, ...blocks.map((block) => {
+      menuNav.replaceChildren(...blocks.map((block) => {
         const btn = h('button', {
           class: `cv-fn${openFn === block.id ? ' is-on' : ''}`,
           type: 'button',
@@ -2121,27 +2101,14 @@ window.CanvasEditorUI = (function () {
         });
         return btn;
       }));
-      placeFnBar();
       const active = blocks.find((b) => b.id === openFn);
-      if (!active) {
-        fnPop.hidden = true;
-        fnPop.replaceChildren();
+      if (!blocks.length) {
+        menuBody.replaceChildren(h('p', { class: 'cv-hint' }, 'Select a layer to edit it.'));
         return;
       }
-      fnPop.hidden = false;
-      fnPop.replaceChildren(active.body);
-      const btn = [...fnBar.querySelectorAll('.cv-fn')].find((n) => n.textContent.trim() === active.label);
-      const frame = stageFrame.getBoundingClientRect();
-      const box = btn ? btn.getBoundingClientRect() : null;
-      const left = box ? box.left - frame.left : barPos.x;
-      const top = box ? box.bottom - frame.top + 6 : barPos.y + 36;
-      fnPop.style.left = `${Math.max(8, Math.min(left, Math.max(8, frame.width - 336)))}px`;
-      fnPop.style.top = `${Math.max(8, top)}px`;
-    }
-
-    function placeFnBar() {
-      fnBar.style.left = `${barPos.x}px`;
-      fnBar.style.top = `${barPos.y}px`;
+      menuBody.replaceChildren(active
+        ? active.body
+        : h('p', { class: 'cv-hint' }, 'Choose a section above.'));
     }
 
     function render() {

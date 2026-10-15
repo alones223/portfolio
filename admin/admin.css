@@ -332,7 +332,7 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-add { width: auto; min-height: 28px; height: 28px; padding: 0 8px; font-size: 12.5px; }
 .cv-hint { color: #8a96a8; font-size: 12px; line-height: 1.4; }
 
-.cv-panes { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 12px; align-items: start; }
+.cv-panes { display: grid; grid-template-columns: 240px minmax(0, 1fr) auto; gap: 12px; align-items: start; }
 .cv-pane { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .cv-pane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .cv-tabs { display: flex; gap: 6px; }
@@ -350,25 +350,23 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 }
 .cv-viewport.is-panning { cursor: grabbing; }
 .cv-frame { position: relative; min-width: 0; }
-.cv-inspector { display: none; }
-.cv-fnbar {
-  position: absolute; z-index: 20; display: flex; align-items: center; gap: 4px;
-  padding: 4px; background: #fff; border: 1px solid var(--line); border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(10, 25, 47, .16);
+.cv-inspector { width: 44px; padding: 8px 6px; max-height: 78vh; overflow: hidden; }
+.cv-inspector.is-open { width: 280px; padding: 12px; overflow-y: auto; }
+.cv-inspector.is-open .cv-menu-open { display: none; }
+.cv-inspector:not(.is-open) .cv-menu-panel { display: none; }
+.cv-menu-open {
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  border: 0; background: transparent; color: var(--navy); cursor: pointer;
+  font-weight: 650; letter-spacing: .06em; padding: 10px 0;
 }
-.cv-fnbar-grip { cursor: grab; color: var(--slate); user-select: none; padding: 0 4px; letter-spacing: -1px; }
-.cv-fnbar-grip:active { cursor: grabbing; }
+.cv-menu-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cv-menu-nav { display: flex; flex-direction: column; gap: 4px; }
+.cv-menu-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .cv-fn {
   border: 1px solid var(--line); background: #fff; color: var(--navy);
-  border-radius: 6px; padding: 4px 8px; font-size: 12px; line-height: 1.2; cursor: pointer;
+  border-radius: 6px; padding: 6px 8px; font-size: 12px; line-height: 1.2; cursor: pointer; text-align: left;
 }
 .cv-fn.is-on, .cv-fn:hover { background: var(--accent-soft); border-color: var(--accent); }
-.cv-fnpop {
-  position: absolute; z-index: 21; width: min(320px, calc(100% - 16px));
-  max-height: min(60vh, 520px); overflow: auto; background: #fff;
-  border: 1px solid var(--line); border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(10, 25, 47, .18); padding: 10px;
-}
 .cv-center {
   margin: auto;
   flex: none;
@@ -541,8 +539,8 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-layer-tools { display: flex; gap: 2px; }
 .cv-layer-tools .icon-btn { width: 22px; height: 22px; font-size: 11px; }
 
-/* Inspector: the settings for whichever layer is selected. */
-.cv-inspector { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 12px; gap: 12px; max-height: 640px; overflow-y: auto; overflow-anchor: none; }
+/* Right-hand menu: the settings for whichever layer is selected. */
+.cv-inspector { border: 1px solid var(--line); border-radius: 10px; background: #fff; gap: 12px; overflow-anchor: none; }
 .cv-group { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
 .cv-group:first-child { border-top: 0; padding-top: 0; }
 .cv-group h4 { font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--slate); }
@@ -600,8 +598,8 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-gal-actions { display: flex; gap: 6px; }
 
 @media (max-width: 1400px) {
-  .cv-panes { grid-template-columns: 200px minmax(0, 1fr); }
-  .cv-inspector { grid-column: 1 / -1; max-height: none; }
+  .cv-panes { grid-template-columns: 200px minmax(0, 1fr) auto; }
+  .cv-inspector.is-open { width: 240px; }
 }
 @media (max-width: 860px) {
   .cv-panes { grid-template-columns: 1fr; }
