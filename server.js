@@ -527,6 +527,11 @@ function normLayer(rawLayer, index) {
     const subtitle = typeof rawLayer?.subtitle === 'string' ? rawLayer.subtitle.slice(0, 400) : '';
     if (subtitle) out.subtitle = subtitle;
     else delete out.subtitle;
+    if (['left', 'center', 'right'].includes(rawLayer?.subtitleAlign)) out.subtitleAlign = rawLayer.subtitleAlign;
+    else delete out.subtitleAlign;
+    const ratio = Number(rawLayer?.aspectRatio);
+    if (Number.isFinite(ratio) && ratio > 0.01 && ratio < 100) out.aspectRatio = ratio;
+    else delete out.aspectRatio;
   }
   const font = safeFontFamily(out.font);
   if (font) out.font = font;

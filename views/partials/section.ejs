@@ -49,7 +49,6 @@
                 <img class="layer-media" src="<%= safeUrl(l.src) %>" alt="<%= l.alt || '' %>" loading="lazy" style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>;border-radius:<%= __rad %>px">
               <% } %>
               </span>
-              <% if (l.subtitle) { %><span class="layer-subtitle"><%= l.subtitle %></span><% } %>
               <% if (l.link) { %></a><% } %>
             <% } %>
           <% } else if (l.type === 'gallery' && l.freeform) { %>
@@ -112,6 +111,9 @@
             <% } %>
           <% } %>
           </div>
+          <% if (l.type === 'image' && l.subtitle) { %>
+            <span class="layer-subtitle" style="text-align:<%= ['left','center','right'].includes(l.subtitleAlign) ? l.subtitleAlign : 'center' %>"><%= l.subtitle %></span>
+          <% } %>
         </div>
       <% }) %>
     </div>

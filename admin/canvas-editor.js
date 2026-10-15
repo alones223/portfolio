@@ -308,9 +308,7 @@ window.CanvasEditorUI = (function () {
       const media = /\.(mp4|webm)(\?|$)/i.test(l.src)
         ? h('video', { src: safeUrl(l.src), muted: true, playsinline: true, preload: 'metadata', style: mediaStyle })
         : h('img', { src: safeUrl(l.src), alt: '', draggable: 'false', style: mediaStyle });
-      const sub = String(l.subtitle || '').trim();
-      if (!sub) return [media];
-      return [media, h('div', { class: 'cv-image-sub' }, sub)];
+      return [media];
     }
     if (l.type === 'gallery') {
       const images = l.images || [];
@@ -553,11 +551,19 @@ window.CanvasEditorUI = (function () {
     const canRedo = () => historyAt >= 0 && historyAt < history.length - 1;
 
     function undo() {
-      if (!canUndo()) return;
+      if (gestureOpen) endGesture();
+      // A gesture stores the state from before it began. The edited state is
+      // what is on the board now, so keep that snapshot first — otherwise the
+      // first change has nothing to step back from, and redo cannot return.
+      const live = JSON.stringify(snapshot());
+      const current = history[historyAt];
+      if (!current || JSON.stringify(current) !== live) record();
+      if (historyAt <= 0) return;
       applyHistory(historyAt - 1);
     }
 
     function redo() {
+      if (gestureOpen) endGesture();
       if (!canRedo()) return;
       applyHistory(historyAt + 1);
     }
@@ -1057,6 +1063,10 @@ window.CanvasEditorUI = (function () {
       const input = h('input', { type: 'number', value: read(), min, max, step: stride });
       const apply = (value) => {
         l[key] = clamp(roundToStep(value, stride), min, max);
+        if (l.type === 'image' && l.fit === 'contain' && Number(l.aspectRatio) > 0) {
+          if (key === 'w') l.h = Math.max(20, Math.round(l.w / l.aspectRatio));
+          if (key === 'h') l.w = Math.max(20, Math.round(l.h * l.aspectRatio));
+        }
         input.value = String(l[key]);
         onChange();
         paintBoard();
@@ -1389,6 +1399,7 @@ window.CanvasEditorUI = (function () {
             box.replaceChildren(...drawLayerContent(l));
           }
         }
+        syncImageCaption(el, l);
         const divider = el.querySelector('.cv-divider-fill');
         if (divider) divider.style.background = l.color || '#0A192F';
         syncShapeHandles(el, l);
@@ -1404,6 +1415,7 @@ window.CanvasEditorUI = (function () {
       // Anything left over is a deleted layer.
       [...board.children].forEach((el) => { if (!list.some((l) => l.id === el.dataset.id)) el.remove(); });
       list.forEach((l) => {
+        if (l.type === 'image' && l.fit === 'contain') syncContainImage(l);
         if (!naturalGallery(l)) return;
         const el = elFor(l.id);
         if (!el) return;
@@ -1414,6 +1426,48 @@ window.CanvasEditorUI = (function () {
         });
         refreshLockedHeight(l);
       });
+    }
+
+    // The caption sits under the photo, outside the selection box, so resizing
+    // the picture does not stretch the words.
+    function syncImageCaption(el, l) {
+      let caption = el.querySelector(':scope > .cv-image-sub');
+      const text = l.type === 'image' ? String(l.subtitle || '').trim() : '';
+      if (!text) {
+        if (caption) caption.remove();
+        return;
+      }
+      if (!caption) {
+        caption = h('div', { class: 'cv-image-sub' });
+        el.append(caption);
+      }
+      caption.textContent = text;
+      const align = l.subtitleAlign === 'left' || l.subtitleAlign === 'right' ? l.subtitleAlign : 'center';
+      caption.style.textAlign = align;
+    }
+
+    // Fit inside: the frame uses the photo's own proportions, so there is no
+    // empty band around the picture.
+    function syncContainImage(l) {
+      const el = elFor(l.id);
+      const img = el && el.querySelector('img');
+      if (!img) return;
+      const apply = () => {
+        if (l.fit !== 'contain') return;
+        if (!img.naturalWidth || !img.naturalHeight) return;
+        const ratio = img.naturalWidth / img.naturalHeight;
+        l.aspectRatio = ratio;
+        const nextH = Math.max(20, Math.round(l.w / ratio));
+        if (Math.abs((Number(l.h) || 0) - nextH) < 1) return;
+        l.h = nextH;
+        onChange();
+        paintBoard();
+      };
+      if (img.complete) apply();
+      else if (!img.dataset.containLoad) {
+        img.dataset.containLoad = '1';
+        img.addEventListener('load', apply, { once: true });
+      }
     }
 
     function refreshLockedHeight(l) {
@@ -1427,7 +1481,7 @@ window.CanvasEditorUI = (function () {
 
     function contentSignature(l) {
       if (l.type === 'heading' || l.type === 'text') return `${l.type}:${l.text}`;
-      if (l.type === 'image') return `image:${l.src}:${l.fit}:${l.radius}:${l.subtitle || ''}`;
+      if (l.type === 'image') return `image:${l.src}:${l.fit}:${l.radius}:${l.subtitle || ''}:${l.subtitleAlign || ''}`;
       if (l.type === 'gallery') {
         return `gallery:${l.freeform ? 1 : 0}:${l.columns}:${l.gap}:${l.aspect}:${l.fit}:${(l.images || []).map((i) => i.image).join('|')}`;
       }
@@ -1744,11 +1798,14 @@ window.CanvasEditorUI = (function () {
           toggleField(l, 'newTab', 'Open in a new tab'));
       }
       if (l.type === 'image') {
+        if (l.subtitleAlign !== 'left' && l.subtitleAlign !== 'right' && l.subtitleAlign !== 'center') l.subtitleAlign = 'center';
         content.push(
           imageField(l, 'src', 'Image'),
           textField(l, 'alt', 'Description for screen readers'),
           textField(l, 'subtitle', 'Subtitle under the image'),
+          selectField(l, 'subtitleAlign', 'Subtitle alignment', [['left', 'Left'], ['center', 'Centred'], ['right', 'Right']]),
           selectField(l, 'fit', 'How the image fills its box', M.FITS),
+          l.fit === 'contain' ? h('p', { class: 'cv-hint' }, 'Fit inside sizes the box to the photo, so the frame matches the picture.') : null,
           numField(l, 'radius', 'Rounded corners', 0, 200));
       }
       if (l.type === 'gallery') {
@@ -2073,7 +2130,17 @@ window.CanvasEditorUI = (function () {
         if (dir.includes('s')) h = lead.h + local.y;
         if (dir.includes('n')) h = lead.h - local.y;
         const corner = dir === 'nw' || dir === 'ne' || dir === 'se' || dir === 'sw';
-        if (naturalGallery(l)) {
+        if (l.type === 'image' && l.fit === 'contain' && Number(l.aspectRatio) > 0) {
+          const ratio = Number(l.aspectRatio);
+          if (dir === 'n' || dir === 's') {
+            h = clamp(round(h), 20, 4000);
+            w = Math.max(20, Math.round(h * ratio));
+          } else {
+            w = clamp(round(w), 20, 6000);
+            h = Math.max(20, Math.round(w / ratio));
+          }
+          placeFromAnchor(l, lead, dir, w, h);
+        } else if (naturalGallery(l)) {
           // Width can change. Height stays locked to the pictures' own shape,
           // so a drag cannot crop them back into the layer box.
           if (dir === 'n' || dir === 's') return;
@@ -2312,6 +2379,10 @@ window.CanvasEditorUI = (function () {
       render,
       selectLayer: (id) => selectOnly(id),
       isGesturing: () => gestureOpen,
+      undo,
+      redo,
+      canUndo,
+      canRedo,
       destroy: () => {
         resizeObserver.disconnect();
         window.removeEventListener('pointermove', onPointerMove);

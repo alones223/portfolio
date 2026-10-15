@@ -1812,6 +1812,9 @@
     let tplEditor = null;
 
     const closeTplEditor = () => {
+      if (window.__templateEditorUndo && window.__templateEditorUndo.editor === tplEditor) {
+        window.__templateEditorUndo = null;
+      }
       if (!tplEditor) return;
       try { tplEditor.destroy(); tplEditor.destroyed = true; } catch (err) { /* already gone */ }
       liveEditors.delete(tplEditor);
@@ -1894,6 +1897,11 @@
           onRequestImage: () => pickImage(),
           onRequestFiles: (files) => uploadFiles(files),
         });
+        window.__templateEditorUndo = {
+          editor: tplEditor,
+          undo: () => tplEditor.undo(),
+          redo: () => tplEditor.redo(),
+        };
         tplEditor.destroyed = false;
         liveEditors.add(tplEditor);
         host.replaceChildren(tplEditor.element);
@@ -2145,6 +2153,16 @@
     if (key === 's') {
       e.preventDefault();
       save();
+      return;
+    }
+    // A section-layout template keeps its own undo stack. Ctrl+Z there must
+    // not step through the page history, which never recorded those edits.
+    const templateUndo = window.__templateEditorUndo;
+    if (templateUndo && templateUndo.editor && !templateUndo.editor.destroyed) {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      e.preventDefault();
+      if (key === 'z' && !e.shiftKey) templateUndo.undo();
+      else if (key === 'y' || (key === 'z' && e.shiftKey)) templateUndo.redo();
       return;
     }
     // Undo and redo cover every edit on the site, including fields and the canvas.

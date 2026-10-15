@@ -106,11 +106,11 @@
   height: 100%;
 }
 .layer-frame { display: block; width: 100%; height: 100%; overflow: hidden; }
-.layer-turn:has(.layer-subtitle) { display: flex; flex-direction: column; }
-.layer-turn:has(.layer-subtitle) .layer-frame,
-.layer-turn:has(.layer-subtitle) .layer-link { flex: 1; min-height: 0; }
 .layer-subtitle {
-  flex: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
   margin-top: 8px;
   font-size: 15px;
   line-height: 1.25;
