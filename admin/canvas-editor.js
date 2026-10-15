@@ -1887,7 +1887,7 @@ window.CanvasEditorUI = (function () {
         h('div', { class: 'cv-pane-head' },
           h('strong', null, `Layers (${layers().length})`),
           h('span', { class: 'cv-hint' }, 'Top of the list is in front. Drag ⋮⋮ to reorder.')),
-        layers().length ? null : h('p', { class: 'cv-hint' }, 'No layers yet — use the buttons above the board.'),
+        ...(layers().length ? [] : [h('p', { class: 'cv-hint' }, 'No layers yet — use the buttons above the board.')]),
         h('ul', { class: 'cv-layers' }, list.map((l) => {
           const row = h('li', {
             class: `cv-layer-row${selectedIds.has(l.id) ? ' selected' : ''}${l.hidden ? ' is-hidden' : ''}`,
@@ -2499,7 +2499,7 @@ window.CanvasEditorUI = (function () {
       fnBar.replaceChildren(grip, ...blocks.map((block) => button(block, barFn === block.id, toggleBar)));
       placeFnBar();
       const barBlock = blocks.find((block) => block.id === barFn);
-      fnPops.replaceChildren(barBlock ? h('div', { class: 'cv-fnpop', 'data-fn': barBlock.id }, barBlock.body) : null);
+      fnPops.replaceChildren(...(barBlock ? [h('div', { class: 'cv-fnpop', 'data-fn': barBlock.id }, barBlock.body)] : []));
       placePops();
     }
 
