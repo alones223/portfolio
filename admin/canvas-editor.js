@@ -2558,6 +2558,28 @@ window.CanvasEditorUI = (function () {
           l.radius = clamp(Math.round((Number(lead.radius) || 0) * Math.min(sx, sy)), 0, 500);
         }
       } else {
+        // Holding Alt copies the layer and drags the copy. The original stays put.
+        if (e.altKey && !dragging.copied && Math.hypot(rawDx, rawDy) >= 3) {
+          dragging.items.forEach((item) => {
+            item.l.x = item.x;
+            item.l.y = item.y;
+          });
+          const copies = dragging.items.map((item) => {
+            const copy = JSON.parse(JSON.stringify(item.l));
+            copy.id = `l-${Math.random().toString(36).slice(2, 9)}`;
+            copy.name = `${item.l.name || 'Layer'} copy`;
+            copy.z = nextZ();
+            layers().push(copy);
+            return copy;
+          });
+          const leadIndex = Math.max(0, dragging.items.findIndex((item) => item.l === dragging.lead));
+          dragging.items = dragging.items.map((item, i) => ({ ...item, l: copies[i] }));
+          dragging.lead = copies[leadIndex];
+          dragging.el = elFor(dragging.lead.id);
+          selectedIds = new Set(copies.map((l) => l.id));
+          dragging.copied = true;
+          paintList();
+        }
         // Move the lead layer to where the pointer is, let it snap to guides,
         // then move everything else by the same corrected amount.
         const others = layers().filter((o) => !selectedIds.has(o.id) && !o.hidden);
