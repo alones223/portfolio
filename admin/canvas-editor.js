@@ -2027,7 +2027,7 @@ window.CanvasEditorUI = (function () {
         style.push(
           fontField(l),
           h('div', { class: 'cv-grid2' },
-            numField(l, 'size', 'Text size', 8, 200),
+            numField(l, 'size', 'Text size', 8, 360),
             numField(l, 'weight', 'Weight (400 normal, 700 bold)', 100, 900, 100),
             numField(l, 'lineHeight', 'Line spacing', 0.8, 3, 0.05),
             numField(l, 'letterSpacing', 'Letter spacing', -10, 40, 0.5)),

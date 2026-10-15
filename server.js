@@ -409,7 +409,7 @@ function styleToCss(style) {
   if (safeColor(s.color)) out.push(`color:${safeColor(s.color)}`);
   const font = safeFontFamily(s.font);
   if (font) out.push(`font-family:${font}`);
-  if (s.size) out.push(`font-size:${px(s.size, 6, 300)}px`);
+  if (s.size) out.push(`font-size:${px(s.size, 6, 360)}px`);
   if (s.weight) out.push(`font-weight:${px(s.weight, 100, 900)}`);
   if (s.lineHeight) out.push(`line-height:${Math.min(Math.max(Number(s.lineHeight) || 1.25, 0.7), 3)}`);
   if (s.letterSpacing) out.push(`letter-spacing:${Math.min(Math.max(Number(s.letterSpacing) || 0, -20), 60)}px`);
