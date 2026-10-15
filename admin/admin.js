@@ -1350,7 +1350,35 @@
 
   function sectionPanel(page, s, i, redraw, pageLabel) {
     const sections = page.sections;
-    const titleEl = h('span', { class: 'panel-title' }, (s.heading || '').replace(/\n/g, ' ') || '(untitled section)');
+    const titleEl = h('span', { class: 'panel-title', title: 'Double-click to rename' }, (s.heading || '').replace(/\n/g, ' ') || '(untitled section)');
+    titleEl.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const input = h('input', { class: 'panel-rename', type: 'text', value: s.heading || '' });
+      let done = false;
+      const finish = (save) => {
+        if (done) return;
+        done = true;
+        if (save) {
+          s.heading = input.value;
+          titleEl.textContent = input.value.replace(/\n/g, ' ') || '(untitled section)';
+          changed();
+        }
+        if (input.isConnected) input.replaceWith(titleEl);
+      };
+      input.addEventListener('click', (ev) => ev.stopPropagation());
+      input.addEventListener('dblclick', (ev) => ev.stopPropagation());
+      input.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+      input.addEventListener('keydown', (ev) => {
+        ev.stopPropagation();
+        if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+      });
+      input.addEventListener('blur', () => finish(true));
+      titleEl.replaceWith(input);
+      input.focus();
+      input.select();
+    });
     const metaEl = h('span', { class: 'panel-meta' }, sectionMeta(s));
     const panel = h('div', { class: `panel${panelIsOpen(s) ? ' open' : ''}` });
     const head = h('div', { class: 'panel-head', role: 'button', tabindex: '0', 'aria-expanded': String(panelIsOpen(s)) },

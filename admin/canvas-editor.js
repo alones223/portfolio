@@ -1581,7 +1581,41 @@ window.CanvasEditorUI = (function () {
           row.append(
             handle,
             h('span', { class: 'cv-layer-icon' }, ICONS[l.type] || '•'),
-          h('span', { class: 'cv-layer-name', title: l.name }, l.name || M.layerTypeLabel(l.type)),
+          (() => {
+            const nameEl = h('span', { class: 'cv-layer-name', title: 'Double-click to rename' }, l.name || M.layerTypeLabel(l.type));
+            nameEl.addEventListener('dblclick', (e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              const input = h('input', { class: 'cv-layer-rename', type: 'text', value: l.name || '' });
+              let done = false;
+              const finish = (save) => {
+                if (done) return;
+                done = true;
+                if (save) {
+                  const next = input.value.trim();
+                  if (next && next !== l.name) {
+                    record();
+                    l.name = next;
+                    onChange();
+                  }
+                }
+                paintList();
+              };
+              input.addEventListener('click', (ev) => ev.stopPropagation());
+              input.addEventListener('dblclick', (ev) => ev.stopPropagation());
+              input.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+              input.addEventListener('keydown', (ev) => {
+                ev.stopPropagation();
+                if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
+                else if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+              });
+              input.addEventListener('blur', () => finish(true));
+              nameEl.replaceWith(input);
+              input.focus();
+              input.select();
+            });
+            return nameEl;
+          })(),
           h('span', { class: 'cv-layer-tools' },
             h('button', { class: 'icon-btn', type: 'button', title: 'Move forward', onclick: (e) => { e.stopPropagation(); bringForward(l.id); } }, '↑'),
             h('button', { class: 'icon-btn', type: 'button', title: 'Move backward', onclick: (e) => { e.stopPropagation(); sendBackward(l.id); } }, '↓'),
@@ -1769,53 +1803,8 @@ window.CanvasEditorUI = (function () {
         return;
       }
 
-      const pos = h('div', { class: 'cv-group' },
-        h('h4', null, 'Position and size'),
-        textField(l, 'name', 'Layer name (only you see this)'),
-        h('div', { class: 'cv-grid2' },
-          numField(l, 'x', 'X', -4000, 6000),
-          numField(l, 'y', 'Y', -2000, 4000),
-          numField(l, 'w', 'Width', 20, 6000),
-          naturalGallery(l)
-            ? field('Height', h('input', {
-              type: 'number',
-              value: round(boxHeight(l)),
-              disabled: true,
-              'data-locked-height': '1',
-              title: 'Locked to the original image shape',
-            }))
-            : numField(l, 'h', 'Height', 2, 4000),
-          numField(l, 'rotate', 'Rotation (°)', -360, 360, 1, 0)),
-        h('p', { class: 'cv-hint' }, 'Drag the round handle above the layer to rotate it. Hold Shift to snap every 15°.'),
-        isTextual(l) ? (() => {
-          const box = h('input', { type: 'checkbox', checked: l.autoFit === true });
-          box.addEventListener('change', () => {
-            record();
-            l.autoFit = box.checked;
-            l.hugging = box.checked ? true : false;
-            if (box.checked) fitTextBox(l);
-            onChange();
-            render();
-          });
-          return h('label', { class: 'cv-check' }, box, 'Auto-fit');
-        })() : null,
-        isTextual(l) && l.autoFit !== true ? toggleField(l, 'hugging', 'Height follows the text') : null,
-        isTextual(l) ? h('p', { class: 'cv-hint' }, 'Double-click or double-tap the text on the board to edit it. Drag a corner to scale it. Drag an edge to change the box without changing the type size.') : null,
-        h('div', { class: 'cv-btnrow' },
-          isTextual(l) ? popupMenu('Align', [
-            { label: 'Left', on: l.align === 'left', run: () => { record(); l.align = 'left'; onChange(); render(); fitTextBox(l); } },
-            { label: 'Centre', on: l.align === 'center', run: () => { record(); l.align = 'center'; onChange(); render(); fitTextBox(l); } },
-            { label: 'Right', on: l.align === 'right', run: () => { record(); l.align = 'right'; onChange(); render(); fitTextBox(l); } },
-          ]) : null,
-          layerMenu([l.id], [
-            { label: 'Duplicate layer', run: () => duplicateLayer(l.id) },
-            { label: 'Delete layer', danger: true, run: () => removeLayer(l.id) },
-          ])));
-      groups.push(pos);
-      groups.push(alignPanel(1));
-
       const content = [];
-      if (isTextual(l)) content.push(areaField(l, 'text', 'Text', l.type === 'heading' ? 2 : 5), h('p', { class: 'cv-hint' }, 'Enter makes a new line; a blank line starts a new paragraph.'));
+      if (isTextual(l)) content.push(areaField(l, 'text', 'Text', l.type === 'heading' ? 2 : 5), h('p', { class: 'cv-hint' }, 'Enter makes a new line; a blank line starts a new paragraph. Double-click the name in the layer list to rename the layer.'));
       if (l.type === 'button') {
         content.push(
           textField(l, 'text', 'Button label'),
@@ -1887,7 +1876,50 @@ window.CanvasEditorUI = (function () {
               ? 'Drag the points on the canvas. Drag a mark on an edge to add a point, and double-click a point to remove it. '
               : 'The shape stretches to fill its box. Fill and border are under Style. ') + 'Hold Shift while resizing to make it a square.'));
       }
-      if (content.length) groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Content'), ...content));
+
+      const pos = h('div', { class: 'cv-group' },
+        h('h4', null, 'Position and size'),
+        content.length ? h('div', { class: 'cv-subgroup' }, ...content) : null,
+        h('div', { class: 'cv-grid2' },
+          numField(l, 'x', 'X', -4000, 6000),
+          numField(l, 'y', 'Y', -2000, 4000),
+          numField(l, 'w', 'Width', 20, 6000),
+          naturalGallery(l)
+            ? field('Height', h('input', {
+              type: 'number',
+              value: round(boxHeight(l)),
+              disabled: true,
+              'data-locked-height': '1',
+              title: 'Locked to the original image shape',
+            }))
+            : numField(l, 'h', 'Height', 2, 4000),
+          numField(l, 'rotate', 'Rotation (°)', -360, 360, 1, 0)),
+        h('p', { class: 'cv-hint' }, 'Drag the round handle above the layer to rotate it. Hold Shift to snap every 15°.'),
+        isTextual(l) ? (() => {
+          const box = h('input', { type: 'checkbox', checked: l.autoFit === true });
+          box.addEventListener('change', () => {
+            record();
+            l.autoFit = box.checked;
+            l.hugging = box.checked ? true : false;
+            if (box.checked) fitTextBox(l);
+            onChange();
+            render();
+          });
+          return h('label', { class: 'cv-check' }, box, 'Auto-fit');
+        })() : null,
+        isTextual(l) && l.autoFit !== true ? toggleField(l, 'hugging', 'Height follows the text') : null,
+        isTextual(l) ? h('p', { class: 'cv-hint' }, 'Double-click or double-tap the text on the board to edit it. Drag a corner to scale it. Drag an edge to change the box without changing the type size.') : null,
+        h('div', { class: 'cv-btnrow' },
+          isTextual(l) ? popupMenu('Text align', [
+            { label: 'Left', on: l.align === 'left', run: () => { record(); l.align = 'left'; onChange(); render(); fitTextBox(l); } },
+            { label: 'Centre', on: l.align === 'center', run: () => { record(); l.align = 'center'; onChange(); render(); fitTextBox(l); } },
+            { label: 'Right', on: l.align === 'right', run: () => { record(); l.align = 'right'; onChange(); render(); fitTextBox(l); } },
+          ]) : null,
+          layerMenu([l.id], [
+            { label: 'Duplicate layer', run: () => duplicateLayer(l.id) },
+            { label: 'Delete layer', danger: true, run: () => removeLayer(l.id) },
+          ])));
+      groups.push(pos);
 
       const style = [];
       if (isTextual(l) || l.type === 'button') {
@@ -1898,7 +1930,6 @@ window.CanvasEditorUI = (function () {
             numField(l, 'weight', 'Weight (400 normal, 700 bold)', 100, 900, 100),
             numField(l, 'lineHeight', 'Line spacing', 0.8, 3, 0.05),
             numField(l, 'letterSpacing', 'Letter spacing', -10, 40, 0.5)),
-          selectField(l, 'align', 'Text alignment', [['left', 'Left'], ['center', 'Centred'], ['right', 'Right']]),
           colorField(l, 'color', 'Text colour'),
           toggleField(l, 'textShadow', 'Shadow behind the text'));
       }
@@ -1920,6 +1951,7 @@ window.CanvasEditorUI = (function () {
         style.push(h('p', { class: 'cv-hint' }, 'Lock radius keeps the corner roundness in proportion while you drag a resize handle.'));
       }
       groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Style'), ...style.filter(Boolean)));
+      groups.push(alignPanel(1));
 
       groups.push(h('div', { class: 'cv-group' },
         h('h4', null, 'Animation'),
