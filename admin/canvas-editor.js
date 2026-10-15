@@ -2184,9 +2184,8 @@ window.CanvasEditorUI = (function () {
         // then move everything else by the same corrected amount.
         const others = layers().filter((o) => !selectedIds.has(o.id) && !o.hidden);
         let dx = snap ? round(rawDx / M.GRID) * M.GRID : rawDx;
-        let dy = snap ? round(rawDy / M.GRID) * M.GRID : rawDy;
         let nx = round(lead.x + dx);
-        let ny = round(lead.y + dy);
+        const ny = lead.y;
         if (!snap) {
           const leadH = naturalGallery(dragging.lead) ? boxHeight(dragging.lead) : lead.h;
           const guide = showGuides({ x: nx, y: ny, w: lead.w, h: leadH }, others.map((o) => ({ x: o.x, y: o.y, w: o.w, h: boxHeight(o) })));
@@ -2195,19 +2194,12 @@ window.CanvasEditorUI = (function () {
             else if (Math.abs(guide.x - (nx + lead.w)) <= 4) nx = guide.x - lead.w;
             else if (Math.abs(guide.x - (nx + lead.w / 2)) <= 4) nx = Math.round(guide.x - lead.w / 2);
           }
-          if (guide.y != null) {
-            if (Math.abs(guide.y - ny) <= 4) ny = guide.y;
-            else if (Math.abs(guide.y - (ny + leadH)) <= 4) ny = guide.y - leadH;
-            else if (Math.abs(guide.y - (ny + leadH / 2)) <= 4) ny = Math.round(guide.y - leadH / 2);
-          }
         } else {
           hideGuides();
         }
         dx = nx - lead.x;
-        dy = ny - lead.y;
         dragging.items.forEach((item) => {
           item.l.x = round(item.x + dx);
-          item.l.y = round(item.y + dy);
         });
       }
       paintBoard();
