@@ -920,27 +920,24 @@
 
   // Hero and Works share one card: the canvas board, or the original fields.
   // When `modes` is set, the card uses the same Layout menu as a section.
-  function homeCanvasCard({ title, block, seed, hint, classic, extra, modes }) {
+  function homeCanvasCard({ title, block, seed, hint, classic, extra }) {
     const canvasOn = block.layout === 'canvas';
     const host = h('div', { class: 'canvas-host' });
     if (canvasOn) attachCanvasEditor(block, host);
-    const pickMode = (mode) => {
-      if (mode === 'canvas') seed(block);
-      else block.layout = 'classic';
+    const openCanvas = () => {
+      seed(block);
       changed();
       render({ keepScroll: true, scrollY: window.scrollY });
     };
-    const toggle = () => pickMode(canvasOn ? 'classic' : 'canvas');
     return h('section', { class: 'card' },
       h('div', { class: 'card-head' },
         h('h3', null, title),
-        modes ? null : h('button', {
-          class: `btn small${canvasOn ? '' : ' primary'}`,
+        canvasOn ? null : h('button', {
+          class: 'btn small primary',
           type: 'button',
-          onclick: toggle,
-        }, canvasOn ? 'Form fields' : 'Edit on canvas')),
+          onclick: openCanvas,
+        }, 'Edit on canvas')),
       h('p', { class: 'hint', style: 'margin-bottom:12px' }, hint),
-      modes ? fields(modeSelect(canvasOn ? 'canvas' : 'classic', 'Layout', modes, pickMode)) : null,
       canvasOn ? host : null,
       canvasOn ? h('p', { class: 'hint', style: 'margin-top:10px' },
         'Drag a layer in any direction. Arrow keys nudge it. Drag a corner to resize it, and the round handle above it to rotate it. The light-blue highlight is its own layer under the title. Choose the water photo under Board → Background image when nothing is selected.') : null,
@@ -977,11 +974,7 @@
         title: 'Hero (top of the page)',
         block: home.hero,
         seed: seedHeroCanvas,
-        hint: 'Choose Layout canvas to place the title, the light-blue highlight bar and the subtitle on a board. Form fields keeps the name, tagline and big word. Save to publish whichever one is open.',
-        modes: [
-          ['classic', 'Form fields: name, tagline and big word'],
-          ['canvas', 'Layout canvas: freely placed text, images and image groups on a board'],
-        ],
+        hint: 'Edit on canvas to place the title, the light-blue highlight bar and the subtitle on a board. The first time copies what is in the form.',
         classic: () => fields(
           imageField(home.hero, 'image', 'Background image'),
           textField(home.hero, 'name', 'Large name', { span: 2 }),
@@ -1002,7 +995,7 @@
         title: 'Works',
         block: home.works,
         seed: seedWorksCanvas,
-        hint: 'Edit on canvas to place the heading, the light-blue highlight, the description and the category cards on a board. The first time copies what is in the form. Form fields puts the original Works layout back after you save.',
+        hint: 'Edit on canvas to place the heading, the light-blue highlight, the description and the category cards on a board. The first time copies what is in the form.',
         classic: () => fields(
           textField(home.works, 'heading', 'Heading', { span: 2 }),
           textField(home.works, 'decorText', 'Big faint background text', { span: 2, multiline: true, rows: 2 }),
@@ -1475,10 +1468,9 @@
           mount(body, 
             fields(
               textField(s, 'heading', 'Section name (for your reference)', {
-                multiline: true, rows: 1, span: 3,
+                multiline: true, rows: 1, span: 4,
                 onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; },
               }),
-              selectField(s, 'layout', 'Image layout', LAYOUTS, { span: 1, onChange: draw }),
               colorAlphaField(s, 'canvasBg', 'Background', {
                 onInput: () => { const editor = editors.get(s); if (editor) editor.render(); },
               }),
@@ -1513,13 +1505,17 @@
         } else {
           unmountCanvas();
           mount(body, 
+            h('div', { style: 'display:flex;justify-content:flex-end;margin-bottom:12px' },
+              h('button', {
+                class: 'btn small primary', type: 'button',
+                onclick: () => { s.layout = 'canvas'; changed(); draw(); },
+              }, 'Edit on canvas')),
             fields(
               textField(s, 'heading', 'Section heading', {
                 multiline: true, rows: 1, span: 3,
                 onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; },
               }),
               selectField(s, 'align', 'Heading alignment', [['left', 'Left'], ['center', 'Centered']], { span: 1 }),
-              selectField(s, 'layout', 'Image layout', LAYOUTS, { span: 2, onChange: draw }),
               colorAlphaField(s, 'bg', 'Background'),
               ...classicFields()),
             h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
@@ -1623,6 +1619,10 @@
         h('div', { class: 'card-head' },
           h('h3', null, 'Page settings'),
           h('div', { class: 'list-tools' },
+            canvasOn ? null : h('button', {
+              class: 'btn small primary', type: 'button',
+              onclick: () => pickHeaderMode('canvas'),
+            }, 'Edit on canvas'),
             h('button', { class: 'btn small', type: 'button', disabled: idx === 0, onclick: () => { move(content.pages, idx, idx - 1); changed(); render(); } }, '↑ Earlier in menu'),
             h('button', { class: 'btn small', type: 'button', disabled: idx === content.pages.length - 1, onclick: () => { move(content.pages, idx, idx + 1); changed(); render(); } }, '↓ Later in menu'),
             h('button', {
@@ -1661,14 +1661,10 @@
             hint: 'Lowercase letters, numbers and dashes only.',
             onInput: updateViewLink,
           }),
-          checkField(page, 'showInNav', 'Show this page in the menu', { span: 2 }),
-          modeSelect(canvasOn ? 'canvas' : 'classic', 'Layout', [
-            ['classic', 'Form fields: title, subtitle and highlight'],
-            ['canvas', 'Layout canvas: freely placed text, images and image groups on a board'],
-          ], pickHeaderMode)),
+          checkField(page, 'showInNav', 'Show this page in the menu', { span: 2 })),
         canvasOn ? h('p', { class: 'hint', style: 'margin:12px 0' },
-          'The header is a canvas. Drag the light-blue highlight to change its length, and set its colour in the style panel. Choose Form fields in Layout to put the original page header back after you save. The menu label and address stay on the form.') : h('p', { class: 'hint', style: 'margin:12px 0' },
-          'This is the header visitors see. Auto-fit sizes the highlight to the title. Turn Auto-fit off to set a fixed length. Choose Layout canvas to place the same header on a board.'),
+          'The header is a canvas. Drag the light-blue highlight to change its length, and set its colour in the style panel. The menu label and address stay on the form.') : h('p', { class: 'hint', style: 'margin:12px 0' },
+          'Edit on canvas to place the title, the highlight and the subtitle on a board. The first time copies what is in the form. The menu label and address stay on the form.'),
         canvasOn ? headerHost : fields(
           textField(page, 'title', 'Page title (big heading)', { span: 2 }),
           textField(page, 'subtitle', 'Subtitle', { span: 2, multiline: true, rows: 2 }),
