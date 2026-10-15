@@ -368,6 +368,12 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-layer.is-locked { cursor: default; }
 .cv-layer.is-hidden { opacity: .35; }
 .cv-layer-box { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.cv-inline-edit {
+  position: absolute; inset: 0; z-index: 8; box-sizing: border-box;
+  width: 100%; height: 100%; margin: 0; padding: 0; border: 0; resize: none;
+  background: rgba(255, 255, 255, .88); outline: 2px solid var(--accent);
+  overflow: auto;
+}
 .cv-shape-svg { display: block; width: 100%; height: 100%; pointer-events: none; }
 .cv-shape-point, .cv-shape-edge {
   position: absolute; display: none; z-index: 5; box-sizing: border-box;

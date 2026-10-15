@@ -1770,7 +1770,7 @@ window.CanvasEditorUI = (function () {
           return h('label', { class: 'cv-check' }, box, 'Auto-fit');
         })() : null,
         isTextual(l) && l.autoFit !== true ? toggleField(l, 'hugging', 'Height follows the text') : null,
-        isTextual(l) ? h('p', { class: 'cv-hint' }, 'Drag a corner to scale the text. Drag an edge to change the box without changing the type size.') : null,
+        isTextual(l) ? h('p', { class: 'cv-hint' }, 'Double-click or double-tap the text on the board to edit it. Drag a corner to scale it. Drag an edge to change the box without changing the type size.') : null,
         h('div', { class: 'cv-btnrow' },
           isTextual(l) ? popupMenu('Align', [
             { label: 'Left', on: l.align === 'left', run: () => { record(); l.align = 'left'; onChange(); render(); fitTextBox(l); } },
@@ -2315,7 +2315,75 @@ window.CanvasEditorUI = (function () {
     window.addEventListener('blur', () => { spaceDown = false; });
 
     board.addEventListener('pointerdown', onPointerDown);
+    // A double-click edits text in place. A double-tap does the same on a
+    // touch screen, where the second tap arrives as another pointerup.
+    let lastTextTap = { id: '', time: 0 };
+    function editableTextLayer(target) {
+      if (target.closest('.cv-resize, .cv-rotate, .cv-shape-point, .cv-shape-edge, .cv-inline-edit')) return null;
+      const layerEl = target.closest('.cv-layer');
+      if (!layerEl) return null;
+      const layer = byId(layerEl.dataset.id);
+      if (!layer || layer.locked) return null;
+      if (layer.type !== 'heading' && layer.type !== 'text' && layer.type !== 'button') return null;
+      return layer;
+    }
+    function beginInlineEdit(layer) {
+      selectOnly(layer.id);
+      const el = elFor(layer.id);
+      const box = el && el.querySelector('.cv-layer-box');
+      if (!box || box.querySelector('.cv-inline-edit')) return;
+      if (gestureOpen) endGesture();
+      record();
+      const editor = h('textarea', {
+        class: 'cv-inline-edit',
+        style: `${layerStyle(layer)};background:transparent`,
+      });
+      editor.value = layer.text || '';
+      editor.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+      const commit = () => {
+        if (!editor.isConnected) return;
+        layer.text = editor.value;
+        editor.remove();
+        onChange();
+        fitTextBox(layer);
+        render();
+      };
+      editor.addEventListener('blur', commit);
+      editor.addEventListener('keydown', (ev) => {
+        ev.stopPropagation();
+        if (ev.key === 'Escape') {
+          ev.preventDefault();
+          editor.removeEventListener('blur', commit);
+          editor.remove();
+          paintBoard();
+        } else if (ev.key === 'Enter' && layer.type === 'button') {
+          ev.preventDefault();
+          editor.blur();
+        }
+      });
+      box.append(editor);
+      editor.focus();
+      editor.setSelectionRange(editor.value.length, editor.value.length);
+    }
+    board.addEventListener('pointerup', (e) => {
+      if (e.pointerType === 'mouse' || e.button !== 0) return;
+      const layer = editableTextLayer(e.target);
+      if (!layer) return;
+      const now = Date.now();
+      if (lastTextTap.id === layer.id && now - lastTextTap.time < 400) {
+        lastTextTap = { id: '', time: 0 };
+        beginInlineEdit(layer);
+      } else {
+        lastTextTap = { id: layer.id, time: now };
+      }
+    });
     board.addEventListener('dblclick', (e) => {
+      const textLayer = editableTextLayer(e.target);
+      if (textLayer) {
+        e.preventDefault();
+        beginInlineEdit(textLayer);
+        return;
+      }
       const handle = e.target.closest('.cv-shape-point');
       if (!handle) return;
       const layer = byId(handle.closest('.cv-layer')?.dataset.id);
