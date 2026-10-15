@@ -204,7 +204,23 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 
 /* The "add a section" dialog: one card per starting layout, plus the layouts
    saved from earlier sections. */
-.section-picker { max-width: 720px; width: min(720px, 92vw); }
+.section-picker { max-width: 720px; width: min(720px, 92vw); overflow: visible; }
+.tpl-scroll { max-height: calc(86vh - 130px); overflow: auto; padding: 0 20px 16px; }
+.tpl-preview {
+  position: absolute; z-index: 6; width: 300px; padding: 10px;
+  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(10, 25, 47, .2); pointer-events: none;
+}
+.tpl-preview-board { position: relative; width: 280px; overflow: hidden; border-radius: 8px; border: 1px solid var(--line); }
+.tpl-prev { position: absolute; overflow: hidden; box-sizing: border-box; line-height: 1.1; }
+.tpl-prev-heading { color: #0A192F; font-weight: 700; }
+.tpl-prev-text { color: #4F5E75; }
+.tpl-prev-button { background: #FF5722; color: #fff; border-radius: 999px; display: flex; align-items: center; justify-content: center; }
+.tpl-prev-divider { background: #95B8FE; }
+.tpl-prev-shape { background: #E1E5EB; border-radius: 4px; }
+.tpl-prev-image, .tpl-prev-gallery { background: #d5dbe3; }
+.tpl-prev-cell { background: #c5ced8; border-radius: 2px; min-height: 8px; }
+.tpl-prev-grid { position: absolute; display: grid; gap: 3px; }
 .tpl-section { margin-bottom: 18px; }
 .tpl-section h4 {
   font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em;

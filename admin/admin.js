@@ -1083,11 +1083,98 @@
     return new Promise((resolve) => {
       const dlg = h('dialog', { class: 'picker section-picker' });
       const list = h('div', { class: 'tpl-grid' });
+      const previewPop = h('div', { class: 'tpl-preview', hidden: true });
       const close = (value) => { dlg.close(); dlg.remove(); resolve(value); };
-      const savedCard = (t) => h('button', {
-        class: 'tpl-card', type: 'button', onclick: () => close({ kind: 'saved', id: t.id }),
-      }, h('strong', null, t.name),
-        h('span', null, `${t.layers} layer${t.layers === 1 ? '' : 's'}${t.page ? ` · from ${t.page}` : ''}`));
+      const previewColor = (value, fallback) => {
+        const v = String(value || '').trim();
+        if (/^#[0-9a-f]{3,8}$/i.test(v)) return v;
+        if (/^rgba?\(\s*[\d.%,\s]+\)$/i.test(v)) return v;
+        return fallback;
+      };
+      const renderPreview = (section) => {
+        const boardW = 1425;
+        const height = Math.min(4000, Math.max(200, Number(section.canvasHeight) || 640));
+        const viewW = 280;
+        const scale = viewW / boardW;
+        const board = h('div', {
+          class: 'tpl-preview-board',
+          style: `height:${Math.round(height * scale)}px;background:${previewColor(section.canvasBg, '#fff')}`,
+        });
+        if ((section.layout || 'canvas') !== 'canvas') {
+          const cols = Math.min(4, Math.max(1, Number(section.columns) || 3));
+          const count = Math.max(section.items || 0, 3);
+          board.append(h('div', { class: 'tpl-prev tpl-prev-heading', style: 'left:12px;top:14px;width:180px;height:16px' }, section.heading || 'Heading'));
+          const grid = h('div', { class: 'tpl-prev-grid', style: `left:12px;top:40px;width:${viewW - 24}px;grid-template-columns:repeat(${cols},1fr)` });
+          for (let i = 0; i < Math.min(count, cols * 2); i += 1) grid.append(h('div', { class: 'tpl-prev-cell' }));
+          board.append(grid);
+        } else {
+          (section.layers || []).forEach((l) => {
+            const chip = h('div', {
+              class: `tpl-prev tpl-prev-${l.type || 'text'}`,
+              style: `left:${(Number(l.x) || 0) * scale}px;top:${(Number(l.y) || 0) * scale}px;width:${Math.max(4, (Number(l.w) || 40) * scale)}px;height:${Math.max(3, (Number(l.h) || 20) * scale)}px`,
+            });
+            if (l.bg) chip.style.background = previewColor(l.bg, '');
+            if (l.color) chip.style.color = previewColor(l.color, '');
+            if (l.type === 'heading' || l.type === 'text' || l.type === 'button') {
+              chip.textContent = l.text || '';
+              chip.style.fontSize = `${Math.max(6, Math.min(18, (Number(l.size) || 16) * scale * 2.2))}px`;
+            }
+            if (l.type === 'gallery') {
+              const cols = Math.min(4, Math.max(1, Number(l.columns) || 3));
+              const imageCount = Array.isArray(l.images) ? l.images.length : Number(l.images) || 0;
+              const cells = Math.max(1, imageCount || cols);
+              chip.style.display = 'grid';
+              chip.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+              chip.style.gap = '2px';
+              chip.style.padding = '2px';
+              for (let i = 0; i < Math.min(cells, cols * 2); i += 1) chip.append(h('div', { class: 'tpl-prev-cell' }));
+            }
+            board.append(chip);
+          });
+        }
+        return h('div', { class: 'tpl-preview-card' }, board);
+      };
+      const placePreview = (card) => {
+        const dlgBox = dlg.getBoundingClientRect();
+        const cardBox = card.getBoundingClientRect();
+        const width = 300;
+        let left = cardBox.right - dlgBox.left + 12;
+        let top = cardBox.top - dlgBox.top;
+        if (left + width > dlgBox.width - 8) left = cardBox.left - dlgBox.left - width - 12;
+        if (left < 8) left = 8;
+        const popH = previewPop.offsetHeight || 180;
+        if (top + popH > dlgBox.height - 8) top = Math.max(8, dlgBox.height - popH - 8);
+        previewPop.style.left = `${left}px`;
+        previewPop.style.top = `${top}px`;
+      };
+      const showPreview = (card, section) => {
+        if (!section) return;
+        previewPop.replaceChildren(renderPreview(section));
+        previewPop.hidden = false;
+        placePreview(card);
+      };
+      const hidePreview = () => { previewPop.hidden = true; };
+      const watchPreview = (card, getSection) => {
+        card.addEventListener('mouseenter', async () => {
+          const section = await getSection();
+          if (!card.matches(':hover')) return;
+          showPreview(card, section);
+        });
+        card.addEventListener('mouseleave', hidePreview);
+      };
+      const savedCard = (t) => {
+        const card = h('button', {
+          class: 'tpl-card', type: 'button', onclick: () => close({ kind: 'saved', id: t.id }),
+        }, h('strong', null, t.name),
+          h('span', null, `${t.layers} layer${t.layers === 1 ? '' : 's'}${t.page ? ` · from ${t.page}` : ''}`));
+        watchPreview(card, async () => {
+          if (t.preview) return t.preview;
+          const full = await api('GET', `/api/layouts/${encodeURIComponent(t.id)}`);
+          t.preview = full.section;
+          return t.preview;
+        });
+        return card;
+      };
 
       const draw = (presets, saved) => {
         const groups = LAYOUT_GROUPS.map(([kind, label]) => {
@@ -1098,9 +1185,13 @@
         });
         mount(list,
           savedOnly ? null : h('div', { class: 'tpl-section' }, h('h4', null, 'Start from a layout'),
-            h('div', { class: 'tpl-cards' }, presets.map((p) => h('button', {
-              class: 'tpl-card', type: 'button', onclick: () => close({ kind: 'preset', id: p.id }),
-            }, h('strong', null, p.name), h('span', null, p.description))))),
+            h('div', { class: 'tpl-cards' }, presets.map((p) => {
+              const card = h('button', {
+                class: 'tpl-card', type: 'button', onclick: () => close({ kind: 'preset', id: p.id }),
+              }, h('strong', null, p.name), h('span', null, p.description));
+              watchPreview(card, async () => p.preview);
+              return card;
+            }))),
           includeSaved ? groups : null,
           includeSaved && !saved.length
             ? h('p', { class: 'hint' }, 'Layouts you save from a section, or templates you make on Section layouts, appear here.')
@@ -1111,8 +1202,9 @@
         h('div', { class: 'picker-head' },
           h('h3', null, title),
           h('button', { class: 'btn small', type: 'button', onclick: () => close(null) }, 'Cancel')),
-        h('p', { class: 'hint', style: 'margin-bottom:12px' }, 'Every section is separate: adding or copying one only affects the page you are on.'),
-        list);
+        h('p', { class: 'hint', style: 'margin:0 20px 12px' }, 'Every section is separate: adding or copying one only affects the page you are on. Hover a layout to see a preview.'),
+        h('div', { class: 'tpl-scroll' }, list),
+        previewPop);
       dlg.addEventListener('close', () => { if (dlg.isConnected) dlg.remove(); resolve(null); });
       document.body.append(dlg);
       dlg.showModal();
