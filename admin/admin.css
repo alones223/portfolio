@@ -169,6 +169,10 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 
 .panel { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
 .panel-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; user-select: none; }
+.panel-drag { flex: none; cursor: grab; color: var(--slate); letter-spacing: -1px; padding: 0 2px; }
+.panel-drag:active { cursor: grabbing; }
+.panel.is-dragging { opacity: .45; }
+.panel.is-drop { outline: 2px solid var(--accent); outline-offset: -2px; }
 .panel-head:hover { background: #fafbfd; }
 .panel-head .chev { width: 16px; color: #8a96a8; transition: transform .15s; }
 .panel.open > .panel-head .chev { transform: rotate(90deg); }

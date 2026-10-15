@@ -996,7 +996,7 @@
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, true)); drawSections(); } }, 'Expand all'),
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, false)); drawSections(); } }, 'Collapse all'))),
         h('p', { class: 'hint', style: 'margin-bottom:12px' },
-          'The part of the page between the hero and "Works". Each section is its own board: put text, images and image groups anywhere on it. Use ⧉ to copy a section as a new one and then change the copy — the original is left untouched. ⧉ keeps its own layers, so the two boards never move together.'),
+          'The part of the page between the hero and "Works". Drag ⋮⋮ to change the order. Each section is its own board: put text, images and image groups anywhere on it. Use ⧉ to copy a section as a new one and then change the copy — the original is left untouched. ⧉ keeps its own layers, so the two boards never move together.'),
         sectionsWrap),
       homeCanvasCard({
         title: 'Works',
@@ -1353,7 +1353,38 @@
     const titleEl = h('span', { class: 'panel-title' }, (s.heading || '').replace(/\n/g, ' ') || '(untitled section)');
     const metaEl = h('span', { class: 'panel-meta' }, sectionMeta(s));
     const panel = h('div', { class: `panel${panelIsOpen(s) ? ' open' : ''}` });
+    const handle = h('span', { class: 'panel-drag', title: 'Drag to reorder' }, '⋮⋮');
+    handle.draggable = true;
+    handle.addEventListener('click', (e) => e.stopPropagation());
+    handle.addEventListener('dragstart', (e) => {
+      e.stopPropagation();
+      e.dataTransfer.setData('text/plain', s.id);
+      e.dataTransfer.effectAllowed = 'move';
+      panel.classList.add('is-dragging');
+    });
+    handle.addEventListener('dragend', () => panel.classList.remove('is-dragging'));
+    panel.addEventListener('dragover', (e) => {
+      if (![...e.dataTransfer.types].includes('text/plain')) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      panel.classList.add('is-drop');
+    });
+    panel.addEventListener('dragleave', () => panel.classList.remove('is-drop'));
+    panel.addEventListener('drop', (e) => {
+      e.preventDefault();
+      panel.classList.remove('is-drop');
+      const fromId = e.dataTransfer.getData('text/plain');
+      if (!fromId || fromId === s.id) return;
+      const from = sections.findIndex((item) => item.id === fromId);
+      const to = sections.findIndex((item) => item.id === s.id);
+      if (from < 0 || to < 0) return;
+      const [item] = sections.splice(from, 1);
+      sections.splice(to, 0, item);
+      changed();
+      redraw();
+    });
     const head = h('div', { class: 'panel-head', role: 'button', tabindex: '0', 'aria-expanded': String(panelIsOpen(s)) },
+      handle,
       h('span', { class: 'chev' }, '▶'),
       titleEl,
       metaEl,
@@ -1661,7 +1692,7 @@
             h('button', { class: 'btn small', type: 'button', onclick: () => { page.sections.forEach((s) => setPanelOpen(s, true)); drawSections(); } }, 'Expand all'),
             h('button', { class: 'btn small', type: 'button', onclick: () => { page.sections.forEach((s) => setPanelOpen(s, false)); drawSections(); } }, 'Collapse all'))),
         h('p', { class: 'hint', style: 'margin-bottom:12px' },
-          'The building blocks of this page, in the order visitors scroll through them. Sections belong to this page only — another page has its own list. Open one to edit it, or use ⧉ to copy it as a new section.'),
+          'The building blocks of this page, in the order visitors scroll through them. Drag ⋮⋮ to change that order. Sections belong to this page only — another page has its own list. Open one to edit it, or use ⧉ to copy it as a new section.'),
         sectionsWrap),
     ];
   }
