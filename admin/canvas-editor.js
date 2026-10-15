@@ -1787,7 +1787,7 @@ window.CanvasEditorUI = (function () {
         box.append(btn);
         return btn;
       };
-      const rows = [];
+      const rows = [h('p', { class: 'cv-align-label' }, 'Object align')];
       if (count > 1) {
         // `true` is what makes these line the layers up with each other rather
         // than with the board; without it every button did the same thing.
@@ -1818,6 +1818,23 @@ window.CanvasEditorUI = (function () {
         add('bottom', '⤓', 'Line up on the bottom of the board', false));
       rows.push(count > 1 ? h('p', { class: 'cv-hint' }, 'Lining up on the board:') : null);
       rows.push(boardRow);
+      const textLayer = count === 1 ? primary() : null;
+      if (textLayer && isTextual(textLayer)) {
+        const choose = (value) => {
+          record();
+          textLayer.align = value;
+          onChange();
+          render();
+          fitTextBox(textLayer);
+        };
+        rows.push(h('p', { class: 'cv-align-label' }, 'Text align'));
+        rows.push(h('div', { class: 'cv-align-row cv-align-text' },
+          [['left', 'Left'], ['center', 'Centre'], ['right', 'Right']].map(([value, label]) => h('button', {
+            class: `cv-align-btn${textLayer.align === value ? ' is-on' : ''}`,
+            type: 'button',
+            onclick: () => choose(value),
+          }, label))));
+      }
       return h('div', { class: 'cv-group' }, h('h4', null, 'Align'), ...rows.filter(Boolean));
     }
 
@@ -2011,11 +2028,6 @@ window.CanvasEditorUI = (function () {
         isTextual(l) && l.autoFit !== true ? toggleField(l, 'hugging', 'Height follows the text') : null,
         isTextual(l) ? h('p', { class: 'cv-hint' }, 'Double-click or double-tap the text on the board to edit it. Drag a corner to scale it. Drag an edge to change the box without changing the type size.') : null,
         h('div', { class: 'cv-btnrow' },
-          isTextual(l) ? popupMenu('Text align', [
-            { label: 'Left', on: l.align === 'left', run: () => { record(); l.align = 'left'; onChange(); render(); fitTextBox(l); } },
-            { label: 'Centre', on: l.align === 'center', run: () => { record(); l.align = 'center'; onChange(); render(); fitTextBox(l); } },
-            { label: 'Right', on: l.align === 'right', run: () => { record(); l.align = 'right'; onChange(); render(); fitTextBox(l); } },
-          ]) : null,
           layerMenu([l.id], [
             { label: 'Duplicate layer', run: () => duplicateLayer(l.id) },
             { label: 'Delete layer', danger: true, run: () => removeLayer(l.id) },

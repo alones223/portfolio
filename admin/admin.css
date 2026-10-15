@@ -568,12 +568,16 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 
 /* Align controls: six buttons that line the selection up, in a 3-wide grid. */
 .cv-align { display: flex; flex-direction: column; gap: 6px; }
+.cv-align-label { margin: 8px 0 0; font-size: 12px; font-weight: 650; letter-spacing: 0.01em; }
+.cv-align-label:first-child { margin-top: 0; }
 .cv-align-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.cv-align-row.cv-align-text { grid-template-columns: repeat(3, 1fr); }
 .cv-align-btn {
   height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 6px;
   background: #fff; color: var(--navy); font-size: 14px; line-height: 1; cursor: pointer;
 }
-.cv-align-btn:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.cv-align-text .cv-align-btn { font-size: 12px; }
+.cv-align-btn:hover, .cv-align-btn.is-on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
 .cv-align .btn.small { grid-column: span 3; }
 .cv-imgrow { display: flex; gap: 8px; align-items: flex-start; }
 .cv-thumb {
