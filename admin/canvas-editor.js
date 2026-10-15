@@ -486,12 +486,29 @@ window.CanvasEditorUI = (function () {
     // flag stays open until the gesture ends, so everything inside it collapses
     // into the single snapshot taken when it opened. The timer is a safety net
     // for gestures that never call endGesture (a colour picker, say).
+    // A pinned gesture stays open until the mouse button is released. The
+    // safety timer must not split it, or one rotation becomes a step per move.
+    let gesturePinned = false;
+
     function beginGesture() {
       clearTimeout(typingTimer);
-      typingTimer = setTimeout(() => { gestureOpen = false; }, 600);
+      if (!gesturePinned) {
+        typingTimer = setTimeout(() => { gestureOpen = false; }, 600);
+      }
       if (gestureOpen) return;
       gestureOpen = true;
       record();
+    }
+
+    function pinGesture() {
+      gesturePinned = true;
+      clearTimeout(typingTimer);
+      beginGesture();
+    }
+
+    function unpinGesture() {
+      gesturePinned = false;
+      endGesture();
     }
 
     function endGesture() {
@@ -1060,29 +1077,57 @@ window.CanvasEditorUI = (function () {
       return Number((Math.round(value / step) * step).toFixed(decimals));
     }
 
-    function numField(l, key, label, min, max, step, fallback) {
+    function numField(l, key, label, min, max, step, fallback, opts = {}) {
       const stride = step || 1;
+      const releaseStep = Boolean(opts.releaseStep);
+      let releasePending = false;
       const read = () => {
         const n = Number(l[key]);
         return Number.isFinite(n) ? n : (fallback ?? 0);
       };
       const input = h('input', { type: 'number', value: read(), min, max, step: stride });
-      const apply = (value) => {
+      const write = (value) => {
         l[key] = clamp(roundToStep(value, stride), min, max);
         if (l.type === 'image' && l.fit === 'contain' && Number(l.aspectRatio) > 0) {
           if (key === 'w') l.h = Math.max(20, Math.round(l.w / l.aspectRatio));
           if (key === 'h') l.w = Math.max(20, Math.round(l.h * l.aspectRatio));
         }
         input.value = String(l[key]);
-        onChange();
         paintBoard();
         if (l.autoFit === true && ['size', 'weight', 'lineHeight', 'letterSpacing'].includes(key)) fitTextBox(l);
         const hint = root.querySelector('.cv-pane-head .cv-hint');
         if (hint && primary()?.id === l.id) hint.textContent = `${round(l.w)}×${round(l.h)}`;
       };
+      const apply = (value) => {
+        write(value);
+        onChange();
+      };
+      if (releaseStep) {
+        input.addEventListener('pointerdown', (e) => {
+          if (e.button !== 0) return;
+          pinGesture();
+          releasePending = false;
+          const up = () => {
+            window.removeEventListener('pointerup', up);
+            window.removeEventListener('pointercancel', up);
+            const pending = releasePending;
+            releasePending = false;
+            unpinGesture();
+            if (pending) onChange();
+          };
+          window.addEventListener('pointerup', up);
+          window.addEventListener('pointercancel', up);
+        });
+      }
       input.addEventListener('change', () => {
+        const value = Number(input.value) || 0;
+        if (releaseStep && gesturePinned) {
+          write(value);
+          releasePending = true;
+          return;
+        }
         record();
-        apply(Number(input.value) || 0);
+        apply(value);
       });
       bindWheel(input, (dir) => {
         beginGesture();
@@ -1894,7 +1939,7 @@ window.CanvasEditorUI = (function () {
               title: 'Locked to the original image shape',
             }))
             : numField(l, 'h', 'Height', 2, 4000),
-          numField(l, 'rotate', 'Rotation (°)', -360, 360, 1, 0)),
+          numField(l, 'rotate', 'Rotation (°)', -360, 360, 1, 0, { releaseStep: true })),
         h('p', { class: 'cv-hint' }, 'Drag the round handle above the layer to rotate it. Hold Shift to snap every 15°.'),
         isTextual(l) ? (() => {
           const box = h('input', { type: 'checkbox', checked: l.autoFit === true });
@@ -2147,6 +2192,7 @@ window.CanvasEditorUI = (function () {
         })),
       };
       if (mode === 'rotate') {
+        pinGesture();
         const boardRect = board.getBoundingClientRect();
         const s0 = scale();
         const px = (e.clientX - boardRect.left) / s0;
@@ -2232,7 +2278,6 @@ window.CanvasEditorUI = (function () {
         });
         paintBoard();
         paintInspector();
-        onChange();
         return;
       }
 
@@ -2334,12 +2379,14 @@ window.CanvasEditorUI = (function () {
 
     function onPointerUp() {
       if (!dragging) return;
+      const pinned = gesturePinned;
       dragging.el?.classList.remove('dragging');
       dragging = null;
       hideGuides();
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
-      endGesture();
+      if (pinned) unpinGesture();
+      else endGesture();
       paintBoard();
       paintList();
       paintInspector();
