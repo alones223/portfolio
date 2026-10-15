@@ -367,9 +367,10 @@ window.CanvasEditorUI = (function () {
     const el = h('div', {
       class: `cv-layer cv-t-${l.type}${l.hidden ? ' is-hidden' : ''}${l.locked ? ' is-locked' : ''}`,
       'data-id': l.id,
-      style: `left:${l.x}px;top:${l.y}px;width:${l.w}px;z-index:${Number(l.z) || 0}${(isTextual(l) && l.hugging) || naturalGallery(l) ? '' : `;height:${l.h}`}${layerTurn(l)}`,
+      style: `left:${l.x}px;top:${l.y}px;width:${l.w}px;z-index:${Number(l.z) || 0}${(isTextual(l) && l.hugging) || (naturalGallery(l) && !l.freeform) ? '' : `;height:${l.h}`}${layerTurn(l)}`,
     });
     if (isTextual(l) && l.hugging) el.classList.add('cv-hug');
+    if (l.type === 'gallery' && l.freeform) el.classList.add('cv-freeform');
     const box = h('div', { class: 'cv-layer-box', style: layerStyle(l) }, ...drawLayerContent(l));
     el.append(box);
     if (l.type === 'divider') el.append(h('span', { class: 'cv-divider-fill', style: `background:${l.color || '#0A192F'}` }));
@@ -590,6 +591,7 @@ window.CanvasEditorUI = (function () {
     // Natural image groups size themselves from the pictures, so alignment and
     // the inspector read the box on the board rather than the stored height.
     function boxHeight(l) {
+      if (l.type === 'gallery' && l.freeform) return Number(l.h) || 0;
       if (!naturalGallery(l)) return Number(l.h) || 0;
       const el = elFor(l.id);
       const measured = el ? el.offsetHeight : 0;
@@ -754,6 +756,46 @@ window.CanvasEditorUI = (function () {
         if (!item.w) item.w = box.w;
         if (!item.h) item.h = box.h;
       });
+      syncFreeformBox(l);
+    }
+
+    // The selection frame is the pictures. Absolute images do not stretch the
+    // layer, so the box is set to the rectangle that contains every one of them.
+    function syncFreeformBox(l) {
+      if (!l || l.type !== 'gallery' || !l.freeform) return false;
+      const images = l.images || [];
+      if (!images.length) return false;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      images.forEach((item) => {
+        const x = Number(item.x) || 0;
+        const y = Number(item.y) || 0;
+        const w = Math.max(20, Number(item.w) || 80);
+        const h = Math.max(20, Number(item.h) || 80);
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x + w);
+        maxY = Math.max(maxY, y + h);
+      });
+      const dx = Math.round(minX);
+      const dy = Math.round(minY);
+      const w = Math.max(20, Math.round(maxX - minX));
+      const h = Math.max(20, Math.round(maxY - minY));
+      let moved = false;
+      if (dx || dy) {
+        images.forEach((item) => {
+          item.x = Math.round((Number(item.x) || 0) - dx);
+          item.y = Math.round((Number(item.y) || 0) - dy);
+        });
+        l.x = Math.round((Number(l.x) || 0) + dx);
+        l.y = Math.round((Number(l.y) || 0) + dy);
+        moved = true;
+      }
+      if (Math.round(Number(l.w) || 0) !== w) { l.w = w; moved = true; }
+      if (Math.round(Number(l.h) || 0) !== h) { l.h = h; moved = true; }
+      return moved;
     }
 
     function separateGallery(l) {
@@ -1445,8 +1487,11 @@ window.CanvasEditorUI = (function () {
         el.classList.toggle('is-hidden', Boolean(l.hidden));
         el.classList.toggle('is-locked', Boolean(l.locked));
         el.classList.toggle('dragging', dragging?.layer?.id === l.id);
+        el.classList.toggle('cv-freeform', l.type === 'gallery' && Boolean(l.freeform));
+        const groupResize = dragging && dragging.mode === 'resize' && dragging.lead === l;
+        if (l.type === 'gallery' && l.freeform && !groupResize) syncFreeformBox(l);
         const size = `left:${l.x}px;top:${l.y}px;width:${l.w}px;z-index:${Number(l.z) || 0}`;
-        const lockHeight = (isTextual(l) && l.hugging) || naturalGallery(l);
+        const lockHeight = ((isTextual(l) && l.hugging) || naturalGallery(l)) && !(l.type === 'gallery' && l.freeform);
         el.style.cssText = lockHeight ? `${size}${layerTurn(l)}` : `${size};height:${l.h}px${layerTurn(l)}`;
         el.classList.toggle('cv-hug', isTextual(l) && Boolean(l.hugging));
         el.classList.toggle('cv-natural-gallery', naturalGallery(l));
@@ -1460,6 +1505,16 @@ window.CanvasEditorUI = (function () {
             el.dataset.signature = signature;
             box.replaceChildren(...drawLayerContent(l));
           }
+        }
+        if (l.type === 'gallery' && l.freeform) {
+          el.querySelectorAll('.cv-free-item').forEach((node) => {
+            const item = (l.images || [])[Number(node.dataset.free)];
+            if (!item) return;
+            node.style.left = `${Math.round(Number(item.x) || 0)}px`;
+            node.style.top = `${Math.round(Number(item.y) || 0)}px`;
+            node.style.width = `${Math.max(20, Math.round(Number(item.w) || 80))}px`;
+            node.style.height = `${Math.max(20, Math.round(Number(item.h) || 80))}px`;
+          });
         }
         syncImageCaption(el, l);
         const divider = el.querySelector('.cv-divider-fill');
@@ -2190,6 +2245,14 @@ window.CanvasEditorUI = (function () {
           rotate: Number(l.rotate) || 0,
           radius: Number(l.radius) || 0,
         })),
+        freeItems: layer.type === 'gallery' && layer.freeform
+          ? (layer.images || []).map((item) => ({
+            x: Number(item.x) || 0,
+            y: Number(item.y) || 0,
+            w: Math.max(20, Number(item.w) || 80),
+            h: Math.max(20, Number(item.h) || 80),
+          }))
+          : null,
       };
       if (mode === 'rotate') {
         pinGesture();
@@ -2228,15 +2291,18 @@ window.CanvasEditorUI = (function () {
             item.w = Math.max(20, Math.round(dragging.origin.w + dx));
             item.h = Math.max(20, Math.round(dragging.origin.h + dy));
           }
-          const node = dragging.el?.querySelector(`.cv-free-item[data-free="${dragging.freeIndex}"]`);
-          if (node) {
-            node.style.left = `${item.x}px`;
-            node.style.top = `${item.y}px`;
-            node.style.width = `${item.w}px`;
-            node.style.height = `${item.h}px`;
+          syncFreeformBox(dragging.lead);
+          if (dragging.mode === 'free') {
+            dragging.origin.x = item.x - dx;
+            dragging.origin.y = item.y - dy;
+          } else {
+            dragging.origin.x = Number(item.x) || 0;
+            dragging.origin.y = Number(item.y) || 0;
+            dragging.origin.w = item.w - dx;
+            dragging.origin.h = item.h - dy;
           }
+          paintBoard();
         }
-        onChange();
         return;
       }
 
@@ -2304,6 +2370,23 @@ window.CanvasEditorUI = (function () {
             w = clamp(round(w), 20, 6000);
             h = Math.max(20, Math.round(w / ratio));
           }
+          placeFromAnchor(l, lead, dir, w, h);
+        } else if (l.type === 'gallery' && l.freeform) {
+          if (snap) { w = round(w / M.GRID) * M.GRID; h = round(h / M.GRID) * M.GRID; }
+          w = clamp(round(w), 40, 6000);
+          h = clamp(round(h), 40, 4000);
+          if (dir === 'e' || dir === 'w') h = lead.h;
+          if (dir === 'n' || dir === 's') w = lead.w;
+          const sx = w / Math.max(lead.w, 1);
+          const sy = h / Math.max(lead.h, 1);
+          (l.images || []).forEach((item, index) => {
+            const start = dragging.freeItems && dragging.freeItems[index];
+            if (!start) return;
+            item.x = Math.round(start.x * sx);
+            item.y = Math.round(start.y * sy);
+            item.w = Math.max(20, Math.round(start.w * sx));
+            item.h = Math.max(20, Math.round(start.h * sy));
+          });
           placeFromAnchor(l, lead, dir, w, h);
         } else if (naturalGallery(l)) {
           // Width can change. Height stays locked to the pictures' own shape,

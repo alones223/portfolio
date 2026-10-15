@@ -489,6 +489,8 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
    to fit them. The layer box must not stay a fixed crop window. */
 .cv-layer.cv-natural-gallery { height: auto; }
 .cv-layer.cv-natural-gallery .cv-layer-box { height: auto; overflow: visible; }
+.cv-layer.cv-freeform .cv-layer-box,
+.cv-layer.cv-natural-gallery.cv-freeform .cv-layer-box { height: 100%; overflow: visible; }
 .cv-layer.cv-natural-gallery .cv-resize-n,
 .cv-layer.cv-natural-gallery .cv-resize-s { display: none !important; }
 .cv-gallery.is-natural {
