@@ -627,29 +627,18 @@ window.CanvasEditorUI = (function () {
     // Guides start hidden: they only show while a layer snaps to something.
     const guideX = h('div', { class: 'cv-guide cv-guide-v', hidden: true });
     const guideY = h('div', { class: 'cv-guide cv-guide-h', hidden: true });
-    const widthLeft = h('div', { class: 'cv-width-handle cv-width-left', title: 'Drag to change the page width' });
-    const widthRight = h('div', { class: 'cv-width-handle cv-width-right', title: 'Drag to change the page width' });
-    const stage = h('div', { class: 'cv-stage' }, board, guideX, guideY, widthLeft, widthRight);
-    const onWidthDown = (edge, e) => {
+    const heightHandle = h('div', { class: 'cv-height-handle', title: 'Drag up or down to change the board height' });
+    const stage = h('div', { class: 'cv-stage' }, board, guideX, guideY, heightHandle);
+    heightHandle.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();
-      const startX = e.clientX;
-      const startW = boardWidth();
-      const origin = layers().map((l) => ({ id: l.id, x: l.x }));
+      const startY = e.clientY;
+      const startH = boardHeight();
       beginGesture();
       const move = (ev) => {
-        const dx = (ev.clientX - startX) / scale();
-        const raw = edge === 'right' ? startW + dx : startW - dx;
-        const next = clamp(Math.round(raw), WIDTH_MIN, WIDTH_MAX);
-        section.canvasWidth = next;
-        if (edge === 'left') {
-          const shift = next - startW;
-          layers().forEach((l) => {
-            const was = origin.find((item) => item.id === l.id);
-            if (was) l.x = Math.round(was.x + shift);
-          });
-        }
+        const dy = (ev.clientY - startY) / scale();
+        section.canvasHeight = clamp(Math.round(startH + dy), 200, 4000);
         onChange();
         paintBoard();
       };
@@ -661,9 +650,7 @@ window.CanvasEditorUI = (function () {
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
-    };
-    widthLeft.addEventListener('pointerdown', (e) => onWidthDown('left', e));
-    widthRight.addEventListener('pointerdown', (e) => onWidthDown('right', e));
+    });
     const viewport = h('div', { class: 'cv-viewport' }, stage);
     const zoomLabel = h('span', { class: 'cv-hint cv-zoomlabel' });
     const root = h('div', { class: 'cv', tabindex: '0' },
@@ -1712,7 +1699,7 @@ window.CanvasEditorUI = (function () {
           bindWheel(input, (dir) => { beginGesture(); apply(boardWidth() + dir * 10); });
           return input;
         })()),
-        h('p', { class: 'cv-hint' }, 'Drag the left or right edge of the board to change the page width. Height stays in the number above. On the website the board scales down to fit the screen.'),
+        h('p', { class: 'cv-hint' }, 'Drag the bottom edge of the board up or down to change its height. The width stays in the number above. On the website the board scales down to fit the screen.'),
       ];
 
       if (!l) {

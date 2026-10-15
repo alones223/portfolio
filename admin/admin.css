@@ -347,11 +347,9 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-stage { position: relative; }
 .cv-board { position: relative; width: 1425px; transform-origin: top left; background: #fff; box-shadow: 0 1px 3px rgba(10, 25, 47, .12); }
 .cv-board-bg { position: absolute; inset: 0; pointer-events: none; background-repeat: no-repeat; background-position: center; background-size: cover; z-index: 0; }
-.cv-width-handle { position: absolute; top: 0; bottom: 0; width: 14px; cursor: ew-resize; z-index: 6; }
-.cv-width-left { left: -7px; }
-.cv-width-right { right: -7px; }
-.cv-width-handle::after { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 2px; background: var(--accent); opacity: 0; }
-.cv-width-handle:hover::after { opacity: 1; }
+.cv-height-handle { position: absolute; left: 0; right: 0; bottom: -7px; height: 14px; cursor: ns-resize; z-index: 6; }
+.cv-height-handle::after { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: var(--accent); opacity: 0; }
+.cv-height-handle:hover::after { opacity: 1; }
 
 /* Layers on the board */
 .cv-layer { position: absolute; box-sizing: border-box; cursor: move; }
