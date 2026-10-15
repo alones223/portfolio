@@ -1757,25 +1757,6 @@ window.CanvasEditorUI = (function () {
         isTextual(l) && l.autoFit !== true ? toggleField(l, 'hugging', 'Height follows the text') : null,
         isTextual(l) ? h('p', { class: 'cv-hint' }, 'Drag a corner to scale the text. Drag an edge to change the box without changing the type size.') : null,
         h('div', { class: 'cv-btnrow' },
-          isTextual(l) ? h('button', { class: 'btn small', type: 'button', title: 'Shrink the box to fit the text', onclick: () => {
-            record();
-            const el = elFor(l.id);
-            const box = el && el.querySelector('.cv-layer-box');
-            if (box) {
-              const prev = box.style.cssText;
-              box.style.width = 'max-content';
-              box.style.height = 'auto';
-              const measuredW = Math.min(Math.max(box.scrollWidth + 4, 20), 6000);
-              const measuredH = Math.max(box.scrollHeight + 4, 20);
-              box.style.cssText = prev;
-              l.w = measuredW;
-              l.h = measuredH;
-            }
-            l.autoFit = true;
-            l.hugging = true;
-            onChange(); render();
-            requestAnimationFrame(() => fitTextBox(l));
-          } }, 'Auto-fit size') : null,
           isTextual(l) ? popupMenu('Align', [
             { label: 'Left', on: l.align === 'left', run: () => { record(); l.align = 'left'; onChange(); render(); fitTextBox(l); } },
             { label: 'Centre', on: l.align === 'center', run: () => { record(); l.align = 'center'; onChange(); render(); fitTextBox(l); } },
