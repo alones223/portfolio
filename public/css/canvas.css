@@ -18,17 +18,37 @@
 }
 
 .content-section.layout-canvas {
+  position: relative;
   max-width: none;
   padding: 0;
   margin: 0;
   overflow: hidden;
-  background: var(--canvas-bg, transparent);
+  background-color: var(--canvas-bg, transparent);
   /* Height and board scale are set per section by public/js/site.js. */
   height: calc(var(--canvas-h, 720) * 1px);
+}
+.content-section.layout-canvas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--canvas-image, none);
+  background-repeat: no-repeat;
+  background-position: var(--canvas-image-x, 50%) var(--canvas-image-y, 50%);
+  background-size: cover;
+  opacity: var(--canvas-bg-alpha, 1);
+  pointer-events: none;
+}
+
+/* A locked board keeps the arrangement from the editor, including on a wide
+   screen where the board sits in the middle and the background fills the rest. */
+.content-section.layout-canvas.canvas-lock.is-centered {
+  display: flex;
+  justify-content: center;
 }
 
 .canvas-board {
   position: relative;
+  z-index: 1;
   width: calc(var(--canvas-w) * 1px);
   /* Every layer is absolutely positioned, so the board has no content to give
      it height and would otherwise collapse to 0px. The section above it clips
@@ -53,6 +73,13 @@
   box-sizing: border-box;
 }
 
+/* Rotation lives here, not on .layer, so scroll animations can keep using
+   transform on the layer itself. */
+.layer-turn {
+  width: 100%;
+  height: 100%;
+}
+
 .layer-heading,
 .layer-text {
   margin: 0;
@@ -74,6 +101,12 @@
 .layer-text p + p {
   margin-top: 0;
 }
+.layer-text.is-paragraph p {
+  margin: 0;
+}
+.layer-text.is-paragraph p + p {
+  margin-top: 0.85em;
+}
 
 .layer-media {
   display: block;
@@ -87,6 +120,25 @@
   width: 100%;
   height: 100%;
 }
+.layer-frame { display: block; width: 100%; height: 100%; overflow: hidden; }
+.layer-subtitle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.25;
+  color: var(--navy);
+  text-align: center;
+}
+
+.layer-group { position: relative; width: 100%; height: 100%; }
+.layer-group-child { position: absolute; overflow: hidden; }
+.layer-group-child img, .layer-group-child video { width: 100%; height: 100%; display: block; }
+.layer-free { position: absolute; inset: 0; }
+.layer-free-item { position: absolute; overflow: hidden; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.layer-free-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .layer-gallery {
   display: grid;
@@ -160,7 +212,8 @@
 /* A plain coloured block: a background colour, a border and rounded corners,
    all set on the element itself by styleToCss(). It can sit behind other
    layers to act as a banner or card panel. */
-.layer-shape {
+.layer-shape,
+.layer-shape-svg {
   display: block;
   width: 100%;
   height: 100%;
@@ -215,14 +268,16 @@
    small to read. Instead, the layers stack in the order they are listed, each
    one full width, and the board becomes as tall as the content needs. */
 @media (max-width: 900px) {
-  .content-section.layout-canvas,
-  .content-section.layout-canvas.is-scaled {
+  /* Locked boards (the home hero and works canvas) keep their positions and
+     scale with the screen instead of stacking into a single column. */
+  .content-section.layout-canvas:not(.canvas-lock),
+  .content-section.layout-canvas:not(.canvas-lock).is-scaled {
     height: auto;
     padding: 48px 20px;
   }
 
-  .canvas-board,
-  .content-section.layout-canvas.is-scaled .canvas-board {
+  .content-section.layout-canvas:not(.canvas-lock) .canvas-board,
+  .content-section.layout-canvas:not(.canvas-lock).is-scaled .canvas-board {
     display: flex;
     flex-direction: column;
     gap: 24px;
@@ -232,26 +287,32 @@
     box-shadow: none;
   }
 
-  .layer {
+  .content-section.layout-canvas:not(.canvas-lock) .layer {
     position: static;
     width: 100% !important;
     height: auto !important;
     min-height: 0;
   }
 
-  .layer-heading { font-size: clamp(26px, 7vw, 44px) !important; letter-spacing: 0 !important; }
-  .layer-text { font-size: 16px !important; letter-spacing: 0 !important; }
+  .content-section.layout-canvas:not(.canvas-lock) .layer-turn {
+    height: auto;
+    transform: none !important;
+  }
 
-  .layer-gallery { height: auto; }
-  .layer-gallery img { height: auto; }
-  .layer-media { height: auto; }
-  .layer-button-slot { height: auto; }
-  .layer-divider { height: 4px; }
+  .content-section.layout-canvas:not(.canvas-lock) .layer-heading { font-size: clamp(26px, 7vw, 44px) !important; letter-spacing: 0 !important; }
+  .content-section.layout-canvas:not(.canvas-lock) .layer-text { font-size: 16px !important; letter-spacing: 0 !important; }
+
+  .content-section.layout-canvas:not(.canvas-lock) .layer-gallery { height: auto; }
+  .content-section.layout-canvas:not(.canvas-lock) .layer-gallery img { height: auto; }
+  .content-section.layout-canvas:not(.canvas-lock) .layer-media { height: auto; }
+  .content-section.layout-canvas:not(.canvas-lock) .layer-button-slot { height: auto; }
+  .content-section.layout-canvas:not(.canvas-lock) .layer-divider { height: 4px; }
   /* A full-width colour block has no content to give it height, so on phones it
      keeps a sensible minimum instead of collapsing to a hairline. */
-  .layer-shape { height: auto !important; min-height: 96px; }
+  .content-section.layout-canvas:not(.canvas-lock) .layer-shape,
+  .content-section.layout-canvas:not(.canvas-lock) .layer-shape-svg { height: auto !important; min-height: 96px; aspect-ratio: 2 / 1; }
 
   /* Wide image groups become two columns so the pictures stay visible. */
-  .layer-gallery.cols-3,
-  .layer-gallery.cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .content-section.layout-canvas:not(.canvas-lock) .layer-gallery.cols-3,
+  .content-section.layout-canvas:not(.canvas-lock) .layer-gallery.cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
 }

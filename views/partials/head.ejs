@@ -14,13 +14,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <% if (fontsUrl) { %><link rel="stylesheet" href="<%= fontsUrl %>"><% } %>
+  <% if (customFontFaces) { %><style><%- customFontFaces %></style><% } %>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/canvas.css">
+  <link rel="stylesheet" href="/css/canvas.css?v=hero-canvas">
   <style>
     :root {
       --navy: <%= t.navy || '#0A192F' %>;
       --slate: <%= t.slate || '#4F5E75' %>;
       --header-bg: <%= t.headerBg || '#D1D9E6' %>;
+      --menu-text: <%= t.menuText || t.navy || '#0A192F' %>;
       --highlight: <%= t.highlight || '#95B8FE' %>;
       --hero-bg: <%= t.heroBg || '#617092' %>;
       --about-bg: <%= t.aboutBg || '#E1E5EB' %>;

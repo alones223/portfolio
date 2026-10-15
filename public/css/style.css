@@ -59,7 +59,7 @@ button { font: inherit; color: inherit; }
   font-size: 14.6px;
   line-height: 20px;
   text-transform: uppercase;
-  color: var(--navy);
+  color: var(--menu-text, var(--navy));
   text-decoration: none;
   letter-spacing: .02em;
   white-space: nowrap;
@@ -68,7 +68,7 @@ button { font: inherit; color: inherit; }
   transition: border-color .25s;
 }
 .site-nav a:hover,
-.site-nav a.active { border-bottom-color: var(--navy); }
+.site-nav a.active { border-bottom-color: var(--menu-text, var(--navy)); }
 
 .nav-toggle {
   display: none;
@@ -77,7 +77,7 @@ button { font: inherit; color: inherit; }
   background: none; border: 0; cursor: pointer;
   flex-direction: column; justify-content: center; gap: 6px; padding: 10px;
 }
-.nav-toggle span { display: block; height: 2px; background: var(--navy); transition: transform .3s, opacity .3s; }
+.nav-toggle span { display: block; height: 2px; background: var(--menu-text, var(--navy)); transition: transform .3s, opacity .3s; }
 .nav-open .nav-toggle span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
 .nav-open .nav-toggle span:nth-child(2) { opacity: 0; }
 .nav-open .nav-toggle span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
@@ -335,6 +335,13 @@ button { font: inherit; color: inherit; }
   padding: 0 24px;
   background: var(--hero-bg) var(--hero-image) center / cover no-repeat;
   text-align: center;
+}
+.page-hero .title-highlight span::before { background: var(--page-highlight, var(--highlight)); }
+.page-hero.is-highlight-fixed .title-highlight span::before {
+  left: 50%;
+  right: auto;
+  width: var(--highlight-len, calc(100% + 16px));
+  transform: translateX(-50%);
 }
 .page-hero-inner { display: flex; flex-direction: column; align-items: center; padding-top: clamp(140px, 19.7vw, 281px); max-width: 839px; }
 .page-hero-rule { width: 54px; height: 1px; margin-top: 50px; background: #fff; }

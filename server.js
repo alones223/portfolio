@@ -5,7 +5,7 @@ const express = require('express');
 const session = require('express-session');
 const multer = require('multer');
 
-const { presetSummaries, findPreset, layer: presetLayer } = require('./lib/section-presets');
+const { presetSummaries, findPreset, defaultTemplates, layer: presetLayer } = require('./lib/section-presets');
 
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, 'data');
@@ -64,10 +64,17 @@ function normContent(raw) {
   const content = JSON.parse(JSON.stringify(raw));
   if (content.home && typeof content.home === 'object') {
     content.home.sections = normSections(content.home.sections);
+    // Hero and Works can be a layout canvas, the same shape as a page section.
+    // The older form (name, tagline, cards) is left as-is until canvas is on.
+    if (content.home.hero?.layout === 'canvas') content.home.hero = normSection(content.home.hero, 0);
+    if (content.home.works?.layout === 'canvas') content.home.works = normSection(content.home.works, 0);
   }
   if (Array.isArray(content.pages)) {
     content.pages.forEach((p) => {
-      if (p && typeof p === 'object') p.sections = normSections(p.sections);
+      if (p && typeof p === 'object') {
+        p.sections = normSections(p.sections);
+        normPageChrome(p);
+      }
     });
   }
   return content;
@@ -112,8 +119,30 @@ function validateContent(c) {
     });
   };
   if (Array.isArray(c.home?.sections)) checkSections(c.home.sections, 'Home');
-  (c.pages || []).forEach((p) => checkSections(p.sections, p.navLabel || p.title || p.slug));
+  if (c.home?.hero?.layout === 'canvas') validateSection(c.home.hero, 'Hero (Home)', errors);
+  if (c.home?.works?.layout === 'canvas') validateSection(c.home.works, 'Works (Home)', errors);
+  (c.pages || []).forEach((p) => {
+    const pageLabel = p.navLabel || p.title || p.slug;
+    checkSections(p.sections, pageLabel);
+    if (p.headerBoard?.layout === 'canvas') validateSection(p.headerBoard, `Page header (${pageLabel})`, errors);
+  });
   return errors;
+}
+
+// Page header chrome. Missing highlightAuto means the bar still hugs the title.
+// A classic header is left alone; only a canvas header is normalised as a board.
+function normPageChrome(page) {
+  const color = safeColor(page.highlightColor);
+  if (color) page.highlightColor = color;
+  else delete page.highlightColor;
+  if (page.highlightAuto === false) page.highlightAuto = false;
+  else delete page.highlightAuto;
+  const len = Number(page.highlightLength);
+  if (Number.isFinite(len) && len > 0) page.highlightLength = Math.min(2000, Math.max(8, Math.round(len)));
+  else delete page.highlightLength;
+  if (page.headerBoard && page.headerBoard.layout === 'canvas') {
+    page.headerBoard = normSection(page.headerBoard, 0);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -164,7 +193,7 @@ function isExternal(url) {
 // ---------------------------------------------------------------------------
 
 const ANIMATIONS = new Set(['none', 'fade', 'up', 'down', 'left', 'right', 'zoom', 'zoomOut', 'float', 'pulse']);
-const LAYER_TYPES = new Set(['heading', 'text', 'image', 'gallery', 'button', 'divider', 'shape']);
+const LAYER_TYPES = new Set(['heading', 'text', 'paragraph', 'image', 'gallery', 'group', 'button', 'divider', 'shape']);
 const LAYOUT_SUPPORTED = new Set(['canvas', 'gallery']);
 const LAYER_FITS = new Set(['cover', 'contain', 'fill']);
 const MAX_LAYERS = 200;
@@ -173,9 +202,40 @@ const LAYER_FONTS = new Set([
   '', 'var(--font-display)', 'var(--font-serif)', 'var(--font-body)',
   'Georgia, serif', 'Arial, Helvetica, sans-serif', '"Courier New", monospace',
 ]);
+
+// Built-in families, plus an uploaded face stored as `"Name", sans-serif`.
+function safeFontFamily(value) {
+  const v = String(value ?? '').trim();
+  if (!v) return '';
+  if (LAYER_FONTS.has(v)) return v;
+  if (/^"[A-Za-z0-9][A-Za-z0-9 .]{0,80}", sans-serif$/.test(v)) return v;
+  return '';
+}
 const LAYER_ALIGN = new Set(['left', 'center', 'right']);
 
 // Colours go straight into a style attribute, so only plain CSS colours pass.
+// Split a stored board colour into a solid colour and an opacity from 0 to 1.
+// A background image is drawn at that opacity so the slider still shows through.
+function canvasBackground(value) {
+  const raw = safeColor(value);
+  if (!raw) return { color: 'transparent', alpha: 1 };
+  const hex6 = /^#([0-9a-f]{6})$/i.exec(raw);
+  if (hex6) return { color: raw, alpha: 1 };
+  const hex8 = /^#([0-9a-f]{6})([0-9a-f]{2})$/i.exec(raw);
+  if (hex8) {
+    return { color: `#${hex8[1]}`, alpha: Math.round((parseInt(hex8[2], 16) / 255) * 100) / 100 };
+  }
+  const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(raw);
+  if (rgb) {
+    const color = '#' + [rgb[1], rgb[2], rgb[3]]
+      .map((n) => Math.min(255, Math.max(0, Number(n))).toString(16).padStart(2, '0'))
+      .join('');
+    const alpha = rgb[4] == null ? 1 : Math.min(1, Math.max(0, Number(rgb[4])));
+    return { color, alpha: Math.round(alpha * 100) / 100 };
+  }
+  return { color: raw, alpha: 1 };
+}
+
 function safeColor(value) {
   const v = String(value ?? '').trim();
   if (!v) return '';
@@ -194,18 +254,167 @@ function safeUrl(url) {
   return v;
 }
 
+const SHAPE_KINDS = new Set(['rect', 'circle', 'triangle', 'star', 'custom']);
+
+function shapeKindOf(layer) {
+  return SHAPE_KINDS.has(layer?.shape) ? layer.shape : 'rect';
+}
+
+function safeSvgPath(value) {
+  const v = String(value || '').trim();
+  if (!/^[Mm]/.test(v) || v.length > 2000) return '';
+  if (!/^[\d\s.,+\-MmLlHhVvCcSsQqTtAaZz]+$/.test(v)) return '';
+  return v;
+}
+
+function parseShapePoints(value) {
+  const raw = String(value || '').trim();
+  if (!raw || /^[Mm]/.test(raw)) return null;
+  const nums = raw.match(/-?\d*\.?\d+/g) || [];
+  const pts = [];
+  for (let i = 0; i + 1 < nums.length; i += 2) {
+    const x = Number(nums[i]);
+    const y = Number(nums[i + 1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    pts.push([Math.min(100, Math.max(0, x)), Math.min(100, Math.max(0, y))]);
+  }
+  return pts.length >= 3 ? pts : null;
+}
+
+// Outer tips stay at 46 inside the 100×100 box. The inner radius is a
+// percentage of that reach: 41 is the original star, lower is sharper.
+function starInnerPct(layer) {
+  const n = Number(layer && layer.starInner);
+  const pct = Number.isFinite(n) ? n : 41;
+  return Math.min(90, Math.max(8, pct));
+}
+
+// How many tips the star has. 5 is the original star.
+function starCornerCount(layer) {
+  const n = Number(layer && layer.starCount);
+  const count = Number.isFinite(n) ? Math.round(n) : 5;
+  return Math.min(16, Math.max(3, count));
+}
+
+function starPointList(layer) {
+  const outer = 46;
+  const inner = outer * (starInnerPct(layer) / 100);
+  const count = starCornerCount(layer);
+  const pts = [];
+  for (let i = 0; i < count * 2; i++) {
+    const radius = i % 2 === 0 ? outer : inner;
+    const angle = -Math.PI / 2 + (i * Math.PI) / count;
+    pts.push([50 + radius * Math.cos(angle), 50 + radius * Math.sin(angle)]);
+  }
+  return pts;
+}
+
+function fmtShape(n) {
+  return String(Math.round(n * 100) / 100);
+}
+
+// A circular arc in place of each vertex. radius uses the same units as the
+// points and is shortened when an edge is too short to hold the full curve.
+function roundedPolygonPath(points, radius) {
+  const n = points.length;
+  const r0 = Math.max(Number(radius) || 0, 0);
+  if (n < 3 || r0 <= 0) {
+    return `M ${points.map((p) => `${fmtShape(p[0])} ${fmtShape(p[1])}`).join(' L ')} Z`;
+  }
+  const cmds = [];
+  for (let i = 0; i < n; i++) {
+    const curr = points[i];
+    const prev = points[(i - 1 + n) % n];
+    const next = points[(i + 1) % n];
+    let v1x = prev[0] - curr[0];
+    let v1y = prev[1] - curr[1];
+    let v2x = next[0] - curr[0];
+    let v2y = next[1] - curr[1];
+    const len1 = Math.hypot(v1x, v1y);
+    const len2 = Math.hypot(v2x, v2y);
+    if (len1 < 1e-4 || len2 < 1e-4) {
+      const cmd = `${fmtShape(curr[0])} ${fmtShape(curr[1])}`;
+      cmds.push(i === 0 ? `M ${cmd}` : `L ${cmd}`);
+      continue;
+    }
+    v1x /= len1;
+    v1y /= len1;
+    v2x /= len2;
+    v2y /= len2;
+    const dot = Math.min(1, Math.max(-1, v1x * v2x + v1y * v2y));
+    const angle = Math.acos(dot);
+    const tanHalf = Math.tan(angle / 2);
+    let cut = tanHalf > 1e-4 ? r0 / tanHalf : 0;
+    const maxCut = Math.min(len1, len2) / 2;
+    if (!(cut > 0)) cut = 0;
+    if (cut > maxCut) cut = maxCut;
+    const used = cut * (tanHalf > 0 ? tanHalf : 0);
+    const p1x = curr[0] + v1x * cut;
+    const p1y = curr[1] + v1y * cut;
+    const p2x = curr[0] + v2x * cut;
+    const p2y = curr[1] + v2y * cut;
+    const cross = v1x * v2y - v1y * v2x;
+    const head = `${fmtShape(p1x)} ${fmtShape(p1y)}`;
+    cmds.push(i === 0 ? `M ${head}` : `L ${head}`);
+    if (used > 0.05) {
+      const sweep = cross < 0 ? 1 : 0;
+      cmds.push(`A ${fmtShape(used)} ${fmtShape(used)} 0 0 ${sweep} ${fmtShape(p2x)} ${fmtShape(p2y)}`);
+    }
+  }
+  cmds.push('Z');
+  return cmds.join(' ');
+}
+
+// SVG for circle, triangle, star and custom shapes. Rectangles stay a plain
+// coloured block so rounded corners keep working.
+function shapeMarkup(layer) {
+  const kind = shapeKindOf(layer);
+  if (kind === 'rect') return '';
+  const fill = safeColor(layer.bg) || '#E1E5EB';
+  const stroke = safeColor(layer.borderColor) || '#0A192F';
+  const width = Math.min(Math.max(Number(layer.borderWidth) || 0, 0), 40);
+  const strokeAttr = width > 0
+    ? ` stroke="${esc(stroke)}" stroke-width="${width}" vector-effect="non-scaling-stroke" stroke-linejoin="round"`
+    : '';
+  const path = kind === 'custom' ? safeSvgPath(layer.shapePoints) : '';
+  let viewBox = '0 0 100 100';
+  let inner = '';
+  if (kind === 'circle') {
+    inner = `<ellipse cx="50" cy="50" rx="46" ry="46" fill="${esc(fill)}"${strokeAttr}/>`;
+  } else if (kind === 'star') {
+    // Drawn in the layer's own pixels so a corner radius of 12 is 12px,
+    // the same unit a rectangle uses for its rounded corners.
+    const w = Math.min(Math.max(Number(layer.w) || 100, 10), 8000);
+    const h = Math.min(Math.max(Number(layer.h) || 100, 2), 6000);
+    viewBox = `0 0 ${fmtShape(w)} ${fmtShape(h)}`;
+    const pts = starPointList(layer).map((p) => [(p[0] / 100) * w, (p[1] / 100) * h]);
+    const radius = Math.min(Math.max(Number(layer.radius) || 0, 0), 500);
+    inner = `<path d="${esc(roundedPolygonPath(pts, radius))}" fill="${esc(fill)}"${strokeAttr}/>`;
+  } else if (path) {
+    inner = `<path d="${esc(path)}" fill="${esc(fill)}"${strokeAttr}/>`;
+  } else {
+    const pts = kind === 'triangle' ? [[50, 8], [92, 92], [8, 92]]
+      : parseShapePoints(layer.shapePoints);
+    if (!pts) return '';
+    inner = `<polygon points="${pts.map((p) => `${p[0]},${p[1]}`).join(' ')}" fill="${esc(fill)}"${strokeAttr}/>`;
+  }
+  return `<svg class="layer-shape-svg" viewBox="${viewBox}" preserveAspectRatio="none" aria-hidden="true">${inner}</svg>`;
+}
+
 function styleToCss(style) {
   const s = style || {};
   const out = [];
   const px = (v, min = 0, max = 3000) => Math.min(Math.max(Number(v) || 0, min), max);
   if (safeColor(s.bg)) out.push(`background:${safeColor(s.bg)}`);
   if (safeColor(s.color)) out.push(`color:${safeColor(s.color)}`);
-  if (LAYER_FONTS.has(s.font)) { if (s.font) out.push(`font-family:${s.font}`); }
-  if (s.size) out.push(`font-size:${px(s.size, 6, 300)}px`);
+  const font = safeFontFamily(s.font);
+  if (font) out.push(`font-family:${font}`);
+  if (s.size) out.push(`font-size:${px(s.size, 6, 360)}px`);
   if (s.weight) out.push(`font-weight:${px(s.weight, 100, 900)}`);
   if (s.lineHeight) out.push(`line-height:${Math.min(Math.max(Number(s.lineHeight) || 1.25, 0.7), 3)}`);
   if (s.letterSpacing) out.push(`letter-spacing:${Math.min(Math.max(Number(s.letterSpacing) || 0, -20), 60)}px`);
   if (LAYER_ALIGN.has(s.align)) out.push(`text-align:${s.align}`);
+  if (s.textShadow) out.push('text-shadow:0 0 6px rgba(0,0,0,.55),0 1px 2px rgba(0,0,0,.6)');
   if (s.radius) out.push(`border-radius:${px(s.radius, 0, 500)}px`);
   const borderColour = safeColor(s.borderColor);
   if (s.borderWidth) {
@@ -237,8 +446,17 @@ function layerBox(layer, canvasHeight) {
   const w = num(layer.w, 10, 8000, 300);
   const h = num(layer.h, 2, 6000, 100);
   const z = num(layer.z, 0, 9999, 0);
-  const fixedHeight = layer.hugging && (layer.type === 'text' || layer.type === 'heading') ? '' : `;height:${h}px`;
+  const fixedHeight = layer.hugging && (layer.type === 'text' || layer.type === 'heading' || layer.type === 'paragraph') ? '' : `;height:${h}px`;
   return `left:${x}px;top:${y}px;width:${w}px${fixedHeight};z-index:${Math.round(z)}`;
+}
+
+// Rotation sits on an inner wrapper so entrance animations, which also use
+// transform, can keep running on the layer itself.
+function turnStyle(layer) {
+  const n = Number(layer && layer.rotate);
+  if (!Number.isFinite(n) || Math.abs(n) < 0.05) return '';
+  const deg = Math.round(Math.min(360, Math.max(-360, n)) * 10) / 10;
+  return `transform:rotate(${deg}deg);transform-origin:center center`;
 }
 
 // Line breaks inside a layer keep the words; each line is escaped.
@@ -284,12 +502,17 @@ function normCell(item) {
   // A gallery slot may be written as a plain URL string by hand.
   if (typeof item === 'string') return { image: item, caption: '', link: '' };
   if (!item || typeof item !== 'object') return { image: '', caption: '', link: '' };
-  return {
+  const out = {
     image: safeUrl(item.image),
     caption: typeof item.caption === 'string' ? item.caption : '',
     link: safeUrl(item.link),
     ...(item.wide == null ? {} : { wide: Boolean(item.wide) }),
   };
+  ['x', 'y', 'w', 'h'].forEach((key) => {
+    const n = Number(item[key]);
+    if (Number.isFinite(n)) out[key] = Math.round(Math.min(8000, Math.max(-2000, n)));
+  });
+  return out;
 }
 
 function normLayer(rawLayer, index) {
@@ -302,10 +525,50 @@ function normLayer(rawLayer, index) {
     y: Number.isFinite(Number(rawLayer?.y)) ? Number(rawLayer.y) : 60 + index * 16,
     z: Number.isFinite(Number(rawLayer?.z)) ? Number(rawLayer.z) : index + 1,
   });
+  if (type === 'paragraph' || (type === 'text' && rawLayer?.paragraph === true)) {
+    out.type = 'text';
+    out.paragraph = true;
+  } else if (out.type === 'text') {
+    delete out.paragraph;
+  }
   if (type === 'gallery') {
     out.images = Array.isArray(rawLayer?.images) ? rawLayer.images.map(normCell) : [];
   }
+  if (type === 'group') {
+    out.children = Array.isArray(rawLayer?.children)
+      ? rawLayer.children.filter((child) => child && typeof child === 'object').slice(0, 40).map((child, i) => normLayer(child, i))
+      : [];
+  }
   if (out.anim != null && !ANIMATIONS.has(out.anim)) out.anim = 'fade';
+  if (type === 'shape') {
+    out.shape = SHAPE_KINDS.has(rawLayer?.shape) ? rawLayer.shape : 'rect';
+    out.shapePoints = typeof rawLayer?.shapePoints === 'string' ? rawLayer.shapePoints.slice(0, 2000) : '';
+    if (out.shape === 'star') {
+      const inner = Number(rawLayer?.starInner);
+      if (Number.isFinite(inner)) out.starInner = Math.min(90, Math.max(8, inner));
+      const corners = Number(rawLayer?.starCount);
+      if (Number.isFinite(corners)) out.starCount = Math.min(16, Math.max(3, Math.round(corners)));
+    }
+  }
+  const rot = Number(rawLayer?.rotate);
+  if (Number.isFinite(rot)) out.rotate = Math.min(360, Math.max(-360, rot));
+  if (out.textShadow != null) out.textShadow = Boolean(out.textShadow);
+  if (out.radiusLock != null) out.radiusLock = Boolean(out.radiusLock);
+  if (type === 'gallery' && out.freeform != null) out.freeform = Boolean(out.freeform);
+  if (rawLayer?.autoFit != null) out.autoFit = Boolean(rawLayer.autoFit);
+  if (type === 'image') {
+    const subtitle = typeof rawLayer?.subtitle === 'string' ? rawLayer.subtitle.slice(0, 400) : '';
+    if (subtitle) out.subtitle = subtitle;
+    else delete out.subtitle;
+    if (['left', 'center', 'right'].includes(rawLayer?.subtitleAlign)) out.subtitleAlign = rawLayer.subtitleAlign;
+    else delete out.subtitleAlign;
+    const ratio = Number(rawLayer?.aspectRatio);
+    if (Number.isFinite(ratio) && ratio > 0.01 && ratio < 100) out.aspectRatio = ratio;
+    else delete out.aspectRatio;
+  }
+  const font = safeFontFamily(out.font);
+  if (font) out.font = font;
+  else delete out.font;
   return out;
 }
 
@@ -325,11 +588,32 @@ function normSection(rawSection, index) {
       .slice(0, MAX_LAYERS)
       .map(normLayer);
     section.canvasHeight = Math.min(Math.max(Number(section.canvasHeight) || 640, 200), 4000);
+    const width = Number(section.canvasWidth);
+    if (Number.isFinite(width) && width > 0) section.canvasWidth = Math.min(4000, Math.max(480, Math.round(width)));
+    else delete section.canvasWidth;
   }
   section.buttons = Array.isArray(rawSection?.buttons)
     ? rawSection.buttons.filter((b) => b && typeof b === 'object')
     : [];
   section.heading = typeof section.heading === 'string' ? section.heading : '';
+  if (rawSection?.canvasLock) section.canvasLock = true;
+  else delete section.canvasLock;
+  ['bg', 'canvasBg'].forEach((key) => {
+    const color = safeColor(section[key]);
+    if (color) section[key] = color;
+    else delete section[key];
+  });
+  if (typeof rawSection?.canvasImage === 'string' && rawSection.canvasImage.trim()) {
+    section.canvasImage = safeUrl(rawSection.canvasImage);
+  } else {
+    delete section.canvasImage;
+  }
+  // Where the background photo sits inside the board. 50, 50 is the centre.
+  ['canvasImageX', 'canvasImageY'].forEach((key) => {
+    const n = Number(rawSection?.[key]);
+    if (section.canvasImage && Number.isFinite(n)) section[key] = Math.min(100, Math.max(0, Math.round(n)));
+    else delete section[key];
+  });
   if (!section.heading && !section.layers?.length && !section.items.length) {
     section.heading = `Section ${index + 1}`;
   }
@@ -417,10 +701,18 @@ app.locals.isExternal = isExternal;
 
 // Helpers used by views/partials/section.ejs to render layout canvases.
 app.locals.styleToCss = styleToCss;
+app.locals.shapeMarkup = shapeMarkup;
+app.locals.shapeKindOf = shapeKindOf;
 app.locals.animationAttrs = animationAttrs;
 app.locals.layerBox = layerBox;
+app.locals.turnStyle = turnStyle;
 app.locals.layerText = layerText;
 app.locals.safeColor = safeColor;
+app.locals.canvasBackground = canvasBackground;
+app.use((req, res, next) => {
+  res.locals.customFontFaces = customFontCss();
+  next();
+});
 app.locals.safeUrl = safeUrl;
 app.locals.ANIMATIONS = ANIMATIONS;
 app.locals.LAYER_FITS = LAYER_FITS;
@@ -544,6 +836,21 @@ function readLibrary() {
   return Array.isArray(list) ? list : [];
 }
 
+const DEFAULT_TEMPLATE_IDS = new Set(['tpl-default-hero', 'tpl-default-page']);
+
+// Built-in Hero and Page settings templates stay in the list. A saved edit
+// with the same id replaces that built-in copy.
+function libraryWithDefaults() {
+  const saved = readLibrary();
+  const defaults = defaultTemplates();
+  const merged = defaults.map((entry) => {
+    const override = saved.find((item) => item.id === entry.id);
+    if (!override) return entry;
+    return Object.assign({}, override, { builtin: true, kind: entry.kind });
+  });
+  return merged.concat(saved.filter((item) => !DEFAULT_TEMPLATE_IDS.has(item.id)));
+}
+
 app.get('/api/section-presets', requireAuth, (req, res) => {
   res.json(presetSummaries());
 });
@@ -568,15 +875,36 @@ app.post('/api/sections/copy', requireAuth, (req, res) => {
   res.json({ section: copySection(source, { rename: req.body?.rename !== false }) });
 });
 
+const LAYOUT_KINDS = new Set(['hero', 'page', 'section']);
+
+function layoutKind(value) {
+  return LAYOUT_KINDS.has(value) ? value : 'section';
+}
+
 app.get('/api/layouts', requireAuth, (req, res) => {
-  res.json(readLibrary().map((entry) => ({
+  res.json(libraryWithDefaults().map((entry) => ({
     id: entry.id,
     name: entry.name,
     savedAt: entry.savedAt,
     page: entry.page || '',
+    kind: layoutKind(entry.kind),
+    builtin: Boolean(entry.builtin),
     layers: (entry.section?.layers || []).length,
     layout: entry.section?.layout || 'canvas',
   })));
+});
+
+app.get('/api/layouts/:id', requireAuth, (req, res) => {
+  const entry = libraryWithDefaults().find((x) => x.id === req.params.id);
+  if (!entry) return res.status(404).json({ error: 'That saved layout no longer exists.' });
+  res.json({
+    id: entry.id,
+    name: entry.name,
+    savedAt: entry.savedAt,
+    page: entry.page || '',
+    kind: layoutKind(entry.kind),
+    section: entry.section,
+  });
 });
 
 // Save the current section onto the shelf. The section is copied on the way in,
@@ -587,10 +915,14 @@ app.post('/api/layouts', requireAuth, (req, res) => {
   if (!source || typeof source !== 'object') return res.status(400).json({ error: 'There is no section to save.' });
   if (!name) return res.status(400).json({ error: 'Give the layout a name so you can find it later.' });
 
+  if (req.body?.kind != null && req.body.kind !== '' && !LAYOUT_KINDS.has(req.body.kind)) {
+    return res.status(400).json({ error: 'A template belongs in Hero, Page settings, or Section.' });
+  }
   const library = readLibrary();
   const entry = {
     id: freshId('tpl'),
     name,
+    kind: layoutKind(req.body?.kind),
     page: String(req.body?.page || '').slice(0, 120),
     savedAt: new Date().toISOString(),
     section: copySection(source, { rename: false }),
@@ -602,23 +934,70 @@ app.post('/api/layouts', requireAuth, (req, res) => {
 
 // Pull a saved layout back off the shelf as a brand new section.
 app.post('/api/layouts/:id/section', requireAuth, (req, res) => {
-  const entry = readLibrary().find((x) => x.id === req.params.id);
+  const entry = libraryWithDefaults().find((x) => x.id === req.params.id);
   if (!entry) return res.status(404).json({ error: 'That saved layout no longer exists.' });
   res.json({ section: copySection(entry.section, { rename: req.body?.rename !== false }) });
 });
 
 app.patch('/api/layouts/:id', requireAuth, (req, res) => {
   const library = readLibrary();
-  const entry = library.find((x) => x.id === req.params.id);
+  let entry = library.find((x) => x.id === req.params.id);
+  if (!entry && DEFAULT_TEMPLATE_IDS.has(req.params.id)) {
+    const builtin = defaultTemplates().find((item) => item.id === req.params.id);
+    entry = JSON.parse(JSON.stringify(builtin));
+    delete entry.builtin;
+    library.unshift(entry);
+  }
   if (!entry) return res.status(404).json({ error: 'That saved layout no longer exists.' });
-  const name = String(req.body?.name || '').trim().slice(0, 120);
-  if (!name) return res.status(400).json({ error: 'The layout needs a name.' });
-  entry.name = name;
+  const body = req.body || {};
+  if (body.name == null && body.kind == null && body.section == null) {
+    return res.status(400).json({ error: 'Nothing to update on this template.' });
+  }
+  if (body.name != null) {
+    const name = String(body.name).trim().slice(0, 120);
+    if (!name) return res.status(400).json({ error: 'The layout needs a name.' });
+    entry.name = name;
+  }
+  if (body.kind != null) {
+    if (!LAYOUT_KINDS.has(body.kind)) {
+      return res.status(400).json({ error: 'A template belongs in Hero, Page settings, or Section.' });
+    }
+    entry.kind = body.kind;
+  }
+  if (body.section != null) {
+    if (!body.section || typeof body.section !== 'object') {
+      return res.status(400).json({ error: 'The template layout is missing.' });
+    }
+    // Keep this template's own ids. Pages receive a copy with fresh ids.
+    entry.section = normSection(body.section, 0);
+    entry.savedAt = new Date().toISOString();
+  }
+  if (!entry.kind) entry.kind = 'section';
   writeJsonAtomic(LAYOUT_LIBRARY_FILE, library);
-  res.json({ ok: true });
+  res.json({ ok: true, id: entry.id, kind: layoutKind(entry.kind), savedAt: entry.savedAt });
+});
+
+app.post('/api/layouts/:id/reset', requireAuth, (req, res) => {
+  if (!DEFAULT_TEMPLATE_IDS.has(req.params.id)) {
+    return res.status(400).json({ error: 'Only the Hero and Page settings defaults can be restored.' });
+  }
+  const library = readLibrary().filter((x) => x.id !== req.params.id);
+  writeJsonAtomic(LAYOUT_LIBRARY_FILE, library);
+  const fresh = defaultTemplates().find((item) => item.id === req.params.id);
+  res.json({
+    ok: true,
+    id: fresh.id,
+    name: fresh.name,
+    kind: fresh.kind,
+    savedAt: '',
+    section: fresh.section,
+  });
 });
 
 app.delete('/api/layouts/:id', requireAuth, (req, res) => {
+  if (DEFAULT_TEMPLATE_IDS.has(req.params.id)) {
+    return res.status(400).json({ error: 'The Hero and Page settings templates stay in the list. Edit one to change its design.' });
+  }
   const library = readLibrary();
   const next = library.filter((x) => x.id !== req.params.id);
   if (next.length === library.length) return res.status(404).json({ error: 'That saved layout no longer exists.' });
@@ -630,7 +1009,42 @@ app.delete('/api/layouts/:id', requireAuth, (req, res) => {
 // Media uploads
 // ---------------------------------------------------------------------------
 
-const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.mp4', '.webm']);
+const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.mp4', '.webm', '.woff', '.woff2', '.ttf', '.otf']);
+const FONT_EXT = new Set(['.woff', '.woff2', '.ttf', '.otf']);
+
+function fontFormat(ext) {
+  if (ext === '.woff2') return 'woff2';
+  if (ext === '.woff') return 'woff';
+  if (ext === '.otf') return 'opentype';
+  return 'truetype';
+}
+
+function fontLabel(filename) {
+  const base = path.basename(filename, path.extname(filename)).replace(/-[0-9a-f]{6}$/i, '');
+  const label = base.replace(/[-_]+/g, ' ').replace(/[^A-Za-z0-9 .]/g, '').trim().slice(0, 60);
+  return label || 'Custom font';
+}
+
+function listFontFiles() {
+  if (!fs.existsSync(UPLOAD_DIR)) return [];
+  const used = new Map();
+  return fs.readdirSync(UPLOAD_DIR)
+    .filter((name) => FONT_EXT.has(path.extname(name).toLowerCase()))
+    .map((name) => {
+      let family = fontLabel(name);
+      const seen = used.get(family.toLowerCase()) || 0;
+      used.set(family.toLowerCase(), seen + 1);
+      if (seen) family = `${family} ${seen + 1}`.slice(0, 80);
+      const ext = path.extname(name).toLowerCase();
+      const css = `"${family}", sans-serif`;
+      const face = `@font-face{font-family:"${family}";src:url("/uploads/${encodeURIComponent(name)}") format("${fontFormat(ext)}");font-display:swap;}`;
+      return { name, url: `/uploads/${name}`, family, css, face };
+    });
+}
+
+function customFontCss() {
+  return listFontFiles().map((font) => font.face).join('\n');
+}
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -683,8 +1097,13 @@ function mediaFolders(content) {
     });
   }
   folders.push({ id: 'site', label: 'Site-wide (logo, socials)', node: site });
-  return folders.map((f) => ({ id: f.id, label: f.label, urls: collectStrings(f.node, new Set()) }));
+  folders.push({ id: 'fonts', label: 'Fonts', urls: new Set(listFontFiles().map((font) => font.url)) });
+  return folders.map((f) => ({ id: f.id, label: f.label, urls: f.urls || collectStrings(f.node, new Set()) }));
 }
+
+app.get('/api/fonts', requireAuth, (req, res) => {
+  res.json(listFontFiles().map(({ name, url, family, css }) => ({ name, url, family, css })));
+});
 
 app.get('/api/media/folders', requireAuth, (req, res) => {
   res.json(mediaFolders(getContent()).map(({ id, label }) => ({ id, label })));
@@ -694,12 +1113,14 @@ app.get('/api/media', requireAuth, (req, res) => {
   const content = getContent();
   const used = collectStrings(content, new Set());
   const folders = mediaFolders(content);
+  const fontsByUrl = new Map(listFontFiles().map((item) => [item.url, item]));
   const files = fs
     .readdirSync(UPLOAD_DIR)
     .filter((f) => ALLOWED_EXT.has(path.extname(f).toLowerCase()))
     .map((name) => {
       const stat = fs.statSync(path.join(UPLOAD_DIR, name));
       const url = `/uploads/${name}`;
+      const font = fontsByUrl.get(url);
       return {
         name,
         url,
@@ -707,6 +1128,7 @@ app.get('/api/media', requireAuth, (req, res) => {
         modified: stat.mtimeMs,
         used: used.has(url),
         folders: folders.filter((f) => f.urls.has(url)).map((f) => f.id),
+        ...(font ? { fontFamily: font.css } : {}),
       };
     })
     .sort((a, b) => b.modified - a.modified);
@@ -719,7 +1141,7 @@ app.delete('/api/media/:name', requireAuth, (req, res) => {
   if (!fs.existsSync(file)) return res.status(404).json({ error: 'File not found' });
   const used = collectStrings(getContent(), new Set());
   if (used.has(`/uploads/${name}`) && req.query.force !== '1') {
-    return res.status(409).json({ error: 'This image is still used on the site. Remove it from the page first.' });
+    return res.status(409).json({ error: 'This file is still used on the site. Remove it from the page first.' });
   }
   fs.unlinkSync(file);
   res.json({ ok: true });

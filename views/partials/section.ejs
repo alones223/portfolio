@@ -9,13 +9,21 @@
   const __canvas = (__s.layout || 'gallery') === 'canvas';
   const __layers = (__s.layers || []).filter(l => l && l.hidden !== true);
   const __h = Number(__s.canvasHeight) > 0 ? Math.min(Math.max(Number(__s.canvasHeight), 200), 4000) : 720;
+  const __w = Number(__s.canvasWidth) > 0 ? Math.min(4000, Math.max(480, Math.round(Number(__s.canvasWidth)))) : 1425;
   // safeColor() only lets plain CSS colours through, so a stray value can never
   // break out of the style attribute on the board below.
-  const __colours = [esc(safeColor(__s.canvasBg) || 'transparent')];
+  const __bg = canvasBackground(__s.canvasBg);
+  const __img = __s.canvasImage ? esc(safeUrl(__s.canvasImage)) : '';
+  const __bgColor = __img ? esc(__bg.color) : esc(safeColor(__s.canvasBg) || 'transparent');
+  const __bgAlpha = __img ? __bg.alpha : 1;
+  const __place = (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : 50;
+  };
 %>
 <% if (__canvas) { %>
-  <section class="content-section layout-canvas"
-    style="--canvas-h: <%= __h %>; --canvas-bg: <%= __colours[0] %>"
+  <section class="content-section layout-canvas<%= __s.canvasLock ? ' canvas-lock' : '' %>"
+    style="--canvas-h: <%= __h %>; --canvas-w: <%= __w %>; --canvas-bg: <%= __bgColor %>; --canvas-bg-alpha: <%= __bgAlpha %><% if (__img) { %>; --canvas-image: url('<%= __img %>'); --canvas-image-x: <%= __place(__s.canvasImageX) %>%; --canvas-image-y: <%= __place(__s.canvasImageY) %>%<% } %>"
     <% if (__s.heading) { %>aria-label="<%= __s.heading %>"<% } %>>
     <div class="canvas-board">
       <% __layers.forEach(function (l) {
@@ -31,20 +39,64 @@
              style="<%= box %>"
              data-layer="<%= name ? esc(name) : '' %>"
              <%- anim %>>
+          <div class="layer-turn" style="<%= turnStyle(l) %>">
           <% if (l.type === 'heading') { %>
             <h2 class="layer-heading" style="<%= style %>"><%- layerText(l.text) %></h2>
-          <% } else if (l.type === 'text') { %>
-            <div class="layer-text" style="<%= style %>"><%- paragraphs(l.text) %></div>
+          <% } else if (l.type === 'text' || l.type === 'paragraph') { %>
+            <div class="layer-text<%= (l.type === 'paragraph' || l.paragraph) ? ' is-paragraph' : '' %>" style="<%= style %>"><%- paragraphs(l.text) %></div>
           <% } else if (l.type === 'image') { %>
             <% if (l.src) { %>
+              <% const __rad = Math.min(Math.max(Number(l.radius) || 0, 0), 500); %>
               <% if (l.link) { %><a href="<%= safeUrl(l.link) %>"<% if (isExternal(l.link)) { %> target="_blank" rel="noopener"<% } %> class="layer-link"><% } %>
+              <span class="layer-frame" style="border-radius:<%= __rad %>px">
               <% if (/\.(mp4|webm)(\?|$)/i.test(l.src)) { %>
-                <video class="layer-media" src="<%= safeUrl(l.src) %>" muted loop playsinline controls style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>"></video>
+                <video class="layer-media" src="<%= safeUrl(l.src) %>" muted loop playsinline controls style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>;border-radius:<%= __rad %>px"></video>
               <% } else { %>
-                <img class="layer-media" src="<%= safeUrl(l.src) %>" alt="<%= l.alt || '' %>" loading="lazy" style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>">
+                <img class="layer-media" src="<%= safeUrl(l.src) %>" alt="<%= l.alt || '' %>" loading="lazy" style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>;border-radius:<%= __rad %>px">
               <% } %>
+              </span>
               <% if (l.link) { %></a><% } %>
             <% } %>
+          <% } else if (l.type === 'group') { %>
+            <div class="layer-group">
+              <% (l.children || []).forEach(function (c) {
+                   const cx = Math.round(Number(c.x) || 0);
+                   const cy = Math.round(Number(c.y) || 0);
+                   const cw = Math.max(1, Math.round(Number(c.w) || 1));
+                   const ch = Math.max(1, Math.round(Number(c.h) || 1));
+              %>
+                <div class="layer-group-child" style="left:<%= cx %>px;top:<%= cy %>px;width:<%= cw %>px;height:<%= ch %>px;">
+                  <% if (c.type === 'image' && c.src) { %>
+                    <img src="<%= safeUrl(c.src) %>" alt="<%= c.alt || '' %>" style="object-fit:<%= c.fit === 'contain' || c.fit === 'fill' ? c.fit : 'cover' %>">
+                  <% } else if (c.type === 'heading') { %>
+                    <div class="layer-heading"><%- layerText(c.text) %></div>
+                  <% } else if (c.type === 'text' || c.type === 'paragraph') { %>
+                    <div class="layer-text<%= (c.type === 'paragraph' || c.paragraph) ? ' is-paragraph' : '' %>"><%- paragraphs(c.text) %></div>
+                  <% } else if (c.type === 'shape') { %>
+                    <span class="layer-shape" style="background:<%= esc(safeColor(c.bg) || '#E1E5EB') %>"></span>
+                  <% } %>
+                </div>
+              <% }) %>
+            </div>
+          <% } else if (l.type === 'gallery' && l.freeform) { %>
+            <div class="layer-free">
+              <% (l.images || []).forEach(function (item, i) {
+                   const fx = Math.round(Number(item.x) || 0);
+                   const fy = Math.round(Number(item.y) || 0);
+                   const fw = Math.max(10, Math.round(Number(item.w) || 80));
+                   const fh = Math.max(10, Math.round(Number(item.h) || 80));
+              %>
+                <button class="zoom gallery-tile layer-free-item" type="button"
+                        style="left:<%= fx %>px;top:<%= fy %>px;width:<%= fw %>px;height:<%= fh %>px"
+                        data-full="<%= safeUrl(item.image) %>"
+                        data-caption="<%= item.caption || '' %>"
+                        data-link="<%= safeUrl(item.link) %>"
+                        aria-label="<%= item.caption || 'Enlarge image' %>">
+                  <img src="<%= safeUrl(item.image) %>" alt="<%= item.caption || '' %>" loading="lazy"
+                       style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>">
+                </button>
+              <% }) %>
+            </div>
           <% } else if (l.type === 'gallery') { %>
             <% const imgs = (l.images || []);
                const galAspect = String(l.aspect || 'natural');
@@ -79,7 +131,15 @@
           <% } else if (l.type === 'divider') { %>
             <span class="layer-divider" style="background:<%= esc(safeColor(l.color) || '#0A192F') %>;border-radius:<%= Math.min(Math.max(Number(l.radius) || 0, 0), 500) %>px"></span>
           <% } else if (l.type === 'shape') { %>
-            <span class="layer-shape" style="<%= style %><%= l.bg ? '' : ';background:#E1E5EB' %>"></span>
+            <% if (shapeKindOf(l) === 'rect') { %>
+              <span class="layer-shape" style="<%= style %><%= l.bg ? '' : ';background:#E1E5EB' %>"></span>
+            <% } else { %>
+              <%- shapeMarkup(l) %>
+            <% } %>
+          <% } %>
+          </div>
+          <% if (l.type === 'image' && l.subtitle) { %>
+            <span class="layer-subtitle" style="text-align:<%= ['left','center','right'].includes(l.subtitleAlign) ? l.subtitleAlign : 'center' %>"><%= l.subtitle %></span>
           <% } %>
         </div>
       <% }) %>
@@ -91,7 +151,7 @@
     const aspect = __s.aspect || 'natural';
     const cols = Math.min(Math.max(Number(__s.columns) || 3, 1), 4);
   %>
-  <section class="content-section align-<%= __s.align || 'left' %> layout-<%= __s.layout || 'gallery' %>">
+  <section class="content-section align-<%= __s.align || 'left' %> layout-<%= __s.layout || 'gallery' %>"<% if (safeColor(__s.bg)) { %> style="background:<%= esc(safeColor(__s.bg)) %>"<% } %>>
     <% if (__s.heading) { %><h2 class="section-heading reveal"><%- lines(__s.heading) %></h2><% } %>
     <% if (__s.text) { %><div class="section-text reveal"><%- paragraphs(__s.text) %></div><% } %>
 

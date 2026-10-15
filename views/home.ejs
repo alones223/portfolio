@@ -3,7 +3,11 @@
 <%- include('partials/header', { site, nav }) %>
 
 <main id="main">
-  <!-- Hero -->
+  <!-- Hero: a layout canvas when Home → Hero is in canvas edit, otherwise the
+       original name / tagline / big word. -->
+  <% if (home.hero && home.hero.layout === 'canvas') { %>
+    <%- include('partials/section', { section: home.hero }) %>
+  <% } else { %>
   <section class="hero" style="--hero-image: url('<%= home.hero.image %>')">
     <div class="hero-text">
       <h1 class="hero-name reveal"><%= home.hero.name %></h1>
@@ -11,14 +15,41 @@
     </div>
     <p class="hero-bigword" aria-hidden="true"><%= home.hero.bigWord %></p>
   </section>
+  <% } %>
 
-  <!-- Editable sections: each one is its own layout board, edited in the admin
-       panel under "Home page" → Sections. -->
+  <!-- Sections under the hero, including Works when it has been combined into the list. -->
+  <% const worksListed = (home.sections || []).some(function (s) { return s && home.works && s.id === home.works.id; }); %>
   <% (home.sections || []).forEach(function (section) { %>
+    <% if (home.works && section.id === home.works.id && home.works.layout !== 'canvas') { %>
+  <section class="works">
+    <div class="works-side">
+      <div class="works-sticky">
+        <p class="decor decor-works decor-flip" aria-hidden="true"><%- lines(home.works.decorText) %></p>
+        <h2 class="title-highlight reveal"><span><%= home.works.heading %></span></h2>
+        <div class="works-desc reveal"><%- paragraphs(home.works.description) %></div>
+      </div>
+      <p class="decor decor-works decor-works-bottom" aria-hidden="true"><%- lines(home.works.decorText) %></p>
+    </div>
+    <ul class="works-grid">
+      <% (home.works.cards || []).forEach((card, i) => { %>
+        <li class="reveal">
+          <a class="work-card" href="<%= card.link || '#' %>"<% if (isExternal(card.link)) { %> target="_blank" rel="noopener"<% } %>>
+            <img src="<%= card.image %>" alt="<%= card.label %>" loading="lazy">
+            <span class="work-num"><%= String(i + 1).padStart(2, '0') %></span>
+            <h6 class="work-label"><%= card.label %></h6>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+    <% } else { %>
     <%- include('partials/section', { section }) %>
+    <% } %>
   <% }) %>
 
-  <!-- Works -->
+  <% if (home.works && !worksListed && home.works.layout === 'canvas') { %>
+    <%- include('partials/section', { section: home.works }) %>
+  <% } else if (home.works && !worksListed) { %>
   <section class="works">
     <div class="works-side">
       <div class="works-sticky">
@@ -40,6 +71,7 @@
       <% }) %>
     </ul>
   </section>
+  <% } %>
 
   <!-- Contact -->
   <section class="contact" id="contact">
