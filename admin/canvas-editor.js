@@ -781,6 +781,25 @@ window.CanvasEditorUI = (function () {
 
     // ---------------------------------------------------------- add / remove
 
+    // Shrink a text box to its words. Used while Auto-fit stays on.
+    function fitTextBox(l) {
+      if (!l || l.autoFit !== true || !isTextual(l)) return;
+      const el = elFor(l.id);
+      const box = el && el.querySelector('.cv-layer-box');
+      if (!box) return;
+      const prev = box.style.cssText;
+      box.style.width = 'max-content';
+      box.style.height = 'auto';
+      const measuredW = Math.min(Math.max(box.scrollWidth + 4, 20), 6000);
+      const measuredH = Math.max(box.scrollHeight + 4, 20);
+      box.style.cssText = prev;
+      l.hugging = true;
+      if (l.w === measuredW && l.h === measuredH) return;
+      l.w = measuredW;
+      l.h = measuredH;
+      paintBoard();
+    }
+
     function addLayer(type) {
       const layer = M.defaultLayer(type, {
         z: nextZ(),
@@ -789,10 +808,15 @@ window.CanvasEditorUI = (function () {
         name: `${M.layerTypeLabel(type)} ${layers().length + 1}`,
       });
       if (type === 'gallery') layer.images = [{ image: '', caption: '', link: '' }];
+      if (type === 'heading' || type === 'text') {
+        layer.autoFit = true;
+        layer.hugging = true;
+      }
       record();
       layers().push(layer);
       selectOnly(layer.id);
       onChange();
+      if (layer.autoFit) requestAnimationFrame(() => fitTextBox(layer));
     }
 
     function duplicateLayer(id) {
@@ -1036,6 +1060,7 @@ window.CanvasEditorUI = (function () {
         input.value = String(l[key]);
         onChange();
         paintBoard();
+        if (l.autoFit === true && ['size', 'weight', 'lineHeight', 'letterSpacing'].includes(key)) fitTextBox(l);
         const hint = paneRight.querySelector('.cv-pane-head .cv-hint');
         if (hint && primary()?.id === l.id) hint.textContent = `${round(l.w)}×${round(l.h)}`;
       };
@@ -1071,6 +1096,7 @@ window.CanvasEditorUI = (function () {
         onChange();
         paintBoard();
         paintList();
+        if (key === 'text') fitTextBox(l);
       });
       return field(label, input, true);
     }
@@ -1100,6 +1126,7 @@ window.CanvasEditorUI = (function () {
           l.font = value;
           onChange();
           render();
+          fitTextBox(l);
         });
         menu.append(opt);
       });
@@ -1661,7 +1688,19 @@ window.CanvasEditorUI = (function () {
             : numField(l, 'h', 'Height', 2, 4000),
           numField(l, 'rotate', 'Rotation (°)', -360, 360, 1, 0)),
         h('p', { class: 'cv-hint' }, 'Drag the round handle above the layer to rotate it. Hold Shift to snap every 15°.'),
-        isTextual(l) ? toggleField(l, 'hugging', 'Height follows the text') : null,
+        isTextual(l) ? (() => {
+          const box = h('input', { type: 'checkbox', checked: l.autoFit === true });
+          box.addEventListener('change', () => {
+            record();
+            l.autoFit = box.checked;
+            l.hugging = box.checked ? true : false;
+            if (box.checked) fitTextBox(l);
+            onChange();
+            render();
+          });
+          return h('label', { class: 'cv-check' }, box, 'Auto-fit');
+        })() : null,
+        isTextual(l) && l.autoFit !== true ? toggleField(l, 'hugging', 'Height follows the text') : null,
         isTextual(l) ? h('p', { class: 'cv-hint' }, 'Drag a corner to scale the text. Drag an edge to change the box without changing the type size.') : null,
         h('div', { class: 'cv-btnrow' },
           isTextual(l) ? h('button', { class: 'btn small', type: 'button', title: 'Shrink the box to fit the text', onclick: () => {
@@ -1678,12 +1717,15 @@ window.CanvasEditorUI = (function () {
               l.w = measuredW;
               l.h = measuredH;
             }
+            l.autoFit = true;
+            l.hugging = true;
             onChange(); render();
+            requestAnimationFrame(() => fitTextBox(l));
           } }, 'Auto-fit size') : null,
           isTextual(l) ? popupMenu('Align', [
-            { label: 'Left', on: l.align === 'left', run: () => { record(); l.align = 'left'; onChange(); render(); } },
-            { label: 'Centre', on: l.align === 'center', run: () => { record(); l.align = 'center'; onChange(); render(); } },
-            { label: 'Right', on: l.align === 'right', run: () => { record(); l.align = 'right'; onChange(); render(); } },
+            { label: 'Left', on: l.align === 'left', run: () => { record(); l.align = 'left'; onChange(); render(); fitTextBox(l); } },
+            { label: 'Centre', on: l.align === 'center', run: () => { record(); l.align = 'center'; onChange(); render(); fitTextBox(l); } },
+            { label: 'Right', on: l.align === 'right', run: () => { record(); l.align = 'right'; onChange(); render(); fitTextBox(l); } },
           ]) : null,
           layerMenu([l.id], [
             { label: 'Duplicate layer', run: () => duplicateLayer(l.id) },
@@ -2057,6 +2099,7 @@ window.CanvasEditorUI = (function () {
           if (!(scale > 0)) scale = 1;
           scale = clamp(scale, Math.max(20 / lead.w, 20 / Math.max(lead.h, 1), 8 / base), Math.min(6000 / lead.w, 4000 / Math.max(lead.h, 1), 300 / base));
           l.hugging = false;
+          l.autoFit = false;
           l.size = clamp(round(base * scale), 8, 300);
           placeFromAnchor(l, lead, dir, clamp(round(lead.w * scale), 20, 6000), clamp(round(lead.h * scale), 20, 4000));
         } else {
@@ -2064,6 +2107,10 @@ window.CanvasEditorUI = (function () {
           w = clamp(round(w), 20, 6000);
           h = clamp(round(h), 2, 4000);
           placeFromAnchor(l, lead, dir, w, h);
+        }
+        if (isTextual(l)) {
+          l.autoFit = false;
+          l.hugging = false;
         }
         if (l.type === 'shape' && l.radiusLock) {
           const sx = l.w / Math.max(lead.w, 1);
