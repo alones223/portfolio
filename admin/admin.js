@@ -469,8 +469,9 @@
 
   function colorField(obj, key, label, opts = {}) {
     const id = uid();
-    const color = h('input', { type: 'color', value: obj[key] || '#000000', 'aria-label': `${label} color picker` });
-    const text = h('input', { id, type: 'text', value: obj[key] || '' });
+    const shown = obj[key] || opts.fallback || '#000000';
+    const color = h('input', { type: 'color', value: /^#[0-9a-f]{6}$/i.test(shown) ? shown : '#000000', 'aria-label': `${label} color picker` });
+    const text = h('input', { id, type: 'text', value: obj[key] || opts.fallback || '' });
     color.addEventListener('input', () => { obj[key] = color.value.toUpperCase(); text.value = obj[key]; changed({ coalesce: true }); });
     text.addEventListener('input', () => {
       obj[key] = text.value.trim();
@@ -742,18 +743,8 @@
     ['email', 'Email'], ['website', 'Other website'],
   ];
   const THEME_LABELS = {
-    navy: 'Headings & main text',
-    slate: 'Body text',
-    headerBg: 'Header background',
-    highlight: 'Heading highlight bar',
-    heroBg: 'Behind hero images',
-    aboutBg: 'About section background',
-    pageBg: 'Page background',
-    decorText: 'Big faint text ("ABOUT ME", "WORKS")',
-    bigWord: 'Big hero word ("portfolio")',
-    button: 'Submit button',
-    marqueeBg: 'Scrolling band background',
-    marqueeText: 'Scrolling band text',
+    headerBg: 'Menu bar background',
+    menuText: 'Menu text',
   };
 
   const card = (title, ...children) => h('section', { class: 'card' }, title ? h('h3', null, title) : null, ...children);
@@ -787,7 +778,10 @@
           ],
         }))),
       card('Colors',
-        fields(Object.keys(THEME_LABELS).map((k) => colorField(s.theme, k, THEME_LABELS[k])))),
+        h('p', { class: 'hint', style: 'margin-bottom:12px' }, 'These colours only change the menu bar at the top of the site.'),
+        fields(
+          colorField(s.theme, 'headerBg', THEME_LABELS.headerBg),
+          colorField(s.theme, 'menuText', THEME_LABELS.menuText, { fallback: s.theme.navy || '#0A192F' }))),
       card('Fonts',
         h('p', { class: 'hint', style: 'margin-bottom:12px' },
           'Any font from fonts.google.com. Type the exact name, optionally followed by weights, e.g. "Playfair Display:wght@400;500".'),
