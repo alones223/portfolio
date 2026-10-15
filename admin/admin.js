@@ -142,13 +142,107 @@
   let hasSavedOnce = false;
   let unread = 0;
   const openPanels = new WeakSet(); // which section panels are expanded
+  const openPanelIds = new Set();   // same set, by id, so undo can reopen them
+  function setPanelOpen(s, open) {
+    if (!s) return;
+    if (open) {
+      openPanels.add(s);
+      if (s.id) openPanelIds.add(s.id);
+    } else {
+      openPanels.delete(s);
+      if (s.id) openPanelIds.delete(s.id);
+    }
+  }
+  function panelIsOpen(s) {
+    if (!s) return false;
+    if (s.id && openPanelIds.has(s.id)) {
+      openPanels.add(s);
+      return true;
+    }
+    return openPanels.has(s);
+  }
   // Live layout editors, held outside the content object so they are never saved.
   const editors = new WeakMap();
+  const liveEditors = new Set();
 
   const isDirty = () => content && JSON.stringify(content) !== savedJson;
 
   let sidebarTimer;
-  function changed() {
+  // One undo stack for the whole admin. A burst of typing or a drag is one
+  // step; a button, a menu, or a new layer is its own step.
+  let editHistory = [];
+  let editAt = -1;
+  let editCoalesce = false;
+  let editTimer = null;
+  let restoringEdit = false;
+  const EDIT_MAX = 100;
+
+  function resetEditHistory() {
+    editHistory = content ? [JSON.stringify(content)] : [];
+    editAt = editHistory.length - 1;
+    editCoalesce = false;
+    clearTimeout(editTimer);
+  }
+
+  function armEditCoalesce() {
+    editCoalesce = true;
+    clearTimeout(editTimer);
+    editTimer = setTimeout(() => { editCoalesce = false; }, 500);
+  }
+
+  function recordEdit(coalesce) {
+    if (restoringEdit || !content) return;
+    const snap = JSON.stringify(content);
+    if (editHistory[editAt] === snap) {
+      if (coalesce) armEditCoalesce();
+      return;
+    }
+    if (coalesce && editCoalesce) {
+      editHistory[editAt] = snap;
+    } else {
+      editHistory = editHistory.slice(0, editAt + 1);
+      editHistory.push(snap);
+      if (editHistory.length > EDIT_MAX) editHistory.shift();
+      editAt = editHistory.length - 1;
+    }
+    if (coalesce) armEditCoalesce();
+    else {
+      editCoalesce = false;
+      clearTimeout(editTimer);
+    }
+  }
+
+  function destroyLiveEditors() {
+    liveEditors.forEach((editor) => {
+      try { editor.destroy(); editor.destroyed = true; } catch (err) { /* already gone */ }
+    });
+    liveEditors.clear();
+  }
+
+  function applyEditSnapshot(snap) {
+    restoringEdit = true;
+    editCoalesce = false;
+    clearTimeout(editTimer);
+    const y = window.scrollY;
+    content = JSON.parse(snap);
+    changed();
+    render({ keepScroll: true, scrollY: y });
+    restoringEdit = false;
+  }
+
+  function undoEdit() {
+    if (editAt <= 0) return;
+    editAt -= 1;
+    applyEditSnapshot(editHistory[editAt]);
+  }
+
+  function redoEdit() {
+    if (editAt < 0 || editAt >= editHistory.length - 1) return;
+    editAt += 1;
+    applyEditSnapshot(editHistory[editAt]);
+  }
+
+  function changed(opts) {
     const dirty = isDirty();
     $('#save').disabled = !dirty;
     $('#discard').hidden = !dirty;
@@ -157,6 +251,7 @@
     state.classList.toggle('dirty', dirty);
     clearTimeout(sidebarTimer);
     sidebarTimer = setTimeout(renderSidebar, 150);
+    recordEdit(Boolean(opts && opts.coalesce));
   }
 
   async function save() {
@@ -213,7 +308,7 @@
       }
       obj[key] = v;
       if (opts.onInput) opts.onInput(v);
-      changed();
+      changed({ coalesce: true });
     });
     let control = input;
     if (opts.prefix) control = h('div', { class: 'prefix-input' }, h('span', null, opts.prefix), input);
@@ -249,11 +344,11 @@
     const id = uid();
     const color = h('input', { type: 'color', value: obj[key] || '#000000', 'aria-label': `${label} color picker` });
     const text = h('input', { id, type: 'text', value: obj[key] || '' });
-    color.addEventListener('input', () => { obj[key] = color.value.toUpperCase(); text.value = obj[key]; changed(); });
+    color.addEventListener('input', () => { obj[key] = color.value.toUpperCase(); text.value = obj[key]; changed({ coalesce: true }); });
     text.addEventListener('input', () => {
       obj[key] = text.value.trim();
       if (/^#[0-9a-f]{6}$/i.test(obj[key])) color.value = obj[key];
-      changed();
+      changed({ coalesce: true });
     });
     return wrapField(label, h('div', { class: 'color-input' }, color, text), { span: 2, ...opts }, id);
   }
@@ -353,13 +448,13 @@
 
       const caption = h('textarea', { rows: 2, placeholder: opts.captionLabel || 'Caption (optional)', 'aria-label': 'Caption' });
       caption.value = item[captionKey] || '';
-      caption.addEventListener('input', () => { item[captionKey] = caption.value; changed(); });
+      caption.addEventListener('input', () => { item[captionKey] = caption.value; changed({ coalesce: true }); });
 
       let link = null;
       if (opts.showLink !== false) {
         link = h('input', { type: 'text', placeholder: opts.linkPlaceholder || 'Link (optional)', 'aria-label': 'Link', list: 'page-links' });
         link.value = item.link || '';
-        link.addEventListener('input', () => { item.link = link.value.trim(); changed(); });
+        link.addEventListener('input', () => { item.link = link.value.trim(); changed({ coalesce: true }); });
       }
 
       let wide = null;
@@ -576,6 +671,153 @@
     ];
   }
 
+  // The same layout board used by page sections, mounted on the home Hero and
+  // Works cards. One editor instance per section object, dropped on the next
+  // full redraw so it is never saved with the content.
+  function attachCanvasEditor(section, host, onEdit) {
+    const existing = editors.get(section);
+    if (existing && !existing.destroyed) {
+      if (existing.element.parentNode !== host) host.replaceChildren(existing.element);
+      return;
+    }
+    if (existing) editors.delete(section);
+    const editor = window.CanvasEditorUI.createLayoutEditor({
+      section,
+      onChange: () => {
+        const current = editors.get(section);
+        changed({ coalesce: Boolean(current && current.isGesturing()) });
+        if (onEdit) onEdit();
+      },
+      onUndo: () => undoEdit(),
+      onRedo: () => redoEdit(),
+      canUndo: () => editAt > 0,
+      canRedo: () => editAt >= 0 && editAt < editHistory.length - 1,
+      onRequestImage: () => pickImage(),
+      onRequestFiles: (files) => uploadFiles(files),
+    });
+    editor.destroyed = false;
+    editors.set(section, editor);
+    liveEditors.add(editor);
+    host.replaceChildren(editor.element);
+  }
+
+  // Default hero: the teal water photograph, "ILLUSTRATOR WORK" with the
+  // light-blue bar behind the lower half of the title, a short white rule,
+  // and the subtitle. Positions are on the 1425×774 board.
+  const HERO_WATER = '/uploads/0b0535_3503c79805ef4c88a6c371464ba316f1.jpg';
+
+  function seedHeroCanvas(hero) {
+    hero.id = hero.id || 's-home-hero';
+    hero.heading = hero.heading || 'Hero';
+    hero.layout = 'canvas';
+    hero.canvasLock = true;
+    hero.layers = Array.isArray(hero.layers) ? hero.layers : [];
+    if (hero.layers.length) {
+      hero.canvasHeight = Number(hero.canvasHeight) || 774;
+      hero.canvasBg = hero.canvasBg || '#617092';
+      hero.canvasImage = hero.canvasImage || HERO_WATER;
+      return;
+    }
+    hero.canvasHeight = 774;
+    hero.canvasBg = '#617092';
+    hero.canvasImage = HERO_WATER;
+    const add = (type, patch) => hero.layers.push(window.CanvasEditor.defaultLayer(type, patch));
+    add('shape', {
+      name: 'Title highlight', x: 347, y: 306, w: 730, h: 42,
+      bg: '#95B8FE', radius: 4, shape: 'rect', z: 2, animated: true, anim: 'up', duration: 0.9, delay: 0,
+    });
+    add('heading', {
+      name: 'Title', text: 'ILLUSTRATOR WORK', x: 262, y: 281, w: 900, h: 64,
+      size: 53, weight: 400, align: 'center', color: '#0A192F', font: 'var(--font-display)',
+      lineHeight: 1, z: 3, anim: 'up', duration: 0.9, delay: 0,
+    });
+    add('divider', {
+      name: 'Rule', x: 686, y: 384, w: 54, h: 2, color: '#FFFFFF',
+      z: 4, animated: true, anim: 'fade', duration: 0.9, delay: 0.1,
+    });
+    add('text', {
+      name: 'Subtitle', text: 'A selection of my works using illustrator to create.',
+      x: 262, y: 456, w: 900, h: 32, size: 18, weight: 900, align: 'center',
+      color: '#FDFDFD', font: 'Arial, Helvetica, sans-serif', lineHeight: 1.1,
+      textShadow: true, z: 5, anim: 'up', duration: 0.9, delay: 0.15,
+    });
+  }
+
+  // Works starts from the heading, faint word, description and category cards
+  // already on the home page, placed on the same 1425px board.
+  function seedWorksCanvas(works) {
+    works.id = works.id || 's-home-works';
+    works.heading = works.heading || 'Works';
+    works.layout = 'canvas';
+    works.canvasLock = true;
+    works.layers = Array.isArray(works.layers) ? works.layers : [];
+    if (works.layers.length) {
+      works.canvasHeight = Number(works.canvasHeight) || 1600;
+      works.canvasBg = works.canvasBg || '#FDFDFD';
+      return;
+    }
+    works.canvasHeight = 1600;
+    works.canvasBg = '#FDFDFD';
+    const add = (type, patch) => works.layers.push(window.CanvasEditor.defaultLayer(type, patch));
+    const decor = works.decorText || 'WO\nRKS';
+    add('heading', {
+      name: 'Ghost word', text: decor, x: 10, y: 20, w: 500, h: 340,
+      size: 148, weight: 500, align: 'right', color: '#F2F4F7', font: 'var(--font-serif)',
+      lineHeight: 0.9, letterSpacing: 2, rotate: 180, z: 1, animated: false, anim: 'none',
+    });
+    add('shape', {
+      name: 'Heading highlight', x: 71, y: 293, w: 232, h: 42,
+      bg: '#95B8FE', radius: 4, shape: 'rect', z: 2, animated: true, anim: 'up', duration: 0.9, delay: 0,
+    });
+    add('heading', {
+      name: 'Heading', text: works.heading || 'Works', x: 79, y: 268, w: 420, h: 70,
+      size: 53, weight: 400, align: 'left', color: '#0A192F', font: 'var(--font-display)',
+      lineHeight: 1, z: 3, anim: 'up', duration: 0.9, delay: 0,
+    });
+    add('text', {
+      name: 'Description', text: works.description || '', x: 79, y: 400, w: 390, h: 200,
+      size: 18, weight: 400, align: 'left', color: '#4F5E75', lineHeight: 1.35,
+      hugging: true, z: 4, anim: 'fade', duration: 0.9, delay: 0.15,
+    });
+    add('gallery', {
+      name: 'Category cards', x: 545, y: 165, w: 857, h: 1290,
+      columns: 2, gap: 5, aspect: 'square', fit: 'cover', z: 5, anim: 'up', duration: 0.9, delay: 0.1,
+      images: (works.cards || []).map((c) => ({ image: c.image || '', caption: c.label || '', link: c.link || '' })),
+    });
+    add('heading', {
+      name: 'Ghost word (bottom)', text: decor, x: 23, y: 1220, w: 460, h: 300,
+      size: 140, weight: 500, align: 'left', color: '#F2F4F7', font: 'var(--font-serif)',
+      lineHeight: 0.9, z: 1, animated: false, anim: 'none',
+    });
+  }
+
+  // Hero and Works share one card: the canvas board, or the original fields.
+  function homeCanvasCard({ title, block, seed, hint, classic, extra }) {
+    const canvasOn = block.layout === 'canvas';
+    const host = h('div', { class: 'canvas-host' });
+    if (canvasOn) attachCanvasEditor(block, host);
+    const toggle = () => {
+      if (block.layout === 'canvas') block.layout = 'classic';
+      else seed(block);
+      changed();
+      render({ keepScroll: true, scrollY: window.scrollY });
+    };
+    return h('section', { class: 'card' },
+      h('div', { class: 'card-head' },
+        h('h3', null, title),
+        h('button', {
+          class: `btn small${canvasOn ? '' : ' primary'}`,
+          type: 'button',
+          onclick: toggle,
+        }, canvasOn ? 'Form fields' : 'Edit on canvas')),
+      h('p', { class: 'hint', style: 'margin-bottom:12px' }, hint),
+      canvasOn ? host : null,
+      canvasOn ? h('p', { class: 'hint', style: 'margin-top:10px' },
+        'Drag a layer to move it, a corner to resize it, and the round handle above it to rotate it. The light-blue highlight is its own layer under the title. Choose the water photo under Board → Background image when nothing is selected.') : null,
+      !canvasOn && classic ? classic() : null,
+      extra || null);
+  }
+
   function viewHome() {
     const home = content.home;
     home.sections = home.sections || [];
@@ -592,7 +834,7 @@
               ? await makeSection(pick.id)
               : (await api('POST', `/api/layouts/${encodeURIComponent(pick.id)}/section`, { rename: false })).section;
             home.sections.push(s);
-            openPanels.add(s);
+            setPanelOpen(s, true);
             changed();
             drawSections();
           },
@@ -601,24 +843,33 @@
     drawSections();
 
     return [
-      card('Hero (top of the page)',
-        fields(
+      homeCanvasCard({
+        title: 'Hero (top of the page)',
+        block: home.hero,
+        seed: seedHeroCanvas,
+        hint: 'Edit on canvas to place the title, the light-blue highlight bar and the subtitle on the teal water background. Form fields switches to the older name, tagline and big word. Save to publish whichever one is open.',
+        classic: () => fields(
           imageField(home.hero, 'image', 'Background image'),
           textField(home.hero, 'name', 'Large name', { span: 2 }),
           textField(home.hero, 'tagline', 'Tagline', { span: 2 }),
-          textField(home.hero, 'bigWord', 'Big colored word at the bottom', { span: 2 }),
-          textField(home, 'seoTitle', 'Browser tab title for this page', { span: 2 }))),
+          textField(home.hero, 'bigWord', 'Big colored word at the bottom', { span: 2 })),
+        extra: fields(textField(home, 'seoTitle', 'Browser tab title for this page', { span: 2 })),
+      }),
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
           h('h3', null, `Sections (${home.sections.length})`),
           h('div', { class: 'list-tools' },
-            h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => openPanels.add(s)); drawSections(); } }, 'Expand all'),
-            h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => openPanels.delete(s)); drawSections(); } }, 'Collapse all'))),
+            h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, true)); drawSections(); } }, 'Expand all'),
+            h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, false)); drawSections(); } }, 'Collapse all'))),
         h('p', { class: 'hint', style: 'margin-bottom:12px' },
           'The part of the page between the hero and "Works". Each section is its own board: put text, images and image groups anywhere on it. Use ⧉ to copy a section as a new one and then change the copy — the original is left untouched. ⧉ keeps its own layers, so the two boards never move together.'),
         sectionsWrap),
-      card('Works',
-        fields(
+      homeCanvasCard({
+        title: 'Works',
+        block: home.works,
+        seed: seedWorksCanvas,
+        hint: 'Edit on canvas to place the heading, the light-blue highlight, the description and the category cards on a board. The first time copies what is in the form. Form fields puts the original Works layout back after you save.',
+        classic: () => fields(
           textField(home.works, 'heading', 'Heading', { span: 2 }),
           textField(home.works, 'decorText', 'Big faint background text', { span: 2, multiline: true, rows: 2 }),
           textField(home.works, 'description', 'Description', { multiline: true, rows: 3 }),
@@ -628,7 +879,8 @@
               captionKey: 'label',
               captionLabel: 'Card title',
               linkPlaceholder: 'Link, e.g. /portfolio',
-            })))),
+            }))),
+      }),
       card('Contact section',
         fields(
           textField(home.contact, 'heading', 'Heading', { span: 2 }),
@@ -763,7 +1015,7 @@
       id: `p-${rand()}`, slug: uniqueSlug('new-page'), navLabel: 'New page', showInNav: true,
       title: 'NEW PAGE', subtitle: '', heroImage: '', sections: [newSection()],
     };
-    openPanels.add(page.sections[0]);
+    setPanelOpen(page.sections[0], true);
     content.pages.push(page);
     changed();
     go(`page:${page.id}`);
@@ -781,7 +1033,7 @@
       ? await makeSection(pick.id)
       : (await api('POST', `/api/layouts/${encodeURIComponent(pick.id)}/section`, { rename: false })).section;
     page.sections.push(s);
-    openPanels.add(s);
+    setPanelOpen(s, true);
     content.pages.push(page);
     changed();
     go(`page:${page.id}`);
@@ -836,8 +1088,8 @@
     const sections = page.sections;
     const titleEl = h('span', { class: 'panel-title' }, (s.heading || '').replace(/\n/g, ' ') || '(untitled section)');
     const metaEl = h('span', { class: 'panel-meta' }, sectionMeta(s));
-    const panel = h('div', { class: `panel${openPanels.has(s) ? ' open' : ''}` });
-    const head = h('div', { class: 'panel-head', role: 'button', tabindex: '0', 'aria-expanded': String(openPanels.has(s)) },
+    const panel = h('div', { class: `panel${panelIsOpen(s) ? ' open' : ''}` });
+    const head = h('div', { class: 'panel-head', role: 'button', tabindex: '0', 'aria-expanded': String(panelIsOpen(s)) },
       h('span', { class: 'chev' }, '▶'),
       titleEl,
       metaEl,
@@ -850,8 +1102,8 @@
           // own layer ids; nothing in it is shared with the original.
           const copy = await copySectionOnServer(s);
           sections.splice(i + 1, 0, copy);
-          openPanels.delete(s);
-          openPanels.add(copy);
+          setPanelOpen(s, false);
+          setPanelOpen(copy, true);
           changed();
           redraw();
         }),
@@ -866,14 +1118,14 @@
         }, { danger: true })));
 
     const toggle = () => {
-      if (openPanels.has(s)) openPanels.delete(s); else openPanels.add(s);
+      if (panelIsOpen(s)) setPanelOpen(s, false); else setPanelOpen(s, true);
       redraw();
     };
     head.addEventListener('click', toggle);
     head.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
     panel.append(head);
 
-    if (openPanels.has(s)) {
+    if (panelIsOpen(s)) {
       s.items = s.items || [];
       s.buttons = s.buttons || [];
       s.layers = s.layers || [];
@@ -884,26 +1136,14 @@
 
       const editorHost = h('div', { class: 'canvas-host' });
 
-      const mountCanvas = () => {
-        const existing = editors.get(s);
-        if (existing && !existing.destroyed) return;
-        if (existing) editors.delete(s);
-        const editor = window.CanvasEditorUI.createLayoutEditor({
-          section: s,
-          onChange: () => { changed(); refreshMeta(); },
-          onRequestImage: () => pickImage(),
-          onRequestFiles: (files) => uploadFiles(files),
-        });
-        editor.destroyed = false;
-        editors.set(s, editor);
-        editorHost.replaceChildren(editor.element);
-      };
+      const mountCanvas = () => attachCanvasEditor(s, editorHost, refreshMeta);
 
       const unmountCanvas = () => {
         const editor = editors.get(s);
         if (!editor) return;
         editor.destroy();
         editor.destroyed = true;   // keeps the cached instance from being reused
+        liveEditors.delete(editor);
         editorHost.replaceChildren();
       };
 
@@ -949,7 +1189,7 @@
               selectField(s, 'layout', 'Image layout', LAYOUTS, { span: 1, onChange: draw }),
               h('div', { class: 'span-4' }, editorHost)),
             h('p', { class: 'hint', style: 'margin-top:10px' },
-              'Each section is its own board. Drag layers to move them, drag the blue corner to resize, and hold Shift while dragging to snap to the grid. Arrow keys nudge the selected layer.'),
+              'Each section is its own board. Drag layers to move them, drag a corner to resize, and drag the round handle above a layer to rotate it. Hold Shift while dragging to snap to the grid. Arrow keys nudge the selected layer.'),
             h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
               h('button', { class: 'btn small', type: 'button', onclick: () => saveSectionLayout(s, pageLabel) }, 'Save this layout'),
               h('button', {
@@ -957,7 +1197,7 @@
                 onclick: async () => {
                   const copy = await copySectionOnServer(s);
                   sections.splice(i + 1, 0, copy);
-                  openPanels.add(copy);
+                  setPanelOpen(copy, true);
                   changed();
                   redraw();
                   toast('Copied as a new section below this one.');
@@ -998,7 +1238,7 @@
               ? await makeSection(pick.id)
               : (await api('POST', `/api/layouts/${encodeURIComponent(pick.id)}/section`, { rename: false })).section;
             page.sections.push(s);
-            openPanels.add(s);
+            setPanelOpen(s, true);
             changed();
             drawSections();
           },
@@ -1051,8 +1291,8 @@
         h('div', { class: 'card-head' },
           h('h3', null, `Sections (${page.sections.length})`),
           h('div', { class: 'list-tools' },
-            h('button', { class: 'btn small', type: 'button', onclick: () => { page.sections.forEach((s) => openPanels.add(s)); drawSections(); } }, 'Expand all'),
-            h('button', { class: 'btn small', type: 'button', onclick: () => { page.sections.forEach((s) => openPanels.delete(s)); drawSections(); } }, 'Collapse all'))),
+            h('button', { class: 'btn small', type: 'button', onclick: () => { page.sections.forEach((s) => setPanelOpen(s, true)); drawSections(); } }, 'Expand all'),
+            h('button', { class: 'btn small', type: 'button', onclick: () => { page.sections.forEach((s) => setPanelOpen(s, false)); drawSections(); } }, 'Collapse all'))),
         h('p', { class: 'hint', style: 'margin-bottom:12px' },
           'The building blocks of this page, in the order visitors scroll through them. Sections belong to this page only — another page has its own list. Open one to edit it, or use ⧉ to copy it as a new section.'),
         sectionsWrap),
@@ -1397,12 +1637,14 @@
     link.textContent = isDirty() ? 'View on website (save first to see changes) ↗' : 'View on website ↗';
   }
 
-  function render() {
+  function render(opts = {}) {
     const view = currentView();
     const editor = $('#editor');
     const title = $('#view-title');
+    const keepY = opts.keepScroll ? (opts.scrollY || 0) : 0;
+    destroyLiveEditors();
     renderSidebar();
-    window.scrollTo(0, 0);
+    window.scrollTo(0, keepY);
 
     // Suggestions for link fields: all page addresses.
     const datalist = h('datalist', { id: 'page-links' },
@@ -1433,6 +1675,7 @@
       mount(editor, datalist, ...viewHome());
     }
     updateViewLink();
+    if (opts.keepScroll) window.scrollTo(0, keepY);
   }
 
   // =========================================================================
@@ -1449,6 +1692,7 @@
   async function startApp() {
     content = await api('GET', '/api/content');
     savedJson = JSON.stringify(content);
+    resetEditHistory();
     $('#login').hidden = true;
     $('#app').hidden = false;
     changed();
@@ -1484,11 +1728,17 @@
   $('#discard').addEventListener('click', discard);
 
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && content) {
+    if (!content || !(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const key = e.key.toLowerCase();
+    if (key === 's') {
       e.preventDefault();
       save();
+      return;
     }
-  });
+    // Undo and redo cover every edit on the site, including fields and the canvas.
+    if (key === 'z' && !e.shiftKey) { e.preventDefault(); undoEdit(); }
+    else if (key === 'y' || (key === 'z' && e.shiftKey)) { e.preventDefault(); redoEdit(); }
+  }, true);
 
   window.addEventListener('beforeunload', (e) => {
     if (isDirty()) { e.preventDefault(); e.returnValue = ''; }

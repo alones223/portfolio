@@ -64,6 +64,10 @@ function normContent(raw) {
   const content = JSON.parse(JSON.stringify(raw));
   if (content.home && typeof content.home === 'object') {
     content.home.sections = normSections(content.home.sections);
+    // Hero and Works can be a layout canvas, the same shape as a page section.
+    // The older form (name, tagline, cards) is left as-is until canvas is on.
+    if (content.home.hero?.layout === 'canvas') content.home.hero = normSection(content.home.hero, 0);
+    if (content.home.works?.layout === 'canvas') content.home.works = normSection(content.home.works, 0);
   }
   if (Array.isArray(content.pages)) {
     content.pages.forEach((p) => {
@@ -112,6 +116,8 @@ function validateContent(c) {
     });
   };
   if (Array.isArray(c.home?.sections)) checkSections(c.home.sections, 'Home');
+  if (c.home?.hero?.layout === 'canvas') validateSection(c.home.hero, 'Hero (Home)', errors);
+  if (c.home?.works?.layout === 'canvas') validateSection(c.home.works, 'Works (Home)', errors);
   (c.pages || []).forEach((p) => checkSections(p.sections, p.navLabel || p.title || p.slug));
   return errors;
 }
@@ -194,6 +200,153 @@ function safeUrl(url) {
   return v;
 }
 
+const SHAPE_KINDS = new Set(['rect', 'circle', 'triangle', 'star', 'custom']);
+
+function shapeKindOf(layer) {
+  return SHAPE_KINDS.has(layer?.shape) ? layer.shape : 'rect';
+}
+
+function safeSvgPath(value) {
+  const v = String(value || '').trim();
+  if (!/^[Mm]/.test(v) || v.length > 2000) return '';
+  if (!/^[\d\s.,+\-MmLlHhVvCcSsQqTtAaZz]+$/.test(v)) return '';
+  return v;
+}
+
+function parseShapePoints(value) {
+  const raw = String(value || '').trim();
+  if (!raw || /^[Mm]/.test(raw)) return null;
+  const nums = raw.match(/-?\d*\.?\d+/g) || [];
+  const pts = [];
+  for (let i = 0; i + 1 < nums.length; i += 2) {
+    const x = Number(nums[i]);
+    const y = Number(nums[i + 1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    pts.push([Math.min(100, Math.max(0, x)), Math.min(100, Math.max(0, y))]);
+  }
+  return pts.length >= 3 ? pts : null;
+}
+
+// Outer tips stay at 46 inside the 100×100 box. The inner radius is a
+// percentage of that reach: 41 is the original star, lower is sharper.
+function starInnerPct(layer) {
+  const n = Number(layer && layer.starInner);
+  const pct = Number.isFinite(n) ? n : 41;
+  return Math.min(90, Math.max(8, pct));
+}
+
+// How many tips the star has. 5 is the original star.
+function starCornerCount(layer) {
+  const n = Number(layer && layer.starCount);
+  const count = Number.isFinite(n) ? Math.round(n) : 5;
+  return Math.min(16, Math.max(3, count));
+}
+
+function starPointList(layer) {
+  const outer = 46;
+  const inner = outer * (starInnerPct(layer) / 100);
+  const count = starCornerCount(layer);
+  const pts = [];
+  for (let i = 0; i < count * 2; i++) {
+    const radius = i % 2 === 0 ? outer : inner;
+    const angle = -Math.PI / 2 + (i * Math.PI) / count;
+    pts.push([50 + radius * Math.cos(angle), 50 + radius * Math.sin(angle)]);
+  }
+  return pts;
+}
+
+function fmtShape(n) {
+  return String(Math.round(n * 100) / 100);
+}
+
+// A circular arc in place of each vertex. radius uses the same units as the
+// points and is shortened when an edge is too short to hold the full curve.
+function roundedPolygonPath(points, radius) {
+  const n = points.length;
+  const r0 = Math.max(Number(radius) || 0, 0);
+  if (n < 3 || r0 <= 0) {
+    return `M ${points.map((p) => `${fmtShape(p[0])} ${fmtShape(p[1])}`).join(' L ')} Z`;
+  }
+  const cmds = [];
+  for (let i = 0; i < n; i++) {
+    const curr = points[i];
+    const prev = points[(i - 1 + n) % n];
+    const next = points[(i + 1) % n];
+    let v1x = prev[0] - curr[0];
+    let v1y = prev[1] - curr[1];
+    let v2x = next[0] - curr[0];
+    let v2y = next[1] - curr[1];
+    const len1 = Math.hypot(v1x, v1y);
+    const len2 = Math.hypot(v2x, v2y);
+    if (len1 < 1e-4 || len2 < 1e-4) {
+      const cmd = `${fmtShape(curr[0])} ${fmtShape(curr[1])}`;
+      cmds.push(i === 0 ? `M ${cmd}` : `L ${cmd}`);
+      continue;
+    }
+    v1x /= len1;
+    v1y /= len1;
+    v2x /= len2;
+    v2y /= len2;
+    const dot = Math.min(1, Math.max(-1, v1x * v2x + v1y * v2y));
+    const angle = Math.acos(dot);
+    const tanHalf = Math.tan(angle / 2);
+    let cut = tanHalf > 1e-4 ? r0 / tanHalf : 0;
+    const maxCut = Math.min(len1, len2) / 2;
+    if (!(cut > 0)) cut = 0;
+    if (cut > maxCut) cut = maxCut;
+    const used = cut * (tanHalf > 0 ? tanHalf : 0);
+    const p1x = curr[0] + v1x * cut;
+    const p1y = curr[1] + v1y * cut;
+    const p2x = curr[0] + v2x * cut;
+    const p2y = curr[1] + v2y * cut;
+    const cross = v1x * v2y - v1y * v2x;
+    const head = `${fmtShape(p1x)} ${fmtShape(p1y)}`;
+    cmds.push(i === 0 ? `M ${head}` : `L ${head}`);
+    if (used > 0.05) {
+      const sweep = cross < 0 ? 1 : 0;
+      cmds.push(`A ${fmtShape(used)} ${fmtShape(used)} 0 0 ${sweep} ${fmtShape(p2x)} ${fmtShape(p2y)}`);
+    }
+  }
+  cmds.push('Z');
+  return cmds.join(' ');
+}
+
+// SVG for circle, triangle, star and custom shapes. Rectangles stay a plain
+// coloured block so rounded corners keep working.
+function shapeMarkup(layer) {
+  const kind = shapeKindOf(layer);
+  if (kind === 'rect') return '';
+  const fill = safeColor(layer.bg) || '#E1E5EB';
+  const stroke = safeColor(layer.borderColor) || '#0A192F';
+  const width = Math.min(Math.max(Number(layer.borderWidth) || 0, 0), 40);
+  const strokeAttr = width > 0
+    ? ` stroke="${esc(stroke)}" stroke-width="${width}" vector-effect="non-scaling-stroke" stroke-linejoin="round"`
+    : '';
+  const path = kind === 'custom' ? safeSvgPath(layer.shapePoints) : '';
+  let viewBox = '0 0 100 100';
+  let inner = '';
+  if (kind === 'circle') {
+    inner = `<ellipse cx="50" cy="50" rx="46" ry="46" fill="${esc(fill)}"${strokeAttr}/>`;
+  } else if (kind === 'star') {
+    // Drawn in the layer's own pixels so a corner radius of 12 is 12px,
+    // the same unit a rectangle uses for its rounded corners.
+    const w = Math.min(Math.max(Number(layer.w) || 100, 10), 8000);
+    const h = Math.min(Math.max(Number(layer.h) || 100, 2), 6000);
+    viewBox = `0 0 ${fmtShape(w)} ${fmtShape(h)}`;
+    const pts = starPointList(layer).map((p) => [(p[0] / 100) * w, (p[1] / 100) * h]);
+    const radius = Math.min(Math.max(Number(layer.radius) || 0, 0), 500);
+    inner = `<path d="${esc(roundedPolygonPath(pts, radius))}" fill="${esc(fill)}"${strokeAttr}/>`;
+  } else if (path) {
+    inner = `<path d="${esc(path)}" fill="${esc(fill)}"${strokeAttr}/>`;
+  } else {
+    const pts = kind === 'triangle' ? [[50, 8], [92, 92], [8, 92]]
+      : parseShapePoints(layer.shapePoints);
+    if (!pts) return '';
+    inner = `<polygon points="${pts.map((p) => `${p[0]},${p[1]}`).join(' ')}" fill="${esc(fill)}"${strokeAttr}/>`;
+  }
+  return `<svg class="layer-shape-svg" viewBox="${viewBox}" preserveAspectRatio="none" aria-hidden="true">${inner}</svg>`;
+}
+
 function styleToCss(style) {
   const s = style || {};
   const out = [];
@@ -206,6 +359,7 @@ function styleToCss(style) {
   if (s.lineHeight) out.push(`line-height:${Math.min(Math.max(Number(s.lineHeight) || 1.25, 0.7), 3)}`);
   if (s.letterSpacing) out.push(`letter-spacing:${Math.min(Math.max(Number(s.letterSpacing) || 0, -20), 60)}px`);
   if (LAYER_ALIGN.has(s.align)) out.push(`text-align:${s.align}`);
+  if (s.textShadow) out.push('text-shadow:0 0 6px rgba(0,0,0,.55),0 1px 2px rgba(0,0,0,.6)');
   if (s.radius) out.push(`border-radius:${px(s.radius, 0, 500)}px`);
   const borderColour = safeColor(s.borderColor);
   if (s.borderWidth) {
@@ -239,6 +393,15 @@ function layerBox(layer, canvasHeight) {
   const z = num(layer.z, 0, 9999, 0);
   const fixedHeight = layer.hugging && (layer.type === 'text' || layer.type === 'heading') ? '' : `;height:${h}px`;
   return `left:${x}px;top:${y}px;width:${w}px${fixedHeight};z-index:${Math.round(z)}`;
+}
+
+// Rotation sits on an inner wrapper so entrance animations, which also use
+// transform, can keep running on the layer itself.
+function turnStyle(layer) {
+  const n = Number(layer && layer.rotate);
+  if (!Number.isFinite(n) || Math.abs(n) < 0.05) return '';
+  const deg = Math.round(Math.min(360, Math.max(-360, n)) * 10) / 10;
+  return `transform:rotate(${deg}deg);transform-origin:center center`;
 }
 
 // Line breaks inside a layer keep the words; each line is escaped.
@@ -306,6 +469,19 @@ function normLayer(rawLayer, index) {
     out.images = Array.isArray(rawLayer?.images) ? rawLayer.images.map(normCell) : [];
   }
   if (out.anim != null && !ANIMATIONS.has(out.anim)) out.anim = 'fade';
+  if (type === 'shape') {
+    out.shape = SHAPE_KINDS.has(rawLayer?.shape) ? rawLayer.shape : 'rect';
+    out.shapePoints = typeof rawLayer?.shapePoints === 'string' ? rawLayer.shapePoints.slice(0, 2000) : '';
+    if (out.shape === 'star') {
+      const inner = Number(rawLayer?.starInner);
+      if (Number.isFinite(inner)) out.starInner = Math.min(90, Math.max(8, inner));
+      const corners = Number(rawLayer?.starCount);
+      if (Number.isFinite(corners)) out.starCount = Math.min(16, Math.max(3, Math.round(corners)));
+    }
+  }
+  const rot = Number(rawLayer?.rotate);
+  if (Number.isFinite(rot)) out.rotate = Math.min(360, Math.max(-360, rot));
+  if (out.textShadow != null) out.textShadow = Boolean(out.textShadow);
   return out;
 }
 
@@ -330,6 +506,13 @@ function normSection(rawSection, index) {
     ? rawSection.buttons.filter((b) => b && typeof b === 'object')
     : [];
   section.heading = typeof section.heading === 'string' ? section.heading : '';
+  if (rawSection?.canvasLock) section.canvasLock = true;
+  else delete section.canvasLock;
+  if (typeof rawSection?.canvasImage === 'string' && rawSection.canvasImage.trim()) {
+    section.canvasImage = safeUrl(rawSection.canvasImage);
+  } else {
+    delete section.canvasImage;
+  }
   if (!section.heading && !section.layers?.length && !section.items.length) {
     section.heading = `Section ${index + 1}`;
   }
@@ -417,8 +600,11 @@ app.locals.isExternal = isExternal;
 
 // Helpers used by views/partials/section.ejs to render layout canvases.
 app.locals.styleToCss = styleToCss;
+app.locals.shapeMarkup = shapeMarkup;
+app.locals.shapeKindOf = shapeKindOf;
 app.locals.animationAttrs = animationAttrs;
 app.locals.layerBox = layerBox;
+app.locals.turnStyle = turnStyle;
 app.locals.layerText = layerText;
 app.locals.safeColor = safeColor;
 app.locals.safeUrl = safeUrl;

@@ -40,8 +40,10 @@
     Array.prototype.forEach.call(canvases, function (section) {
       var board = section.querySelector('.canvas-board');
       if (!board) return;
-      if (stacked) {
+      var lock = section.classList.contains('canvas-lock');
+      if (stacked && !lock) {
         section.classList.remove('is-scaled');
+        section.classList.remove('is-centered');
         section.style.removeProperty('--canvas-scale');
         return;
       }
@@ -50,6 +52,9 @@
       var scale = Math.min(1, section.clientWidth / boardWidth);
       section.style.setProperty('--canvas-scale', String(scale));
       section.classList.add('is-scaled');
+      // Wider than the board: keep the designed size and centre it. The
+      // section background (the hero water, for example) still fills the page.
+      section.classList.toggle('is-centered', lock && scale > 0.999);
     });
   }
 

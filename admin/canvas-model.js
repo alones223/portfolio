@@ -115,7 +115,7 @@ window.CanvasEditor = (function () {
     if (type === 'gallery') Object.assign(base, { w: 900, h: 420, anim: 'up', images: [] });
     if (type === 'button') Object.assign(base, { text: 'Read more', w: 200, h: 54, size: 16, weight: 600, align: 'center', anim: 'up' });
     if (type === 'divider') Object.assign(base, { w: 420, h: 2, color: '#0A192F', anim: 'fade' });
-    if (type === 'shape') Object.assign(base, { w: 420, h: 220, bg: '#E1E5EB', radius: 12, anim: 'fade' });
+    if (type === 'shape') Object.assign(base, { w: 420, h: 220, bg: '#E1E5EB', radius: 12, anim: 'fade', shape: 'rect', shapePoints: '' });
     return Object.assign(base, patch || {});
   }
 

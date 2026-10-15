@@ -12,10 +12,11 @@
   // safeColor() only lets plain CSS colours through, so a stray value can never
   // break out of the style attribute on the board below.
   const __colours = [esc(safeColor(__s.canvasBg) || 'transparent')];
+  const __img = __s.canvasImage ? esc(safeUrl(__s.canvasImage)) : '';
 %>
 <% if (__canvas) { %>
-  <section class="content-section layout-canvas"
-    style="--canvas-h: <%= __h %>; --canvas-bg: <%= __colours[0] %>"
+  <section class="content-section layout-canvas<%= __s.canvasLock ? ' canvas-lock' : '' %>"
+    style="--canvas-h: <%= __h %>; --canvas-bg: <%= __colours[0] %><% if (__img) { %>; --canvas-image: url('<%= __img %>')<% } %>"
     <% if (__s.heading) { %>aria-label="<%= __s.heading %>"<% } %>>
     <div class="canvas-board">
       <% __layers.forEach(function (l) {
@@ -31,6 +32,7 @@
              style="<%= box %>"
              data-layer="<%= name ? esc(name) : '' %>"
              <%- anim %>>
+          <div class="layer-turn" style="<%= turnStyle(l) %>">
           <% if (l.type === 'heading') { %>
             <h2 class="layer-heading" style="<%= style %>"><%- layerText(l.text) %></h2>
           <% } else if (l.type === 'text') { %>
@@ -79,8 +81,13 @@
           <% } else if (l.type === 'divider') { %>
             <span class="layer-divider" style="background:<%= esc(safeColor(l.color) || '#0A192F') %>;border-radius:<%= Math.min(Math.max(Number(l.radius) || 0, 0), 500) %>px"></span>
           <% } else if (l.type === 'shape') { %>
-            <span class="layer-shape" style="<%= style %><%= l.bg ? '' : ';background:#E1E5EB' %>"></span>
+            <% if (shapeKindOf(l) === 'rect') { %>
+              <span class="layer-shape" style="<%= style %><%= l.bg ? '' : ';background:#E1E5EB' %>"></span>
+            <% } else { %>
+              <%- shapeMarkup(l) %>
+            <% } %>
           <% } %>
+          </div>
         </div>
       <% }) %>
     </div>

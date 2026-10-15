@@ -39,7 +39,59 @@ window.CanvasEditorUI = (function () {
 
   const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
   const round = (n) => Math.round(n);
+  // Keep an angle in the -180..180 range the inspector shows.
+  function normDeg(n) {
+    const wrapped = ((Number(n) || 0) + 180) % 360;
+    return Math.round(((wrapped < 0 ? wrapped + 360 : wrapped) - 180) * 10) / 10;
+  }
+  // Board-pixel drag, expressed along a layer that may be rotated.
+  function localDelta(dx, dy, deg) {
+    const θ = (Number(deg) || 0) * Math.PI / 180;
+    const c = Math.cos(θ);
+    const s = Math.sin(θ);
+    return { x: dx * c + dy * s, y: -dx * s + dy * c };
+  }
+  // A board point, written in the layer's own box (origin at the top left).
+  function boardToLocal(l, bx, by) {
+    const θ = (Number(l.rotate) || 0) * Math.PI / 180;
+    const c = Math.cos(θ);
+    const s = Math.sin(θ);
+    const dx = bx - (l.x + l.w / 2);
+    const dy = by - (l.y + (Number(l.h) || 0) / 2);
+    return {
+      x: dx * c + dy * s + l.w / 2,
+      y: -dx * s + dy * c + (Number(l.h) || 0) / 2,
+    };
+  }
+  // Resize while the opposite edge or corner stays where it is, even when the
+  // layer is rotated around its centre.
+  function placeFromAnchor(l, lead, dir, newW, newH) {
+    const θ = (Number(lead.rotate) || 0) * Math.PI / 180;
+    const c = Math.cos(θ);
+    const s = Math.sin(θ);
+    const axSign = dir.includes('e') ? -1 : dir.includes('w') ? 1 : 0;
+    const aySign = dir.includes('s') ? -1 : dir.includes('n') ? 1 : 0;
+    const ocx = lead.x + lead.w / 2;
+    const ocy = lead.y + lead.h / 2;
+    const lx0 = axSign * lead.w / 2;
+    const ly0 = aySign * lead.h / 2;
+    const ax = ocx + lx0 * c - ly0 * s;
+    const ay = ocy + lx0 * s + ly0 * c;
+    const lx1 = axSign * newW / 2;
+    const ly1 = aySign * newH / 2;
+    l.w = newW;
+    l.h = newH;
+    l.x = Math.round(ax - (lx1 * c - ly1 * s) - newW / 2);
+    l.y = Math.round(ay - (lx1 * s + ly1 * c) - newH / 2);
+  }
+  function layerTurn(l) {
+    const n = Number(l.rotate) || 0;
+    return n ? `;transform:rotate(${n}deg);transform-origin:center center` : '';
+  }
   const isTextual = (l) => l.type === 'heading' || l.type === 'text';
+  // Original shape means each picture keeps its own proportions. The group
+  // grows with those pictures instead of cropping them into the layer box.
+  const naturalGallery = (l) => l.type === 'gallery' && (!l.aspect || l.aspect === 'natural');
 
   function safeUrl(url) {
     const value = String(url || '').trim();
@@ -51,8 +103,184 @@ window.CanvasEditorUI = (function () {
   // get corner handles, because their height is decided by the words inside.
   const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 
+  const SHAPE_KINDS = ['rect', 'circle', 'triangle', 'star', 'custom'];
+  const shapeKind = (l) => (SHAPE_KINDS.includes(l.shape) ? l.shape : 'rect');
+  const clippedShape = (l) => l.type === 'shape' && shapeKind(l) !== 'rect';
+
+  function safeCssColor(value) {
+    const v = String(value ?? '').trim();
+    if (/^#[0-9a-f]{3,8}$/i.test(v)) return v;
+    if (/^rgba?\(\s*[\d.%,\s]+\)$/i.test(v)) return v;
+    return '';
+  }
+
+  const DEFAULT_CUSTOM = [[50, 8], [92, 92], [8, 92]];
+
+  function parseShapePoints(value) {
+    const raw = String(value || '').trim();
+    if (!raw || /^[Mm]/.test(raw)) return null;
+    const nums = raw.match(/-?\d*\.?\d+/g) || [];
+    const pts = [];
+    for (let i = 0; i + 1 < nums.length; i += 2) {
+      const x = Number(nums[i]);
+      const y = Number(nums[i + 1]);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      pts.push([clamp(x, 0, 100), clamp(y, 0, 100)]);
+    }
+    return pts.length >= 3 ? pts : null;
+  }
+
+  function formatShapePoints(pts) {
+    return pts.map(([x, y]) => `${Math.round(x * 10) / 10}, ${Math.round(y * 10) / 10}`).join('\n');
+  }
+
+  // A custom shape is always a polygon. An empty or unreadable value starts as
+  // a triangle so there are points on the canvas to drag.
+  function customPoints(l) {
+    return parseShapePoints(l.shapePoints) || DEFAULT_CUSTOM.map((p) => p.slice());
+  }
+
+  // Outer tips stay at 46 inside the 100×100 box. The inner radius is a
+  // percentage of that reach: 41 is the original star, lower is sharper.
+  // Keep this in step with starPointList() in server.js.
+  function starInnerPct(l) {
+    const n = Number(l && l.starInner);
+    const pct = Number.isFinite(n) ? n : 41;
+    return Math.min(90, Math.max(8, pct));
+  }
+
+  // How many tips the star has. 5 is the original star.
+  // Keep this in step with starCornerCount() in server.js.
+  function starCornerCount(l) {
+    const n = Number(l && l.starCount);
+    const count = Number.isFinite(n) ? Math.round(n) : 5;
+    return Math.min(16, Math.max(3, count));
+  }
+
+  function starPoints(l) {
+    const outer = 46;
+    const inner = outer * (starInnerPct(l) / 100);
+    const count = starCornerCount(l);
+    const pts = [];
+    for (let i = 0; i < count * 2; i++) {
+      const radius = i % 2 === 0 ? outer : inner;
+      const angle = -Math.PI / 2 + (i * Math.PI) / count;
+      pts.push([50 + radius * Math.cos(angle), 50 + radius * Math.sin(angle)]);
+    }
+    return pts;
+  }
+
+  function fmtShape(n) {
+    return String(Math.round(n * 100) / 100);
+  }
+
+  // A circular arc in place of each vertex. radius uses the same units as the
+  // points and is shortened when an edge is too short to hold the full curve.
+  function roundedPolygonPath(points, radius) {
+    const n = points.length;
+    const r0 = Math.max(Number(radius) || 0, 0);
+    if (n < 3 || r0 <= 0) {
+      return `M ${points.map((p) => `${fmtShape(p[0])} ${fmtShape(p[1])}`).join(' L ')} Z`;
+    }
+    const cmds = [];
+    for (let i = 0; i < n; i++) {
+      const curr = points[i];
+      const prev = points[(i - 1 + n) % n];
+      const next = points[(i + 1) % n];
+      let v1x = prev[0] - curr[0];
+      let v1y = prev[1] - curr[1];
+      let v2x = next[0] - curr[0];
+      let v2y = next[1] - curr[1];
+      const len1 = Math.hypot(v1x, v1y);
+      const len2 = Math.hypot(v2x, v2y);
+      if (len1 < 1e-4 || len2 < 1e-4) {
+        const cmd = `${fmtShape(curr[0])} ${fmtShape(curr[1])}`;
+        cmds.push(i === 0 ? `M ${cmd}` : `L ${cmd}`);
+        continue;
+      }
+      v1x /= len1;
+      v1y /= len1;
+      v2x /= len2;
+      v2y /= len2;
+      const dot = Math.min(1, Math.max(-1, v1x * v2x + v1y * v2y));
+      const angle = Math.acos(dot);
+      const tanHalf = Math.tan(angle / 2);
+      let cut = tanHalf > 1e-4 ? r0 / tanHalf : 0;
+      const maxCut = Math.min(len1, len2) / 2;
+      if (!(cut > 0)) cut = 0;
+      if (cut > maxCut) cut = maxCut;
+      const used = cut * (tanHalf > 0 ? tanHalf : 0);
+      const p1x = curr[0] + v1x * cut;
+      const p1y = curr[1] + v1y * cut;
+      const p2x = curr[0] + v2x * cut;
+      const p2y = curr[1] + v2y * cut;
+      const cross = v1x * v2y - v1y * v2x;
+      const head = `${fmtShape(p1x)} ${fmtShape(p1y)}`;
+      cmds.push(i === 0 ? `M ${head}` : `L ${head}`);
+      if (used > 0.05) {
+        const sweep = cross < 0 ? 1 : 0;
+        cmds.push(`A ${fmtShape(used)} ${fmtShape(used)} 0 0 ${sweep} ${fmtShape(p2x)} ${fmtShape(p2y)}`);
+      }
+    }
+    cmds.push('Z');
+    return cmds.join(' ');
+  }
+
+  function shapeOutline(l) {
+    const kind = shapeKind(l);
+    if (kind === 'triangle') return [[50, 8], [92, 92], [8, 92]];
+    if (kind === 'custom') return customPoints(l);
+    return null;
+  }
+
+  function drawShapeGraphic(l) {
+    const kind = shapeKind(l);
+    if (kind === 'rect') return [];
+    const fill = safeCssColor(l.bg) || '#E1E5EB';
+    const stroke = safeCssColor(l.borderColor) || '#0A192F';
+    const width = clamp(Number(l.borderWidth) || 0, 0, 40);
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'cv-shape-svg');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    let node;
+    if (kind === 'circle') {
+      svg.setAttribute('viewBox', '0 0 100 100');
+      node = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+      node.setAttribute('cx', '50');
+      node.setAttribute('cy', '50');
+      node.setAttribute('rx', '46');
+      node.setAttribute('ry', '46');
+    } else if (kind === 'star') {
+      const w = clamp(Number(l.w) || 100, 10, 8000);
+      const h = clamp(Number(l.h) || 100, 2, 6000);
+      svg.setAttribute('viewBox', `0 0 ${fmtShape(w)} ${fmtShape(h)}`);
+      const pts = starPoints(l).map(([x, y]) => [(x / 100) * w, (y / 100) * h]);
+      const radius = clamp(Number(l.radius) || 0, 0, 500);
+      node = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      node.setAttribute('d', roundedPolygonPath(pts, radius));
+    } else {
+      svg.setAttribute('viewBox', '0 0 100 100');
+      const pts = shapeOutline(l);
+      if (!pts) return [svg];
+      node = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      node.setAttribute('points', pts.map(([x, y]) => `${x},${y}`).join(' '));
+    }
+    node.setAttribute('fill', fill);
+    if (width > 0) {
+      node.setAttribute('stroke', stroke);
+      node.setAttribute('stroke-width', String(width));
+      node.setAttribute('vector-effect', 'non-scaling-stroke');
+      node.setAttribute('stroke-linejoin', 'round');
+    }
+    svg.append(node);
+    return [svg];
+  }
+
   function layerStyle(l) {
     const parts = [];
+    // Circle, triangle, star and custom shapes paint their own fill, so the
+    // box behind them stays clear instead of showing a rectangle.
+    if (clippedShape(l)) return '';
     if (l.bg) parts.push(`background:${l.bg}`);
     if (l.color) parts.push(`color:${l.color}`);
     if (l.font) parts.push(`font-family:${l.font}`);
@@ -61,6 +289,7 @@ window.CanvasEditorUI = (function () {
     if (l.lineHeight) parts.push(`line-height:${Number(l.lineHeight)}`);
     if (l.letterSpacing) parts.push(`letter-spacing:${Number(l.letterSpacing)}px`);
     if (l.type !== 'button' && l.type !== 'divider' && l.align) parts.push(`text-align:${l.align}`);
+    if (l.textShadow) parts.push('text-shadow:0 0 6px rgba(0,0,0,.55),0 1px 2px rgba(0,0,0,.6)');
     if (l.radius) parts.push(`border-radius:${Number(l.radius)}px`);
     if (l.borderWidth) parts.push(`border:${Number(l.borderWidth)}px solid ${l.borderColor || '#0A192F'}`);
     return parts.join(';');
@@ -80,19 +309,28 @@ window.CanvasEditorUI = (function () {
     if (l.type === 'gallery') {
       const cols = clamp(Number(l.columns) || 3, 1, 4);
       const gap = Number(l.gap) || 16;
-      const aspect = l.aspect && l.aspect !== 'natural' ? l.aspect.replace(':', '/') : '';
-      const grid = h('div', { class: 'cv-gallery', style: `grid-template-columns:repeat(${cols},1fr);gap:${gap}px` });
+      const natural = naturalGallery(l);
+      const aspect = !natural && l.aspect ? l.aspect.replace(':', '/') : '';
+      const grid = h('div', {
+        class: natural ? 'cv-gallery is-natural' : 'cv-gallery',
+        style: `grid-template-columns:repeat(${cols},1fr);gap:${gap}px`,
+      });
       const images = l.images || [];
       if (!images.length) grid.append(h('div', { class: 'cv-placeholder' }, 'No images yet'));
       images.forEach((item) => {
-        const cellClass = aspect ? 'cv-gal-cell' : 'cv-gal-cell cv-gal-natural';
         grid.append(item.image
-          ? h('div', { class: cellClass, style: aspect ? `aspect-ratio:${aspect}` : '' },
-            h('img', { src: safeUrl(item.image), alt: '', style: `object-fit:${l.fit || 'cover'}`, draggable: 'false' }))
+          ? h('div', { class: 'cv-gal-cell', style: aspect ? `aspect-ratio:${aspect}` : '' },
+            h('img', {
+              src: safeUrl(item.image),
+              alt: '',
+              draggable: 'false',
+              style: natural ? '' : `object-fit:${l.fit || 'cover'}`,
+            }))
           : h('div', { class: 'cv-placeholder' }, 'Empty'));
       });
       return [grid];
     }
+    if (l.type === 'shape') return drawShapeGraphic(l);
     if (l.type === 'button') {
       const kind = l.buttonStyle === 'solid' ? 'solid' : l.buttonStyle === 'outline' ? 'outline' : 'pill';
       return [h('span', {
@@ -109,18 +347,60 @@ window.CanvasEditorUI = (function () {
     const el = h('div', {
       class: `cv-layer cv-t-${l.type}${l.hidden ? ' is-hidden' : ''}${l.locked ? ' is-locked' : ''}`,
       'data-id': l.id,
-      style: `left:${l.x}px;top:${l.y}px;width:${l.w}px;z-index:${Number(l.z) || 0}${isTextual(l) && l.hugging ? '' : `;height:${l.h}`}`,
+      style: `left:${l.x}px;top:${l.y}px;width:${l.w}px;z-index:${Number(l.z) || 0}${(isTextual(l) && l.hugging) || naturalGallery(l) ? '' : `;height:${l.h}`}${layerTurn(l)}`,
     });
+    if (isTextual(l) && l.hugging) el.classList.add('cv-hug');
     const box = h('div', { class: 'cv-layer-box', style: layerStyle(l) }, ...drawLayerContent(l));
     el.append(box);
     if (l.type === 'divider') el.append(h('span', { class: 'cv-divider-fill', style: `background:${l.color || '#0A192F'}` }));
-    const hugging = isTextual(l) && l.hugging;
+    el.append(h('span', { class: 'cv-rotate', title: 'Drag to rotate. Hold Shift to snap every 15°.' }));
     for (const dir of HANDLES) {
-      if (hugging && (dir === 'n' || dir === 's' || dir === 'e' || dir === 'w')) continue;
-      el.append(h('span', { class: `cv-resize cv-resize-${dir}`, 'data-resize': dir, title: 'Drag to resize' }));
+      const corner = dir === 'nw' || dir === 'ne' || dir === 'se' || dir === 'sw';
+      el.append(h('span', {
+        class: `cv-resize cv-resize-${dir}`,
+        'data-resize': dir,
+        title: isTextual(l) && corner
+          ? 'Drag to scale the text'
+          : (l.type === 'shape' ? 'Drag to resize. Hold Shift for a square.' : 'Drag to resize'),
+      }));
     }
     if (l.type === 'gallery' || l.type === 'image' || isTextual(l)) el.classList.add('cv-has-size');
+    if (naturalGallery(l)) el.classList.add('cv-natural-gallery');
     return el;
+  }
+
+  // Point handles sit on the layer itself (not inside the clipped box) so they
+  // stay grabbable at the edges. Edge marks sit halfway between two points.
+  function syncShapeHandles(el, l) {
+    const show = l.type === 'shape' && shapeKind(l) === 'custom';
+    const pts = show ? customPoints(l) : [];
+    let nodes = [...el.querySelectorAll('.cv-shape-point')];
+    let edges = [...el.querySelectorAll('.cv-shape-edge')];
+    if (nodes.length !== pts.length || edges.length !== pts.length) {
+      nodes.forEach((n) => n.remove());
+      edges.forEach((n) => n.remove());
+      pts.forEach((_, i) => {
+        el.append(h('span', {
+          class: 'cv-shape-point',
+          'data-point': String(i),
+          title: 'Drag to move this point. Double-click to remove it.',
+        }));
+        el.append(h('span', {
+          class: 'cv-shape-edge',
+          'data-edge': String(i),
+          title: 'Drag to add a point on this edge',
+        }));
+      });
+      nodes = [...el.querySelectorAll('.cv-shape-point')];
+      edges = [...el.querySelectorAll('.cv-shape-edge')];
+    }
+    pts.forEach(([x, y], i) => {
+      nodes[i].style.left = `${x}%`;
+      nodes[i].style.top = `${y}%`;
+      const next = pts[(i + 1) % pts.length];
+      edges[i].style.left = `${(x + next[0]) / 2}%`;
+      edges[i].style.top = `${(y + next[1]) / 2}%`;
+    });
   }
 
   // =========================================================================
@@ -255,6 +535,14 @@ window.CanvasEditorUI = (function () {
 
     // The element for a layer, looked up fresh: a render may have replaced it.
     const elFor = (id) => board.querySelector(`.cv-layer[data-id="${id}"]`);
+    // Natural image groups size themselves from the pictures, so alignment and
+    // the inspector read the box on the board rather than the stored height.
+    function boxHeight(l) {
+      if (!naturalGallery(l)) return Number(l.h) || 0;
+      const el = elFor(l.id);
+      const measured = el ? el.offsetHeight : 0;
+      return measured > 0 ? measured : Number(l.h) || 0;
+    }
 
     const toolbar = h('div', { class: 'cv-toolbar' });
     const paneLeft = h('div', { class: 'cv-pane' });
@@ -496,8 +784,8 @@ window.CanvasEditorUI = (function () {
         case 'hcenter': targets.forEach((l) => { l.x = round(box.x + (box.w - l.w) / 2); }); break;
         case 'right': targets.forEach((l) => { l.x = round(box.x + box.w - l.w); }); break;
         case 'top': targets.forEach((l) => { l.y = box.y; }); break;
-        case 'vcenter': targets.forEach((l) => { l.y = round(box.y + (box.h - l.h) / 2); }); break;
-        case 'bottom': targets.forEach((l) => { l.y = round(box.y + box.h - l.h); }); break;
+        case 'vcenter': targets.forEach((l) => { l.y = round(box.y + (box.h - boxHeight(l)) / 2); }); break;
+        case 'bottom': targets.forEach((l) => { l.y = round(box.y + box.h - boxHeight(l)); }); break;
         case 'distribute-x': {
           if (targets.length < 3) return;
           const sorted = [...targets].sort((a, b) => a.x - b.x);
@@ -515,11 +803,11 @@ window.CanvasEditorUI = (function () {
           const sorted = [...targets].sort((a, b) => a.y - b.y);
           const first = sorted[0];
           const last = sorted[sorted.length - 1];
-          const span = (last.y + last.h) - first.y;
-          const used = sorted.reduce((sum, l) => sum + l.h, 0);
+          const span = (last.y + boxHeight(last)) - first.y;
+          const used = sorted.reduce((sum, l) => sum + boxHeight(l), 0);
           const gap = (span - used) / (sorted.length - 1);
           let cursor = first.y;
-          sorted.forEach((l) => { l.y = round(cursor); cursor += l.h + gap; });
+          sorted.forEach((l) => { l.y = round(cursor); cursor += boxHeight(l) + gap; });
           break;
         }
         default: return;
@@ -599,9 +887,13 @@ window.CanvasEditorUI = (function () {
       return Number((Math.round(value / step) * step).toFixed(decimals));
     }
 
-    function numField(l, key, label, min, max, step) {
+    function numField(l, key, label, min, max, step, fallback) {
       const stride = step || 1;
-      const input = h('input', { type: 'number', value: Number(l[key]) || 0, min, max, step: stride });
+      const read = () => {
+        const n = Number(l[key]);
+        return Number.isFinite(n) ? n : (fallback ?? 0);
+      };
+      const input = h('input', { type: 'number', value: read(), min, max, step: stride });
       const apply = (value) => {
         l[key] = clamp(roundToStep(value, stride), min, max);
         input.value = String(l[key]);
@@ -616,7 +908,7 @@ window.CanvasEditorUI = (function () {
       });
       bindWheel(input, (dir) => {
         beginGesture();
-        apply((Number(l[key]) || 0) + dir * stride);
+        apply(read() + dir * stride);
       });
       return field(label, input);
     }
@@ -843,7 +1135,12 @@ window.CanvasEditorUI = (function () {
     function paintBoard() {
       const s = scale();
       board.style.height = `${boardHeight()}px`;
-      board.style.background = section.canvasBg || '';
+      board.style.backgroundColor = section.canvasBg || '';
+      const bgUrl = safeUrl(section.canvasImage || '');
+      board.style.backgroundImage = bgUrl && bgUrl !== '#' ? `url("${bgUrl.replace(/"/g, '')}")` : '';
+      board.style.backgroundSize = 'cover';
+      board.style.backgroundPosition = 'center';
+      board.style.backgroundRepeat = 'no-repeat';
       board.style.transform = `scale(${s})`;
       board.style.transformOrigin = 'top left';
       stage.style.width = `${M.CANVAS_W * s}px`;
@@ -868,7 +1165,10 @@ window.CanvasEditorUI = (function () {
         el.classList.toggle('is-locked', Boolean(l.locked));
         el.classList.toggle('dragging', dragging?.layer?.id === l.id);
         const size = `left:${l.x}px;top:${l.y}px;width:${l.w}px;z-index:${Number(l.z) || 0}`;
-        el.style.cssText = isTextual(l) && l.hugging ? size : `${size};height:${l.h}px`;
+        const lockHeight = (isTextual(l) && l.hugging) || naturalGallery(l);
+        el.style.cssText = lockHeight ? `${size}${layerTurn(l)}` : `${size};height:${l.h}px${layerTurn(l)}`;
+        el.classList.toggle('cv-hug', isTextual(l) && Boolean(l.hugging));
+        el.classList.toggle('cv-natural-gallery', naturalGallery(l));
         const box = el.querySelector('.cv-layer-box');
         if (box) {
           box.style.cssText = layerStyle(l);
@@ -882,9 +1182,38 @@ window.CanvasEditorUI = (function () {
         }
         const divider = el.querySelector('.cv-divider-fill');
         if (divider) divider.style.background = l.color || '#0A192F';
+        syncShapeHandles(el, l);
+        el.querySelectorAll('.cv-resize').forEach((handle) => {
+          const corner = ['nw', 'ne', 'se', 'sw'].includes(handle.dataset.resize);
+          handle.title = naturalGallery(l)
+            ? 'Drag to change the width. Height stays locked to the original image shape.'
+            : (isTextual(l) && corner
+              ? 'Drag to scale the text'
+              : (l.type === 'shape' ? 'Drag to resize. Hold Shift for a square.' : 'Drag to resize'));
+        });
       });
       // Anything left over is a deleted layer.
       [...board.children].forEach((el) => { if (!list.some((l) => l.id === el.dataset.id)) el.remove(); });
+      list.forEach((l) => {
+        if (!naturalGallery(l)) return;
+        const el = elFor(l.id);
+        if (!el) return;
+        el.querySelectorAll('img').forEach((img) => {
+          if (img.dataset.lockLoad) return;
+          img.dataset.lockLoad = '1';
+          if (!img.complete) img.addEventListener('load', () => refreshLockedHeight(l), { once: true });
+        });
+        refreshLockedHeight(l);
+      });
+    }
+
+    function refreshLockedHeight(l) {
+      if (!l || !naturalGallery(l) || primary()?.id !== l.id) return;
+      const px = String(round(boxHeight(l)));
+      const hint = paneRight.querySelector('.cv-pane-head .cv-hint');
+      if (hint) hint.textContent = `${round(l.w)}×${px}`;
+      const input = paneRight.querySelector('[data-locked-height]');
+      if (input) input.value = px;
     }
 
     function contentSignature(l) {
@@ -894,6 +1223,7 @@ window.CanvasEditorUI = (function () {
         return `gallery:${l.columns}:${l.gap}:${l.aspect}:${l.fit}:${(l.images || []).map((i) => i.image).join('|')}`;
       }
       if (l.type === 'button') return `button:${l.text}:${l.buttonStyle}:${l.color}:${l.bg}:${l.size}:${l.weight}:${l.font}`;
+      if (l.type === 'shape') return `shape:${l.shape}:${l.shapePoints}:${l.bg}:${l.borderWidth}:${l.borderColor}:${l.radius}:${l.starInner}:${l.starCount}:${l.w}:${l.h}`;
       return l.type;
     }
 
@@ -916,8 +1246,8 @@ window.CanvasEditorUI = (function () {
 
       toolbar.replaceChildren(
         h('div', { class: 'cv-tools' },
-          h('button', { class: 'btn small', type: 'button', title: 'Undo (Ctrl + Z)', disabled: !canUndo(), onclick: () => undo() }, '↶ Undo'),
-          h('button', { class: 'btn small', type: 'button', title: 'Redo (Ctrl + Shift + Z)', disabled: !canRedo(), onclick: () => redo() }, '↷ Redo'),
+          h('button', { class: 'btn small', type: 'button', title: 'Undo (Ctrl + Z)', disabled: !(opts.canUndo ? opts.canUndo() : canUndo()), onclick: () => (opts.onUndo ? opts.onUndo() : undo()) }, '↶ Undo'),
+          h('button', { class: 'btn small', type: 'button', title: 'Redo (Ctrl + Y)', disabled: !(opts.canRedo ? opts.canRedo() : canRedo()), onclick: () => (opts.onRedo ? opts.onRedo() : redo()) }, '↷ Redo'),
           addSel,
           h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('text') }, '+ Text'),
           h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('image') }, '+ Image'),
@@ -1028,7 +1358,8 @@ window.CanvasEditorUI = (function () {
           return input;
         })()),
         colorField(section, 'canvasBg', 'Board background'),
-        h('p', { class: 'cv-hint' }, 'The board is 1425px wide on desktop and scales down on phones. Layers keep the position you give them.'),
+        imageField(section, 'canvasImage', 'Background image'),
+        h('p', { class: 'cv-hint' }, 'A background image covers this board. On the website it also fills the width of the section, behind the layers. The board is 1425px wide and scales down on smaller screens.'),
       ];
 
       if (!l) {
@@ -1043,7 +1374,7 @@ window.CanvasEditorUI = (function () {
       const count = selectedIds.size;
       const groups = [h('div', { class: 'cv-pane-head' },
         h('strong', null, count > 1 ? `${count} layers selected` : M.layerTypeLabel(l.type)),
-        h('span', { class: 'cv-hint' }, count > 1 ? '' : `${round(l.w)}×${round(l.h)}`))];
+        h('span', { class: 'cv-hint' }, count > 1 ? '' : `${round(l.w)}×${round(boxHeight(l))}`))];
 
       if (count > 1) {
         groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Selection'), moveButtonRow([...selectedIds])));
@@ -1061,8 +1392,19 @@ window.CanvasEditorUI = (function () {
           numField(l, 'x', 'X', -4000, 6000),
           numField(l, 'y', 'Y', -2000, 4000),
           numField(l, 'w', 'Width', 20, 6000),
-          numField(l, 'h', 'Height', 2, 4000)),
+          naturalGallery(l)
+            ? field('Height', h('input', {
+              type: 'number',
+              value: round(boxHeight(l)),
+              disabled: true,
+              'data-locked-height': '1',
+              title: 'Locked to the original image shape',
+            }))
+            : numField(l, 'h', 'Height', 2, 4000),
+          numField(l, 'rotate', 'Rotation (°)', -360, 360, 1, 0)),
+        h('p', { class: 'cv-hint' }, 'Drag the round handle above the layer to rotate it. Hold Shift to snap every 15°.'),
         isTextual(l) ? toggleField(l, 'hugging', 'Height follows the text') : null,
+        isTextual(l) ? h('p', { class: 'cv-hint' }, 'Drag a corner to scale the text. Drag an edge to change the box without changing the type size.') : null,
         isTextual(l) ? h('div', { class: 'cv-btnrow' },
           h('button', { class: 'btn small', type: 'button', title: 'Shrink the box to fit the text', onclick: () => {
             record();
@@ -1112,9 +1454,38 @@ window.CanvasEditorUI = (function () {
         content.push(h('div', { class: 'cv-grid2' },
           selectField(l, 'columns', 'Columns', [[1, '1'], [2, '2'], [3, '3'], [4, '4']], true),
           selectField(l, 'aspect', 'Image shape', [['natural', 'Original shape'], ['square', 'Square'], ['4:3', '4:3'], ['16:9', '16:9'], ['4:5', '4:5'], ['3:4', '3:4']]),
-          selectField(l, 'fit', 'How images fill each cell', M.FITS),
+          naturalGallery(l) ? null : selectField(l, 'fit', 'How images fill each cell', M.FITS),
           numField(l, 'gap', 'Gap between images', 0, 120)));
+        if (naturalGallery(l)) {
+          content.push(h('p', { class: 'cv-hint' }, 'Original shape locks every image to its own proportions. The height of the group follows the pictures, so they are not cropped.'));
+        }
         content.push(galleryField(l));
+      }
+      if (l.type === 'shape') {
+        const shapeSel = h('select', null, [
+          ['rect', 'Rectangle'],
+          ['circle', 'Circle'],
+          ['triangle', 'Triangle'],
+          ['star', 'Star'],
+          ['custom', 'Custom'],
+        ].map(([value, text]) => h('option', { value, selected: shapeKind(l) === value }, text)));
+        shapeSel.addEventListener('change', () => {
+          record();
+          l.shape = shapeSel.value;
+          if (l.shape === 'custom' && !parseShapePoints(l.shapePoints)) {
+            l.shapePoints = formatShapePoints(DEFAULT_CUSTOM);
+          }
+          onChange();
+          render();
+        });
+        content.push(field('Shape', shapeSel));
+        content.push(h('p', { class: 'cv-hint' }, (shapeKind(l) === 'rect'
+          ? 'A rectangle. Rounded corners are under Style. '
+          : shapeKind(l) === 'star'
+            ? 'Corners, inner radius and rounded corners are under Style. '
+            : shapeKind(l) === 'custom'
+              ? 'Drag the points on the canvas. Drag a mark on an edge to add a point, and double-click a point to remove it. '
+              : 'The shape stretches to fill its box. Fill and border are under Style. ') + 'Hold Shift while resizing to make it a square.'));
       }
       if (content.length) groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Content'), ...content));
 
@@ -1128,10 +1499,19 @@ window.CanvasEditorUI = (function () {
             numField(l, 'lineHeight', 'Line spacing', 0.8, 3, 0.05),
             numField(l, 'letterSpacing', 'Letter spacing', -10, 40, 0.5)),
           selectField(l, 'align', 'Text alignment', [['left', 'Left'], ['center', 'Centred'], ['right', 'Right']]),
-          colorField(l, 'color', 'Text colour'));
+          colorField(l, 'color', 'Text colour'),
+          toggleField(l, 'textShadow', 'Shadow behind the text'));
       }
-      if (l.type !== 'image') style.push(colorField(l, 'bg', l.type === 'divider' ? 'Line colour' : 'Background colour'));
-      if (l.type !== 'divider' && l.type !== 'gallery') style.push(h('div', { class: 'cv-grid2' },
+      if (l.type !== 'image') style.push(colorField(l, 'bg', l.type === 'divider' ? 'Line colour' : (clippedShape(l) ? 'Fill colour' : 'Background colour')));
+      if (l.type === 'shape' && shapeKind(l) === 'star') {
+        style.push(h('div', { class: 'cv-grid2' },
+          numField(l, 'starCount', 'Corners', 3, 16, 1, 5),
+          numField(l, 'starInner', 'Inner radius', 8, 90, 1, 41),
+          numField(l, 'radius', 'Rounded corners', 0, 300)));
+        style.push(h('p', { class: 'cv-hint' }, 'Corners sets how many tips the star has. A lower inner radius makes it sharper. Rounded corners soften every tip and valley. Scroll a number to nudge it.'));
+      }
+      if (clippedShape(l)) style.push(numField(l, 'borderWidth', 'Border width', 0, 40));
+      else if (l.type !== 'divider' && l.type !== 'gallery') style.push(h('div', { class: 'cv-grid2' },
         numField(l, 'radius', 'Rounded corners', 0, 300),
         numField(l, 'borderWidth', 'Border width', 0, 40)));
       if (l.type !== 'text' && l.type !== 'heading') style.push(colorField(l, 'borderColor', 'Border colour'));
@@ -1171,12 +1551,17 @@ window.CanvasEditorUI = (function () {
       const layer = byId(layerEl.dataset.id);
       if (!layer) return;
 
-      const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+      const handle = e.target.closest('.cv-resize');
+      const rotateHandle = e.target.closest('.cv-rotate');
+      const pointHandle = e.target.closest('.cv-shape-point');
+      const edgeHandle = e.target.closest('.cv-shape-edge');
+      // Shift on a resize handle squares the shape, so it must not also toggle
+      // the selection off before the drag starts.
+      const additive = e.ctrlKey || e.metaKey || (e.shiftKey && !handle && !rotateHandle);
       if (additive) toggleSelect(layer.id);
       else if (!selectedIds.has(layer.id)) selectOnly(layer.id);
 
       if (layer.locked) return;
-      const handle = e.target.closest('.cv-resize');
       // Selection repainted the board, so look the element up again before
       // keeping a reference to it.
       const el = elFor(layer.id);
@@ -1184,21 +1569,65 @@ window.CanvasEditorUI = (function () {
       // One undo step per drag: the snapshot is taken here, before the pointer
       // starts moving, and the gesture is closed in onPointerUp.
       beginGesture();
+      let mode = rotateHandle ? 'rotate' : handle ? 'resize' : 'move';
+      let pointIndex = null;
+      const corner = ['nw', 'ne', 'se', 'sw'].includes(handle?.dataset.resize);
+      // A corner drag scales the text, so the box height has to be a real
+      // number first. While height follows the words, read it off the board.
+      if (mode === 'resize' && corner && isTextual(layer) && layer.hugging) {
+        const measured = el.offsetHeight;
+        if (measured > 2) layer.h = measured;
+      }
+      const editingPoints = !additive && !rotateHandle && shapeKind(layer) === 'custom' && (pointHandle || edgeHandle);
+      if (editingPoints && edgeHandle) {
+        const pts = customPoints(layer).map((p) => p.slice());
+        if (pts.length < 24) {
+          const i = Number(edgeHandle.dataset.edge);
+          const a = pts[i];
+          const b = pts[(i + 1) % pts.length];
+          pts.splice(i + 1, 0, [
+            Math.round(((a[0] + b[0]) / 2) * 10) / 10,
+            Math.round(((a[1] + b[1]) / 2) * 10) / 10,
+          ]);
+          layer.shapePoints = formatShapePoints(pts);
+          pointIndex = i + 1;
+          mode = 'point';
+        }
+      } else if (editingPoints && pointHandle) {
+        mode = 'point';
+        pointIndex = Number(pointHandle.dataset.point);
+      }
       dragging = {
         lead: layer,
         el,
-        mode: handle ? 'resize' : 'move',
+        mode,
         dir: handle?.dataset.resize || null,
+        pointIndex,
         startX: e.clientX,
         startY: e.clientY,
+        startAngle: 0,
         // Every selected layer remembers where it began, so the whole group
         // moves together and the pointer can be dragged back to the start.
-        items: selectedLayers().map((l) => ({ l, x: l.x, y: l.y, w: l.w, h: l.h })),
+        items: selectedLayers().map((l) => ({
+          l, x: l.x, y: l.y, w: l.w, h: l.h,
+          size: Number(l.size) || 0,
+          rotate: Number(l.rotate) || 0,
+        })),
       };
+      if (mode === 'rotate') {
+        const boardRect = board.getBoundingClientRect();
+        const s0 = scale();
+        const px = (e.clientX - boardRect.left) / s0;
+        const py = (e.clientY - boardRect.top) / s0;
+        const cx = layer.x + layer.w / 2;
+        const cy = layer.y + (Number(layer.h) || 0) / 2;
+        dragging.startAngle = Math.atan2(px - cx, -(py - cy)) * 180 / Math.PI;
+      }
       el.classList.add('dragging');
       e.preventDefault();
       window.addEventListener('pointermove', onPointerMove);
       window.addEventListener('pointerup', onPointerUp);
+      if (mode === 'point') paintBoard();
     }
 
     function onPointerMove(e) {
@@ -1209,27 +1638,96 @@ window.CanvasEditorUI = (function () {
       const snap = e.shiftKey;
       const lead = dragging.items.find((item) => item.l === dragging.lead) || dragging.items[0];
 
+      if (dragging.mode === 'point') {
+        const l = dragging.lead;
+        let x;
+        let y;
+        if (Number(l.rotate)) {
+          const boardRect = board.getBoundingClientRect();
+          const local = boardToLocal(l, (e.clientX - boardRect.left) / s, (e.clientY - boardRect.top) / s);
+          x = clamp(l.w ? (local.x / l.w) * 100 : 0, 0, 100);
+          y = clamp(l.h ? (local.y / l.h) * 100 : 0, 0, 100);
+        } else {
+          const rect = dragging.el.getBoundingClientRect();
+          x = clamp(rect.width ? ((e.clientX - rect.left) / rect.width) * 100 : 0, 0, 100);
+          y = clamp(rect.height ? ((e.clientY - rect.top) / rect.height) * 100 : 0, 0, 100);
+        }
+        const pts = customPoints(l).map((p) => p.slice());
+        if (pts[dragging.pointIndex]) {
+          pts[dragging.pointIndex] = [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
+          l.shapePoints = formatShapePoints(pts);
+        }
+        paintBoard();
+        onChange();
+        return;
+      }
+
+      if (dragging.mode === 'rotate') {
+        const boardRect = board.getBoundingClientRect();
+        const px = (e.clientX - boardRect.left) / s;
+        const py = (e.clientY - boardRect.top) / s;
+        const cx = lead.x + lead.w / 2;
+        const cy = lead.y + lead.h / 2;
+        const angle = Math.atan2(px - cx, -(py - cy)) * 180 / Math.PI;
+        let delta = angle - dragging.startAngle;
+        if (snap) delta = Math.round((lead.rotate + delta) / 15) * 15 - lead.rotate;
+        dragging.items.forEach((item) => {
+          item.l.rotate = normDeg((item.rotate || 0) + delta);
+        });
+        paintBoard();
+        paintInspector();
+        onChange();
+        return;
+      }
+
       if (dragging.mode === 'resize') {
         const l = dragging.lead;
         const dir = dragging.dir;
         // rawDx/rawDy are already board pixels (they were divided by the zoom
         // factor above). Dividing again here would make the box jump by
         // 1/zoom² per pixel, which is what made resizing feel broken.
-        const dx = rawDx;
-        const dy = rawDy;
-        let x = lead.x;
-        let y = lead.y;
-        let w = lead.w + (dir.includes('e') ? dx : 0);
-        let h = lead.h + (dir.includes('s') ? dy : 0);
-        if (dir.includes('w')) { w = lead.w - dx; x = lead.x + dx; }
-        if (dir.includes('n')) { h = lead.h - dy; y = lead.y + dy; }
-        if (snap) { w = round(w / M.GRID) * M.GRID; h = round(h / M.GRID) * M.GRID; }
-        w = clamp(round(w), 20, 6000);
-        h = clamp(round(h), 2, 4000);
-        l.w = w;
-        l.h = h;
-        l.x = round(x);
-        l.y = round(y);
+        const local = localDelta(rawDx, rawDy, lead.rotate);
+        let w = lead.w;
+        let h = lead.h;
+        if (dir.includes('e')) w = lead.w + local.x;
+        if (dir.includes('w')) w = lead.w - local.x;
+        if (dir.includes('s')) h = lead.h + local.y;
+        if (dir.includes('n')) h = lead.h - local.y;
+        const corner = dir === 'nw' || dir === 'ne' || dir === 'se' || dir === 'sw';
+        if (naturalGallery(l)) {
+          // Width can change. Height stays locked to the pictures' own shape,
+          // so a drag cannot crop them back into the layer box.
+          if (dir === 'n' || dir === 's') return;
+          if (snap) w = round(w / M.GRID) * M.GRID;
+          w = clamp(round(w), 20, 6000);
+          placeFromAnchor(l, lead, dir, w, lead.h);
+        } else if (e.shiftKey && l.type === 'shape') {
+          // Shift locks every shape to a square. Side handles follow the axis
+          // being dragged; corners follow whichever axis moved further.
+          let size;
+          if (dir === 'e' || dir === 'w') size = w;
+          else if (dir === 'n' || dir === 's') size = h;
+          else size = Math.abs(w - lead.w) >= Math.abs(h - lead.h) ? w : h;
+          size = clamp(round(size), 20, 4000);
+          placeFromAnchor(l, lead, dir, size, size);
+        } else if (corner && isTextual(l)) {
+          // A corner scales the words with the box. Edges still change only
+          // the box, so a line can reflow without the type size changing.
+          const sx = w / Math.max(lead.w, 1);
+          const sy = h / Math.max(lead.h, 1);
+          let scale = Math.abs(sx - 1) >= Math.abs(sy - 1) ? sx : sy;
+          const base = lead.size || (l.type === 'heading' ? 46 : 18);
+          if (!(scale > 0)) scale = 1;
+          scale = clamp(scale, Math.max(20 / lead.w, 20 / Math.max(lead.h, 1), 8 / base), Math.min(6000 / lead.w, 4000 / Math.max(lead.h, 1), 300 / base));
+          l.hugging = false;
+          l.size = clamp(round(base * scale), 8, 300);
+          placeFromAnchor(l, lead, dir, clamp(round(lead.w * scale), 20, 6000), clamp(round(lead.h * scale), 20, 4000));
+        } else {
+          if (snap) { w = round(w / M.GRID) * M.GRID; h = round(h / M.GRID) * M.GRID; }
+          w = clamp(round(w), 20, 6000);
+          h = clamp(round(h), 2, 4000);
+          placeFromAnchor(l, lead, dir, w, h);
+        }
       } else {
         // Move the lead layer to where the pointer is, let it snap to guides,
         // then move everything else by the same corrected amount.
@@ -1239,7 +1737,8 @@ window.CanvasEditorUI = (function () {
         let nx = round(lead.x + dx);
         let ny = round(lead.y + dy);
         if (!snap) {
-          const guide = showGuides({ x: nx, y: ny, w: lead.w, h: lead.h }, others);
+          const leadH = naturalGallery(dragging.lead) ? boxHeight(dragging.lead) : lead.h;
+          const guide = showGuides({ x: nx, y: ny, w: lead.w, h: leadH }, others.map((o) => ({ x: o.x, y: o.y, w: o.w, h: boxHeight(o) })));
           if (guide.x != null) {
             if (Math.abs(guide.x - nx) <= 4) nx = guide.x;
             else if (Math.abs(guide.x - (nx + lead.w)) <= 4) nx = guide.x - lead.w;
@@ -1247,8 +1746,8 @@ window.CanvasEditorUI = (function () {
           }
           if (guide.y != null) {
             if (Math.abs(guide.y - ny) <= 4) ny = guide.y;
-            else if (Math.abs(guide.y - (ny + lead.h)) <= 4) ny = guide.y - lead.h;
-            else if (Math.abs(guide.y - (ny + lead.h / 2)) <= 4) ny = Math.round(guide.y - lead.h / 2);
+            else if (Math.abs(guide.y - (ny + leadH)) <= 4) ny = guide.y - leadH;
+            else if (Math.abs(guide.y - (ny + leadH / 2)) <= 4) ny = Math.round(guide.y - leadH / 2);
           }
         } else {
           hideGuides();
@@ -1261,7 +1760,7 @@ window.CanvasEditorUI = (function () {
         });
       }
       paintBoard();
-      if (dragging.mode === 'resize') paintInspector();
+      if (dragging.mode === 'resize' || dragging.mode === 'rotate') paintInspector();
       onChange();
     }
 
@@ -1277,17 +1776,14 @@ window.CanvasEditorUI = (function () {
       paintList();
       paintInspector();
       onChange();
+      paintToolbar();
     }
 
     function onKeyDown(e) {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
       const mod = e.ctrlKey || e.metaKey;
-      // Undo / redo. Ctrl+Z and Ctrl+Shift+Z, plus Ctrl+Y for the Windows habit.
-      if (mod && !e.altKey) {
-        const key = e.key.toLowerCase();
-        if (key === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
-        if (key === 'y') { e.preventDefault(); redo(); return; }
-      }
+      // Ctrl+Z and Ctrl+Y are handled for the whole admin, so a canvas edit and
+      // a text edit share one undo stack.
       if (mod && e.key.toLowerCase() === 'a') { e.preventDefault(); selectAllLayers(); return; }
       if (mod && e.key.toLowerCase() === 'd') {
         const l = primary();
@@ -1378,6 +1874,26 @@ window.CanvasEditorUI = (function () {
     window.addEventListener('blur', () => { spaceDown = false; });
 
     board.addEventListener('pointerdown', onPointerDown);
+    board.addEventListener('dblclick', (e) => {
+      const handle = e.target.closest('.cv-shape-point');
+      if (!handle) return;
+      const layer = byId(handle.closest('.cv-layer')?.dataset.id);
+      if (!layer || layer.locked || shapeKind(layer) !== 'custom') return;
+      const pts = customPoints(layer).map((p) => p.slice());
+      if (pts.length <= 3) return;
+      if (dragging) {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        dragging.el?.classList.remove('dragging');
+        dragging = null;
+      }
+      if (!gestureOpen) record();
+      pts.splice(Number(handle.dataset.point), 1);
+      layer.shapePoints = formatShapePoints(pts);
+      onChange();
+      paintBoard();
+      endGesture();
+    });
     root.addEventListener('keydown', onKeyDown);
 
     // Fit the board to the panel when the panel is narrow, and follow it while
@@ -1406,6 +1922,7 @@ window.CanvasEditorUI = (function () {
       element: root,
       render,
       selectLayer: (id) => selectOnly(id),
+      isGesturing: () => gestureOpen,
       destroy: () => {
         resizeObserver.disconnect();
         window.removeEventListener('pointermove', onPointerMove);

@@ -1,1 +1,123 @@
-[]
+[
+  {
+    "id": "tpl-0f164b",
+    "name": "Price List Design @ Fancy Frontier 47",
+    "page": "illustrator works",
+    "savedAt": "2026-10-15T08:39:36.351Z",
+    "section": {
+      "id": "s-782646",
+      "heading": "Price List Design @ Fancy Frontier 47",
+      "align": "left",
+      "text": "",
+      "textAfter": "",
+      "layout": "canvas",
+      "columns": 2,
+      "aspect": "natural",
+      "items": [
+        {
+          "image": "/uploads/0b0535_62e265d403904d4da15447c3200e8ed0.jpg",
+          "caption": "",
+          "link": ""
+        },
+        {
+          "image": "/uploads/0b0535_358d0d96f3744bf294e1d3666298e8ec.jpg",
+          "caption": "",
+          "link": ""
+        }
+      ],
+      "buttons": [],
+      "layers": [
+        {
+          "id": "l-c83f56",
+          "type": "heading",
+          "name": "Heading",
+          "x": 134,
+          "y": 77,
+          "w": 1159,
+          "h": 90,
+          "text": "Price List Design @ Fancy Frontier 47",
+          "src": "",
+          "alt": "",
+          "link": "",
+          "hidden": false,
+          "locked": false,
+          "z": 0,
+          "color": "",
+          "bg": "",
+          "font": "var(--font-display)",
+          "size": 46,
+          "weight": 700,
+          "align": "center",
+          "lineHeight": 1.25,
+          "letterSpacing": 0,
+          "radius": 0,
+          "borderWidth": 0,
+          "borderColor": "",
+          "fit": "cover",
+          "animated": true,
+          "anim": "up",
+          "delay": 0,
+          "duration": 0.9,
+          "images": [],
+          "columns": 3,
+          "gap": 16,
+          "aspect": "natural",
+          "hugging": false,
+          "buttonStyle": "pill",
+          "newTab": true
+        },
+        {
+          "id": "l-8b0558",
+          "type": "gallery",
+          "name": "Images",
+          "x": 60,
+          "y": 190,
+          "w": 1305,
+          "h": 460,
+          "text": "",
+          "src": "",
+          "alt": "",
+          "link": "",
+          "hidden": false,
+          "locked": false,
+          "z": 0,
+          "color": "",
+          "bg": "",
+          "font": "",
+          "size": 28,
+          "weight": 700,
+          "align": "left",
+          "lineHeight": 1.25,
+          "letterSpacing": 0,
+          "radius": 0,
+          "borderWidth": 0,
+          "borderColor": "",
+          "fit": "cover",
+          "animated": true,
+          "anim": "up",
+          "delay": 0,
+          "duration": 0.9,
+          "images": [
+            {
+              "image": "/uploads/0b0535_62e265d403904d4da15447c3200e8ed0.jpg",
+              "caption": "",
+              "link": ""
+            },
+            {
+              "image": "/uploads/0b0535_358d0d96f3744bf294e1d3666298e8ec.jpg",
+              "caption": "",
+              "link": ""
+            }
+          ],
+          "columns": 2,
+          "gap": 16,
+          "aspect": "natural",
+          "hugging": false,
+          "buttonStyle": "pill",
+          "newTab": true
+        }
+      ],
+      "canvasHeight": 1080
+    }
+  }
+]
