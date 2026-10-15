@@ -332,7 +332,7 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-add { width: auto; min-height: 28px; height: 28px; padding: 0 8px; font-size: 12.5px; }
 .cv-hint { color: #8a96a8; font-size: 12px; line-height: 1.4; }
 
-.cv-panes { display: grid; grid-template-columns: 240px minmax(0, 1fr) 320px; gap: 12px; align-items: start; }
+.cv-panes { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 12px; align-items: start; }
 .cv-pane { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .cv-pane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .cv-tabs { display: flex; gap: 6px; }
@@ -349,6 +349,26 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
   display: flex;
 }
 .cv-viewport.is-panning { cursor: grabbing; }
+.cv-frame { position: relative; min-width: 0; }
+.cv-inspector { display: none; }
+.cv-fnbar {
+  position: absolute; z-index: 20; display: flex; align-items: center; gap: 4px;
+  padding: 4px; background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(10, 25, 47, .16);
+}
+.cv-fnbar-grip { cursor: grab; color: var(--slate); user-select: none; padding: 0 4px; letter-spacing: -1px; }
+.cv-fnbar-grip:active { cursor: grabbing; }
+.cv-fn {
+  border: 1px solid var(--line); background: #fff; color: var(--navy);
+  border-radius: 6px; padding: 4px 8px; font-size: 12px; line-height: 1.2; cursor: pointer;
+}
+.cv-fn.is-on, .cv-fn:hover { background: var(--accent-soft); border-color: var(--accent); }
+.cv-fnpop {
+  position: absolute; z-index: 21; width: min(320px, calc(100% - 16px));
+  max-height: min(60vh, 520px); overflow: auto; background: #fff;
+  border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(10, 25, 47, .18); padding: 10px;
+}
 .cv-center {
   margin: auto;
   flex: none;
