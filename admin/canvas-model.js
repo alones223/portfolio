@@ -22,6 +22,7 @@ window.CanvasEditor = (function () {
   const LAYER_TYPES = [
     ['heading', 'Heading'],
     ['text', 'Text'],
+    ['paragraph', 'Paragraph'],
     ['image', 'Image'],
     ['gallery', 'Image group'],
     ['button', 'Button'],
@@ -110,6 +111,12 @@ window.CanvasEditor = (function () {
     };
     if (type === 'heading') Object.assign(base, { text: 'New heading', size: 46, weight: 700, anim: 'up', color: '' });
     if (type === 'text') Object.assign(base, { text: 'Write something here.', size: 18, weight: 400, w: 560, h: 160, anim: 'fade', hugging: false });
+    if (type === 'paragraph') Object.assign(base, {
+      text: 'This is a paragraph. The words wrap inside the box.\n\nLeave a blank line to start the next paragraph.',
+      size: 18, weight: 400, w: 480, h: 180, lineHeight: 1.55,
+      font: 'var(--font-body)', color: '#4F5E75', align: 'left',
+      anim: 'fade', hugging: true, autoFit: false,
+    });
     if (type === 'image') Object.assign(base, { w: 460, h: 320, radius: 10, anim: 'zoom' });
     if (type === 'gallery') Object.assign(base, { w: 900, h: 420, anim: 'up', images: [] });
     if (type === 'button') Object.assign(base, { text: 'Read more', w: 200, h: 54, size: 16, weight: 600, align: 'center', anim: 'up' });

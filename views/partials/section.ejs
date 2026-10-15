@@ -42,8 +42,8 @@
           <div class="layer-turn" style="<%= turnStyle(l) %>">
           <% if (l.type === 'heading') { %>
             <h2 class="layer-heading" style="<%= style %>"><%- layerText(l.text) %></h2>
-          <% } else if (l.type === 'text') { %>
-            <div class="layer-text" style="<%= style %>"><%- paragraphs(l.text) %></div>
+          <% } else if (l.type === 'text' || l.type === 'paragraph') { %>
+            <div class="layer-text<%= l.type === 'paragraph' ? ' is-paragraph' : '' %>" style="<%= style %>"><%- paragraphs(l.text) %></div>
           <% } else if (l.type === 'image') { %>
             <% if (l.src) { %>
               <% const __rad = Math.min(Math.max(Number(l.radius) || 0, 0), 500); %>

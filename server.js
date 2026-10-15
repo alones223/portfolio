@@ -193,7 +193,7 @@ function isExternal(url) {
 // ---------------------------------------------------------------------------
 
 const ANIMATIONS = new Set(['none', 'fade', 'up', 'down', 'left', 'right', 'zoom', 'zoomOut', 'float', 'pulse']);
-const LAYER_TYPES = new Set(['heading', 'text', 'image', 'gallery', 'button', 'divider', 'shape']);
+const LAYER_TYPES = new Set(['heading', 'text', 'paragraph', 'image', 'gallery', 'button', 'divider', 'shape']);
 const LAYOUT_SUPPORTED = new Set(['canvas', 'gallery']);
 const LAYER_FITS = new Set(['cover', 'contain', 'fill']);
 const MAX_LAYERS = 200;
@@ -446,7 +446,7 @@ function layerBox(layer, canvasHeight) {
   const w = num(layer.w, 10, 8000, 300);
   const h = num(layer.h, 2, 6000, 100);
   const z = num(layer.z, 0, 9999, 0);
-  const fixedHeight = layer.hugging && (layer.type === 'text' || layer.type === 'heading') ? '' : `;height:${h}px`;
+  const fixedHeight = layer.hugging && (layer.type === 'text' || layer.type === 'heading' || layer.type === 'paragraph') ? '' : `;height:${h}px`;
   return `left:${x}px;top:${y}px;width:${w}px${fixedHeight};z-index:${Math.round(z)}`;
 }
 
@@ -544,7 +544,7 @@ function normLayer(rawLayer, index) {
   if (out.textShadow != null) out.textShadow = Boolean(out.textShadow);
   if (out.radiusLock != null) out.radiusLock = Boolean(out.radiusLock);
   if (type === 'gallery' && out.freeform != null) out.freeform = Boolean(out.freeform);
-  if ((type === 'text' || type === 'heading') && rawLayer?.autoFit != null) out.autoFit = Boolean(rawLayer.autoFit);
+  if ((type === 'text' || type === 'heading' || type === 'paragraph') && rawLayer?.autoFit != null) out.autoFit = Boolean(rawLayer.autoFit);
   if (type === 'image') {
     const subtitle = typeof rawLayer?.subtitle === 'string' ? rawLayer.subtitle.slice(0, 400) : '';
     if (subtitle) out.subtitle = subtitle;

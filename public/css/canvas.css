@@ -101,6 +101,12 @@
 .layer-text p + p {
   margin-top: 0;
 }
+.layer-text.is-paragraph p {
+  margin: 0;
+}
+.layer-text.is-paragraph p + p {
+  margin-top: 0.85em;
+}
 
 .layer-media {
   display: block;

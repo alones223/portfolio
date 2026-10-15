@@ -1115,7 +1115,7 @@
             });
             if (l.bg) chip.style.background = previewColor(l.bg, '');
             if (l.color) chip.style.color = previewColor(l.color, '');
-            if (l.type === 'heading' || l.type === 'text' || l.type === 'button') {
+            if (l.type === 'heading' || l.type === 'text' || l.type === 'paragraph' || l.type === 'button') {
               chip.textContent = l.text || '';
               chip.style.fontSize = `${Math.max(6, Math.min(18, (Number(l.size) || 16) * scale * 2.2))}px`;
             }
