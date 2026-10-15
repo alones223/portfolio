@@ -1354,13 +1354,31 @@ window.CanvasEditorUI = (function () {
           alpha.value = String(Math.round(next.alpha * 100));
           alphaRead.textContent = `${alpha.value}%`;
         }
+        noteColor(l[key]);
         onChange();
         render();
       });
+      const palette = M.palette.mount({
+        getColor: () => formatColor(swatch.value, Number(alpha.value) / 100),
+        onPick: (value) => {
+          record();
+          l[key] = value;
+          noteColor(value);
+          onChange();
+          render();
+        },
+      });
+      const noteColor = (value) => {
+        M.palette.remember(value);
+        palette.paint();
+      };
+      swatch.addEventListener('change', () => noteColor(formatColor(swatch.value, Number(alpha.value) / 100)));
+      alpha.addEventListener('change', () => noteColor(formatColor(swatch.value, Number(alpha.value) / 100)));
       return field(label, h('div', { class: 'cv-color' },
         swatch,
         text,
-        h('label', { class: 'cv-alpha' }, 'Opacity', alpha, alphaRead)));
+        h('label', { class: 'cv-alpha' }, 'Opacity', alpha, alphaRead),
+        palette.el));
     }
 
     function toggleField(l, key, label) {

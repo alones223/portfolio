@@ -137,7 +137,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .prefix-input span { padding: 0 2px 0 10px; color: #7a879a; }
 .prefix-input input { border: 0; box-shadow: none !important; padding-left: 2px; }
 .prefix-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.color-input { display: flex; gap: 8px; align-items: center; }
+.color-input { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .color-input input[type=color] { width: 40px; height: 36px; padding: 2px; border: 1px solid #cfd6e1; border-radius: 7px; background: #fff; cursor: pointer; }
 .color-input input[type=range] { flex: 1; min-width: 80px; }
 .alpha-read { flex: none; width: 42px; font-size: 12px; color: var(--slate); }
@@ -564,6 +564,19 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-alpha { display: flex; align-items: center; gap: 8px; width: 100%; font-size: 12px; color: #5c6b80; }
 .cv-alpha input[type=range] { flex: 1; accent-color: #0A192F; cursor: pointer; }
 .cv-alpha-read { min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+.color-palette { flex-basis: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.color-palette-block { display: flex; flex-direction: column; gap: 4px; }
+.color-palette-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.color-palette-label, .color-palette-empty { font-size: 11px; color: var(--slate, #5c6b80); }
+.color-palette-swatches { display: flex; flex-wrap: wrap; gap: 4px; }
+.color-swatch {
+  position: relative; width: 22px; height: 22px; padding: 0; border-radius: 5px; cursor: pointer;
+  border: 1px solid rgba(10, 25, 47, .28); background-clip: padding-box;
+}
+.color-swatch-x {
+  position: absolute; top: -6px; right: -6px; width: 12px; height: 12px; border-radius: 50%;
+  background: #fff; border: 1px solid #cfd6e1; color: #0A192F; font-size: 10px; line-height: 10px; text-align: center;
+}
 .cv-btnrow { display: flex; flex-wrap: wrap; gap: 5px; }
 .cv-pop { position: relative; }
 .cv-pop-menu { position: fixed; z-index: 80; min-width: 112px; background: #fff; border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 8px 24px rgba(10, 25, 47, .14); padding: 2px; }

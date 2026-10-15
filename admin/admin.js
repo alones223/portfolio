@@ -460,7 +460,28 @@
         changed();
       }
     });
-    return wrapField(label, h('div', { class: 'color-input' }, color, text, alpha, read), {
+    const palette = window.CanvasEditor.palette.mount({
+      getColor: () => formatCssColor(color.value, Number(alpha.value) / 100),
+      onPick: (value) => {
+        obj[key] = value;
+        text.value = value;
+        const next = parseCssColor(value);
+        color.value = next.hex;
+        alpha.value = String(Math.round(next.alpha * 100));
+        read.textContent = `${alpha.value}%`;
+        window.CanvasEditor.palette.remember(value);
+        palette.paint();
+        if (opts.onInput) opts.onInput(value);
+        changed();
+      },
+    });
+    const noteColor = (value) => {
+      window.CanvasEditor.palette.remember(value);
+      palette.paint();
+    };
+    color.addEventListener('change', () => noteColor(formatCssColor(color.value, Number(alpha.value) / 100)));
+    alpha.addEventListener('change', () => noteColor(formatCssColor(color.value, Number(alpha.value) / 100)));
+    return wrapField(label, h('div', { class: 'color-input' }, color, text, alpha, read, palette.el), {
       span: 2,
       hint: 'The slider sets how see-through the background is. Clear the text to remove it.',
       ...opts,
@@ -472,13 +493,27 @@
     const shown = obj[key] || opts.fallback || '#000000';
     const color = h('input', { type: 'color', value: /^#[0-9a-f]{6}$/i.test(shown) ? shown : '#000000', 'aria-label': `${label} color picker` });
     const text = h('input', { id, type: 'text', value: obj[key] || opts.fallback || '' });
+    const palette = window.CanvasEditor.palette.mount({
+      getColor: () => color.value,
+      onPick: (value) => {
+        const hex = /^#([0-9a-f]{6})/i.exec(value);
+        obj[key] = hex ? `#${hex[1].toUpperCase()}` : value;
+        text.value = obj[key];
+        if (hex) color.value = obj[key];
+        window.CanvasEditor.palette.remember(obj[key]);
+        palette.paint();
+        changed();
+      },
+    });
     color.addEventListener('input', () => { obj[key] = color.value.toUpperCase(); text.value = obj[key]; changed({ coalesce: true }); });
+    color.addEventListener('change', () => { window.CanvasEditor.palette.remember(obj[key]); palette.paint(); });
     text.addEventListener('input', () => {
       obj[key] = text.value.trim();
       if (/^#[0-9a-f]{6}$/i.test(obj[key])) color.value = obj[key];
       changed({ coalesce: true });
     });
-    return wrapField(label, h('div', { class: 'color-input' }, color, text), { span: 2, ...opts }, id);
+    text.addEventListener('change', () => { window.CanvasEditor.palette.remember(obj[key]); palette.paint(); });
+    return wrapField(label, h('div', { class: 'color-input' }, color, text, palette.el), { span: 2, ...opts }, id);
   }
 
   function imageField(obj, key, label, opts = {}) {

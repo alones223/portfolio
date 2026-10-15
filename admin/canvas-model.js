@@ -125,8 +125,143 @@ window.CanvasEditor = (function () {
     return Object.assign(base, patch || {});
   }
 
+  // One palette for every colour field. Recent colours are remembered as they
+  // are used. Saved colours stay until the user removes them.
+  const PALETTE_RECENT = 'portfolio-recent-colors';
+  const PALETTE_SAVED = 'portfolio-saved-colors';
+  const PALETTE_MAX = 12;
+
+  function paletteRead(key) {
+    try {
+      const list = JSON.parse(localStorage.getItem(key) || '[]');
+      return Array.isArray(list) ? list.map(paletteNorm).filter(Boolean) : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function paletteWrite(key, list) {
+    try { localStorage.setItem(key, JSON.stringify(list.slice(0, PALETTE_MAX))); } catch (err) { /* storage may be blocked */ }
+  }
+
+  function paletteNorm(value) {
+    const v = String(value || '').trim();
+    const hex = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(v);
+    if (hex) {
+      const body = hex[1].toUpperCase();
+      if (!hex[2] || /^ff$/i.test(hex[2])) return `#${body}`;
+      return `#${body}${hex[2].toUpperCase()}`;
+    }
+    const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(v);
+    if (!rgb) return '';
+    const parts = [rgb[1], rgb[2], rgb[3]].map((n) => Math.min(255, Math.max(0, Math.round(Number(n)))));
+    if (rgb[4] == null || Number(rgb[4]) >= 0.995) {
+      return `#${parts.map((n) => n.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+    }
+    const alpha = Math.round(Math.min(1, Math.max(0, Number(rgb[4]))) * 100) / 100;
+    return `rgba(${parts.join(', ')}, ${alpha})`;
+  }
+
+  function paletteRemember(value) {
+    const color = paletteNorm(value);
+    if (!color) return;
+    const list = paletteRead(PALETTE_RECENT).filter((item) => item !== color);
+    list.unshift(color);
+    paletteWrite(PALETTE_RECENT, list);
+  }
+
+  function paletteSave(value) {
+    const color = paletteNorm(value);
+    if (!color) return false;
+    const list = paletteRead(PALETTE_SAVED).filter((item) => item !== color);
+    list.unshift(color);
+    paletteWrite(PALETTE_SAVED, list);
+    paletteRemember(color);
+    return true;
+  }
+
+  function paletteUnsave(value) {
+    const color = paletteNorm(value);
+    paletteWrite(PALETTE_SAVED, paletteRead(PALETTE_SAVED).filter((item) => item !== color));
+  }
+
+  function paletteSwatches(colors, removable, onPick, paint) {
+    const wrap = document.createElement('div');
+    wrap.className = 'color-palette-swatches';
+    colors.forEach((color) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'color-swatch';
+      btn.style.background = color;
+      btn.title = removable ? `${color}. Click to use it again.` : color;
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onPick(color);
+      });
+      if (removable) {
+        const remove = document.createElement('span');
+        remove.className = 'color-swatch-x';
+        remove.textContent = '×';
+        remove.title = 'Remove saved colour';
+        remove.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          paletteUnsave(color);
+          paint();
+        });
+        btn.append(remove);
+      }
+      wrap.append(btn);
+    });
+    return wrap;
+  }
+
+  function paletteMount({ getColor, onPick }) {
+    const root = document.createElement('div');
+    root.className = 'color-palette';
+    const paint = () => {
+      root.replaceChildren();
+      const recent = paletteRead(PALETTE_RECENT);
+      const recentBlock = document.createElement('div');
+      recentBlock.className = 'color-palette-block';
+      const recentLabel = document.createElement('span');
+      recentLabel.className = 'color-palette-label';
+      recentLabel.textContent = 'Recent';
+      recentBlock.append(recentLabel);
+      if (recent.length) recentBlock.append(paletteSwatches(recent, false, onPick, paint));
+      else {
+        const empty = document.createElement('span');
+        empty.className = 'color-palette-empty';
+        empty.textContent = 'None yet';
+        recentBlock.append(empty);
+      }
+      const savedHead = document.createElement('div');
+      savedHead.className = 'color-palette-head';
+      const savedLabel = document.createElement('span');
+      savedLabel.className = 'color-palette-label';
+      savedLabel.textContent = 'Saved';
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'btn small';
+      saveBtn.textContent = 'Save colour';
+      saveBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (paletteSave(getColor())) paint();
+      });
+      savedHead.append(savedLabel, saveBtn);
+      const saved = paletteRead(PALETTE_SAVED);
+      root.append(recentBlock, savedHead);
+      if (saved.length) root.append(paletteSwatches(saved, true, onPick, paint));
+    };
+    paint();
+    return { el: root, paint };
+  }
+
   return {
     LAYER_TYPES, ANIMATIONS, FONTS, FITS, CANVAS_W, CANVAS_H, SNAP, GRID, MAX_TEXT,
     seal, defaultLayer, layerTypeLabel,
+    palette: { remember: paletteRemember, save: paletteSave, mount: paletteMount, norm: paletteNorm },
   };
 })();
