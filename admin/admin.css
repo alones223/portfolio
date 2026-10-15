@@ -377,6 +377,10 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-menu-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cv-menu-nav { display: flex; flex-direction: column; gap: 4px; }
 .cv-menu-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cv-menu-pop {
+  border: 1px solid var(--line); border-radius: 10px; background: #fff;
+  padding: 10px; min-width: 0;
+}
 .cv-fn {
   border: 1px solid var(--line); background: #fff; color: var(--navy);
   border-radius: 6px; padding: 6px 8px; font-size: 12px; line-height: 1.2; cursor: pointer; text-align: left;

@@ -704,7 +704,10 @@ window.CanvasEditorUI = (function () {
       menuBody);
     const menuOpenBtn = h('button', { class: 'cv-menu-open', type: 'button', title: 'Open menu', onclick: () => setMenuOpen(true) }, 'Menu');
     paneRight.append(menuOpenBtn, menuPanel);
-    const openFns = new Set();
+    // The bar and the right menu are separate. The bar shows one section.
+    // The right menu can show several, stacked under its buttons.
+    let barFn = null;
+    const menuFns = new Set();
     let barPos = { x: 16, y: 16 };
     function setMenuOpen(open) {
       paneRight.classList.toggle('is-open', open);
@@ -2428,31 +2431,49 @@ window.CanvasEditorUI = (function () {
         const label = title ? title.textContent.trim() : 'Edit';
         return { id: label.toLowerCase(), label, body: node };
       }).filter((block) => block.label !== 'Board');
-      [...openFns].forEach((id) => { if (!blocks.some((block) => block.id === id)) openFns.delete(id); });
-      const toggle = (id) => {
-        if (openFns.has(id)) openFns.delete(id);
-        else openFns.add(id);
+      if (barFn && !blocks.some((block) => block.id === barFn)) barFn = null;
+      [...menuFns].forEach((id) => { if (!blocks.some((block) => block.id === id)) menuFns.delete(id); });
+      const toggleBar = (id) => {
+        if (barFn === id) barFn = null;
+        else {
+          barFn = id;
+          menuFns.delete(id);
+        }
         mountFunctions(...nodes);
       };
-      const button = (block) => {
+      const toggleMenu = (id) => {
+        const scrollTop = paneRight.scrollTop;
+        if (menuFns.has(id)) menuFns.delete(id);
+        else {
+          menuFns.add(id);
+          if (barFn === id) barFn = null;
+        }
+        mountFunctions(...nodes);
+        paneRight.scrollTop = scrollTop;
+      };
+      const button = (block, on, run) => {
         const btn = h('button', {
-          class: `cv-fn${openFns.has(block.id) ? ' is-on' : ''}`,
+          class: `cv-fn${on ? ' is-on' : ''}`,
           type: 'button',
         }, block.label);
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          toggle(block.id);
+          run(block.id);
         });
         return btn;
       };
-      menuNav.replaceChildren(...blocks.map(button));
+      menuNav.replaceChildren(...blocks.map((block) => button(block, menuFns.has(block.id), toggleMenu)));
       if (!blocks.length) {
         fnBar.hidden = true;
         fnPops.replaceChildren();
         menuBody.replaceChildren(h('p', { class: 'cv-hint' }, 'Select a layer to edit it.'));
         return;
       }
-      menuBody.replaceChildren(h('p', { class: 'cv-hint' }, 'Open a section. Several can stay open together. Board stays under the layers.'));
+      const menuOpen = blocks.filter((block) => menuFns.has(block.id));
+      const menuPanels = menuOpen.map((block) => h('div', { class: 'cv-menu-pop' }, block.body));
+      menuBody.replaceChildren(
+        ...(menuPanels.length ? menuPanels : [h('p', { class: 'cv-hint' }, 'Open a section. Several can stay open under this menu.')]),
+      );
       const grip = h('span', { class: 'cv-fnbar-grip', title: 'Drag this bar' }, '⋮⋮');
       grip.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
@@ -2475,10 +2496,10 @@ window.CanvasEditorUI = (function () {
         window.addEventListener('pointerup', up);
       });
       fnBar.hidden = false;
-      fnBar.replaceChildren(grip, ...blocks.map(button));
+      fnBar.replaceChildren(grip, ...blocks.map((block) => button(block, barFn === block.id, toggleBar)));
       placeFnBar();
-      const open = blocks.filter((block) => openFns.has(block.id));
-      fnPops.replaceChildren(...open.map((block) => h('div', { class: 'cv-fnpop', 'data-fn': block.id }, block.body)));
+      const barBlock = blocks.find((block) => block.id === barFn);
+      fnPops.replaceChildren(barBlock ? h('div', { class: 'cv-fnpop', 'data-fn': barBlock.id }, barBlock.body) : null);
       placePops();
     }
 
