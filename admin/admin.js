@@ -943,7 +943,7 @@
       modes ? fields(modeSelect(canvasOn ? 'canvas' : 'classic', 'Layout', modes, pickMode)) : null,
       canvasOn ? host : null,
       canvasOn ? h('p', { class: 'hint', style: 'margin-top:10px' },
-        'Drag a layer left or right. Arrow keys still nudge it up and down. Drag a corner to resize it, and the round handle above it to rotate it. The light-blue highlight is its own layer under the title. Choose the water photo under Board → Background image when nothing is selected.') : null,
+        'Drag a layer in any direction. Arrow keys nudge it. Drag a corner to resize it, and the round handle above it to rotate it. The light-blue highlight is its own layer under the title. Choose the water photo under Board → Background image when nothing is selected.') : null,
       !canvasOn && classic ? classic() : null,
       extra || null);
   }
@@ -1484,7 +1484,7 @@
               }),
               h('div', { class: 'span-4' }, editorHost)),
             h('p', { class: 'hint', style: 'margin-top:10px' },
-              'Each section is its own board. Drag a layer left or right. Arrow keys still nudge it up and down. Drag a corner to resize, and drag the round handle above a layer to rotate it. Hold Shift while dragging to snap to the grid. A saved template stays as it is here — change the template itself on Section layouts.'),
+              'Each section is its own board. Drag a layer in any direction. Arrow keys nudge it. Drag a corner to resize, and drag the round handle above a layer to rotate it. Hold Shift while dragging to snap to the grid. A saved template stays as it is here — change the template itself on Section layouts.'),
             h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
               h('button', {
                 class: 'btn small', type: 'button',
