@@ -379,6 +379,10 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-stage { position: relative; flex: none; }
 .cv-board { position: relative; width: 1425px; transform-origin: top left; background: #fff; box-shadow: 0 1px 3px rgba(10, 25, 47, .12); }
 .cv-board-bg { position: absolute; inset: 0; pointer-events: none; background-repeat: no-repeat; background-position: center; background-size: cover; z-index: 0; }
+.cv-board.has-photo { cursor: grab; }
+.cv-board.is-panning-bg { cursor: grabbing; }
+.cv-place { display: flex; align-items: center; gap: 8px; }
+.cv-place input[type="range"] { flex: 1; min-height: 0; }
 .cv-height-handle { position: absolute; left: 0; right: 0; bottom: -7px; height: 14px; cursor: ns-resize; z-index: 6; }
 .cv-height-handle::after { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: var(--accent); opacity: 0; }
 .cv-height-handle:hover::after { opacity: 1; }

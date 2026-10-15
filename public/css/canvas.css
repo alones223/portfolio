@@ -33,7 +33,7 @@
   inset: 0;
   background-image: var(--canvas-image, none);
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: var(--canvas-image-x, 50%) var(--canvas-image-y, 50%);
   background-size: cover;
   opacity: var(--canvas-bg-alpha, 1);
   pointer-events: none;

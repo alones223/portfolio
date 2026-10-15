@@ -1474,6 +1474,10 @@ window.CanvasEditorUI = (function () {
       }
       boardBg.style.backgroundImage = hasImage ? `url("${bgUrl.replace(/"/g, '')}")` : 'none';
       boardBg.style.opacity = hasImage && hasColour ? String(parsedBg.alpha) : '1';
+      const place = imagePlace();
+      boardBg.style.backgroundPosition = `${place.x}% ${place.y}%`;
+      board.classList.toggle('has-photo', hasImage);
+      if (hasImage) rememberPhotoSize(bgUrl);
       board.style.transform = `scale(${s})`;
       board.style.transformOrigin = 'top left';
       stage.style.width = `${boardWidth() * s}px`;
@@ -1768,7 +1772,113 @@ window.CanvasEditorUI = (function () {
         colorField(section, 'canvasBg', 'Board background'),
         imageField(section, 'canvasImage', 'Background image'),
         field('Board width', width),
-        h('p', { class: 'cv-hint' }, 'Drag the bottom edge of the board up or down to change its height. The width stays in the number above. On the website the board scales down to fit the screen.'));
+        section.canvasImage ? h('p', { class: 'cv-align-label' }, 'Picture place') : null,
+        section.canvasImage ? placeField('x', 'Across') : null,
+        section.canvasImage ? placeField('y', 'Down') : null,
+        h('p', { class: 'cv-hint' }, section.canvasImage
+          ? 'Drag an empty part of the board to slide the photo. Across and Down run from the start of the picture (0) to the end (100). Drag the bottom edge of the board to change its height.'
+          : 'Drag the bottom edge of the board up or down to change its height. The width stays in the number above. On the website the board scales down to fit the screen.'));
+    }
+
+    // 50, 50 keeps the middle of the photo in the middle of the board.
+    function imagePlace() {
+      const x = Number(section.canvasImageX);
+      const y = Number(section.canvasImageY);
+      return {
+        x: Number.isFinite(x) ? clamp(Math.round(x), 0, 100) : 50,
+        y: Number.isFinite(y) ? clamp(Math.round(y), 0, 100) : 50,
+      };
+    }
+
+    let photoSize = { url: '', w: 0, h: 0 };
+    function rememberPhotoSize(url) {
+      if (photoSize.url === url) return;
+      photoSize = { url, w: 0, h: 0 };
+      const img = new Image();
+      img.onload = () => {
+        if (photoSize.url !== url) return;
+        photoSize.w = img.naturalWidth;
+        photoSize.h = img.naturalHeight;
+      };
+      img.src = url;
+    }
+
+    // How many board pixels of the photo sit outside the frame when it covers the board.
+    function photoOverflow() {
+      const bw = boardWidth();
+      const bh = boardHeight();
+      if (!photoSize.w || !photoSize.h) return { x: bw, y: bh };
+      const fit = Math.max(bw / photoSize.w, bh / photoSize.h);
+      return {
+        x: Math.max(0, photoSize.w * fit - bw),
+        y: Math.max(0, photoSize.h * fit - bh),
+      };
+    }
+
+    function placeField(axis, label) {
+      const key = axis === 'x' ? 'canvasImageX' : 'canvasImageY';
+      const current = imagePlace()[axis];
+      const input = h('input', {
+        type: 'range', min: 0, max: 100, step: 1, value: current,
+        'data-bg-focus': axis, 'aria-label': label,
+      });
+      const read = h('span', { class: 'cv-alpha-read' }, `${current}%`);
+      const apply = (value) => {
+        section[key] = clamp(Math.round(Number(value) || 0), 0, 100);
+        input.value = String(section[key]);
+        read.textContent = `${section[key]}%`;
+        paintBoard();
+        onChange();
+      };
+      input.addEventListener('pointerdown', () => beginGesture());
+      input.addEventListener('input', () => apply(input.value));
+      input.addEventListener('change', () => endGesture());
+      input.addEventListener('pointerup', () => endGesture());
+      return field(label, h('span', { class: 'cv-place' }, input, read));
+    }
+
+    function syncPlaceInputs() {
+      const place = imagePlace();
+      paneLeft.querySelectorAll('[data-bg-focus]').forEach((input) => {
+        const value = place[input.dataset.bgFocus] ?? 50;
+        if (document.activeElement !== input) input.value = String(value);
+        const read = input.parentElement && input.parentElement.querySelector('.cv-alpha-read');
+        if (read) read.textContent = `${value}%`;
+      });
+    }
+
+    // Slide the background photo. A click that does not move still just clears the selection.
+    function beginPhotoPan(e) {
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const start = imagePlace();
+      let panning = false;
+      const move = (ev) => {
+        const dx = (ev.clientX - startX) / scale();
+        const dy = (ev.clientY - startY) / scale();
+        if (!panning && Math.hypot(dx, dy) < 3) return;
+        if (!panning) {
+          panning = true;
+          beginGesture();
+          board.classList.add('is-panning-bg');
+        }
+        const overflow = photoOverflow();
+        const nextX = overflow.x > 1 ? start.x - (dx / overflow.x) * 100 : start.x;
+        const nextY = overflow.y > 1 ? start.y - (dy / overflow.y) * 100 : start.y;
+        section.canvasImageX = clamp(Math.round(nextX), 0, 100);
+        section.canvasImageY = clamp(Math.round(nextY), 0, 100);
+        paintBoard();
+        syncPlaceInputs();
+        onChange();
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        board.classList.remove('is-panning-bg');
+        if (panning) endGesture();
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
     }
 
     function popupMenu(label, items) {
@@ -2124,7 +2234,10 @@ window.CanvasEditorUI = (function () {
       if (e.button !== 0) return;
       const layerEl = e.target.closest('.cv-layer');
       if (!layerEl) {
-        if (e.target.closest('.cv-board') || e.target.closest('.cv-stage')) selectOnly(null);
+        if (e.target.closest('.cv-board') || e.target.closest('.cv-stage')) {
+          selectOnly(null);
+          if (section.canvasImage && e.target.closest('.cv-board')) beginPhotoPan(e);
+        }
         return;
       }
       const layer = byId(layerEl.dataset.id);

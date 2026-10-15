@@ -597,6 +597,12 @@ function normSection(rawSection, index) {
   } else {
     delete section.canvasImage;
   }
+  // Where the background photo sits inside the board. 50, 50 is the centre.
+  ['canvasImageX', 'canvasImageY'].forEach((key) => {
+    const n = Number(rawSection?.[key]);
+    if (section.canvasImage && Number.isFinite(n)) section[key] = Math.min(100, Math.max(0, Math.round(n)));
+    else delete section[key];
+  });
   if (!section.heading && !section.layers?.length && !section.items.length) {
     section.heading = `Section ${index + 1}`;
   }
