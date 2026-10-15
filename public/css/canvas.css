@@ -18,17 +18,25 @@
 }
 
 .content-section.layout-canvas {
+  position: relative;
   max-width: none;
   padding: 0;
   margin: 0;
   overflow: hidden;
   background-color: var(--canvas-bg, transparent);
+  /* Height and board scale are set per section by public/js/site.js. */
+  height: calc(var(--canvas-h, 720) * 1px);
+}
+.content-section.layout-canvas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background-image: var(--canvas-image, none);
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
-  /* Height and board scale are set per section by public/js/site.js. */
-  height: calc(var(--canvas-h, 720) * 1px);
+  opacity: var(--canvas-bg-alpha, 1);
+  pointer-events: none;
 }
 
 /* A locked board keeps the arrangement from the editor, including on a wide
@@ -40,6 +48,7 @@
 
 .canvas-board {
   position: relative;
+  z-index: 1;
   width: calc(var(--canvas-w) * 1px);
   /* Every layer is absolutely positioned, so the board has no content to give
      it height and would otherwise collapse to 0px. The section above it clips

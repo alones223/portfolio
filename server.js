@@ -214,6 +214,28 @@ function safeFontFamily(value) {
 const LAYER_ALIGN = new Set(['left', 'center', 'right']);
 
 // Colours go straight into a style attribute, so only plain CSS colours pass.
+// Split a stored board colour into a solid colour and an opacity from 0 to 1.
+// A background image is drawn at that opacity so the slider still shows through.
+function canvasBackground(value) {
+  const raw = safeColor(value);
+  if (!raw) return { color: 'transparent', alpha: 1 };
+  const hex6 = /^#([0-9a-f]{6})$/i.exec(raw);
+  if (hex6) return { color: raw, alpha: 1 };
+  const hex8 = /^#([0-9a-f]{6})([0-9a-f]{2})$/i.exec(raw);
+  if (hex8) {
+    return { color: `#${hex8[1]}`, alpha: Math.round((parseInt(hex8[2], 16) / 255) * 100) / 100 };
+  }
+  const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(raw);
+  if (rgb) {
+    const color = '#' + [rgb[1], rgb[2], rgb[3]]
+      .map((n) => Math.min(255, Math.max(0, Number(n))).toString(16).padStart(2, '0'))
+      .join('');
+    const alpha = rgb[4] == null ? 1 : Math.min(1, Math.max(0, Number(rgb[4])));
+    return { color, alpha: Math.round(alpha * 100) / 100 };
+  }
+  return { color: raw, alpha: 1 };
+}
+
 function safeColor(value) {
   const v = String(value ?? '').trim();
   if (!v) return '';
@@ -669,6 +691,7 @@ app.locals.layerBox = layerBox;
 app.locals.turnStyle = turnStyle;
 app.locals.layerText = layerText;
 app.locals.safeColor = safeColor;
+app.locals.canvasBackground = canvasBackground;
 app.use((req, res, next) => {
   res.locals.customFontFaces = customFontCss();
   next();

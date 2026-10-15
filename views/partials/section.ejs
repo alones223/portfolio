@@ -12,12 +12,14 @@
   const __w = Number(__s.canvasWidth) > 0 ? Math.min(4000, Math.max(480, Math.round(Number(__s.canvasWidth)))) : 1425;
   // safeColor() only lets plain CSS colours through, so a stray value can never
   // break out of the style attribute on the board below.
-  const __colours = [esc(safeColor(__s.canvasBg) || 'transparent')];
+  const __bg = canvasBackground(__s.canvasBg);
   const __img = __s.canvasImage ? esc(safeUrl(__s.canvasImage)) : '';
+  const __bgColor = __img ? esc(__bg.color) : esc(safeColor(__s.canvasBg) || 'transparent');
+  const __bgAlpha = __img ? __bg.alpha : 1;
 %>
 <% if (__canvas) { %>
   <section class="content-section layout-canvas<%= __s.canvasLock ? ' canvas-lock' : '' %>"
-    style="--canvas-h: <%= __h %>; --canvas-w: <%= __w %>; --canvas-bg: <%= __colours[0] %><% if (__img) { %>; --canvas-image: url('<%= __img %>')<% } %>"
+    style="--canvas-h: <%= __h %>; --canvas-w: <%= __w %>; --canvas-bg: <%= __bgColor %>; --canvas-bg-alpha: <%= __bgAlpha %><% if (__img) { %>; --canvas-image: url('<%= __img %>')<% } %>"
     <% if (__s.heading) { %>aria-label="<%= __s.heading %>"<% } %>>
     <div class="canvas-board">
       <% __layers.forEach(function (l) {

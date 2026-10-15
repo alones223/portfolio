@@ -330,6 +330,7 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-viewport.is-panning { cursor: grabbing; }
 .cv-stage { position: relative; }
 .cv-board { position: relative; width: 1425px; transform-origin: top left; background: #fff; box-shadow: 0 1px 3px rgba(10, 25, 47, .12); }
+.cv-board-bg { position: absolute; inset: 0; pointer-events: none; background-repeat: no-repeat; background-position: center; background-size: cover; z-index: 0; }
 .cv-width-handle { position: absolute; top: 0; bottom: 0; width: 14px; cursor: ew-resize; z-index: 6; }
 .cv-width-left { left: -7px; }
 .cv-width-right { right: -7px; }

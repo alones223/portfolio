@@ -1354,12 +1354,23 @@ window.CanvasEditorUI = (function () {
       const s = scale();
       board.style.width = `${boardWidth()}px`;
       board.style.height = `${boardHeight()}px`;
-      board.style.backgroundColor = section.canvasBg || '';
       const bgUrl = safeUrl(section.canvasImage || '');
-      board.style.backgroundImage = bgUrl && bgUrl !== '#' ? `url("${bgUrl.replace(/"/g, '')}")` : '';
-      board.style.backgroundSize = 'cover';
-      board.style.backgroundPosition = 'center';
-      board.style.backgroundRepeat = 'no-repeat';
+      const hasImage = Boolean(bgUrl && bgUrl !== '#');
+      const parsedBg = parseColor(section.canvasBg || '');
+      const hasColour = Boolean(String(section.canvasBg || '').trim());
+      // The photo sits on its own layer. The colour's opacity fades that photo,
+      // so the slider still changes the background when an image is covering it.
+      board.style.backgroundColor = hasImage
+        ? (hasColour ? parsedBg.hex : 'transparent')
+        : (section.canvasBg || '');
+      board.style.backgroundImage = 'none';
+      let boardBg = board.querySelector(':scope > .cv-board-bg');
+      if (!boardBg) {
+        boardBg = h('div', { class: 'cv-board-bg' });
+        board.prepend(boardBg);
+      }
+      boardBg.style.backgroundImage = hasImage ? `url("${bgUrl.replace(/"/g, '')}")` : 'none';
+      boardBg.style.opacity = hasImage && hasColour ? String(parsedBg.alpha) : '1';
       board.style.transform = `scale(${s})`;
       board.style.transformOrigin = 'top left';
       stage.style.width = `${boardWidth() * s}px`;
@@ -1376,7 +1387,7 @@ window.CanvasEditorUI = (function () {
           board.append(el);
         }
         // Re-order cheaply: only move when the element is out of place.
-        const current = board.children[index];
+        const current = board.children[index + 1];
         if (current !== el) board.insertBefore(el, current || null);
         el.classList.toggle('selected', selectedIds.has(l.id));
         el.classList.toggle('primary', primary()?.id === l.id);
@@ -1413,7 +1424,10 @@ window.CanvasEditorUI = (function () {
         });
       });
       // Anything left over is a deleted layer.
-      [...board.children].forEach((el) => { if (!list.some((l) => l.id === el.dataset.id)) el.remove(); });
+      [...board.children].forEach((el) => {
+        if (el.classList.contains('cv-board-bg')) return;
+        if (!list.some((l) => l.id === el.dataset.id)) el.remove();
+      });
       list.forEach((l) => {
         if (l.type === 'image' && l.fit === 'contain') syncContainImage(l);
         if (!naturalGallery(l)) return;
