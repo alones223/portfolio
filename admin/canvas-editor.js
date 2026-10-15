@@ -651,7 +651,8 @@ window.CanvasEditorUI = (function () {
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
     });
-    const viewport = h('div', { class: 'cv-viewport' }, stage);
+    const centerWrap = h('div', { class: 'cv-center' }, stage);
+    const viewport = h('div', { class: 'cv-viewport' }, centerWrap);
     const zoomLabel = h('span', { class: 'cv-hint cv-zoomlabel' });
     const root = h('div', { class: 'cv', tabindex: '0' },
       toolbar,
@@ -672,10 +673,23 @@ window.CanvasEditorUI = (function () {
     const scale = () => fixedScale || fitScale();
 
     let zoomTimer = null;
+    // Keep the point in the middle of the panel on the same spot of the board.
     function setScale(next, refit) {
-      fixedScale = refit ? null : clamp(Number(next.toFixed(3)), 0.1, 4);
+      const prev = scale();
+      const view = viewport.getBoundingClientRect();
+      const before = stage.getBoundingClientRect();
+      const ax = view.left + view.width / 2;
+      const ay = view.top + view.height / 2;
+      const px = prev > 0 && before.width > 0 ? (ax - before.left) / prev : boardWidth() / 2;
+      const py = prev > 0 && before.height > 0 ? (ay - before.top) / prev : boardHeight() / 2;
+      fixedScale = refit ? null : clamp(Number(Number(next).toFixed(3)), 0.1, 4);
       paintBoard();
       paintToolbar();
+      if (!(view.width > 0) || !(before.width > 0)) return;
+      const s = scale();
+      const after = stage.getBoundingClientRect();
+      viewport.scrollLeft += (after.left + px * s) - ax;
+      viewport.scrollTop += (after.top + py * s) - ay;
     }
 
     function zoomBy(factor) {
@@ -2251,10 +2265,7 @@ window.CanvasEditorUI = (function () {
     viewport.addEventListener('wheel', (e) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        fixedScale = clamp(scale() * (e.deltaY < 0 ? 1.1 : 1 / 1.1), 0.1, 4);
-        paintBoard();
-        clearTimeout(zoomTimer);
-        zoomTimer = setTimeout(paintToolbar, 120);
+        setScale(scale() * (e.deltaY < 0 ? 1.1 : 1 / 1.1), false);
         return;
       }
       // Shift + wheel pans sideways.

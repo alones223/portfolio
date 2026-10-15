@@ -340,11 +340,22 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-viewport {
   overflow: auto; border: 1px solid var(--line); border-radius: 10px;
   background: #eef1f5; padding: 12px;
+  height: 78vh;
   max-height: 78vh;
   overscroll-behavior: contain;
+  display: flex;
 }
 .cv-viewport.is-panning { cursor: grabbing; }
-.cv-stage { position: relative; }
+.cv-center {
+  margin: auto;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100%;
+  min-height: 100%;
+}
+.cv-stage { position: relative; flex: none; }
 .cv-board { position: relative; width: 1425px; transform-origin: top left; background: #fff; box-shadow: 0 1px 3px rgba(10, 25, 47, .12); }
 .cv-board-bg { position: absolute; inset: 0; pointer-events: none; background-repeat: no-repeat; background-position: center; background-size: cover; z-index: 0; }
 .cv-height-handle { position: absolute; left: 0; right: 0; bottom: -7px; height: 14px; cursor: ns-resize; z-index: 6; }
