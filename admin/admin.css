@@ -350,6 +350,21 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 }
 .cv-viewport.is-panning { cursor: grabbing; }
 .cv-frame { position: relative; min-width: 0; }
+.cv-fnbar {
+  position: absolute; z-index: 20; display: flex; align-items: center; gap: 4px;
+  padding: 4px; background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(10, 25, 47, .16);
+}
+.cv-fnbar-grip { cursor: grab; color: var(--slate); user-select: none; padding: 0 4px; letter-spacing: -1px; }
+.cv-fnbar-grip:active { cursor: grabbing; }
+.cv-fnbar .cv-fn { text-align: center; }
+.cv-fnpops { position: absolute; inset: 0; z-index: 21; pointer-events: none; }
+.cv-fnpop {
+  position: absolute; pointer-events: auto; width: min(320px, calc(100% - 16px));
+  max-height: min(42vh, 420px); overflow: auto; background: #fff;
+  border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(10, 25, 47, .18); padding: 10px;
+}
 .cv-inspector { width: 44px; padding: 8px 6px; max-height: 78vh; overflow: hidden; }
 .cv-inspector.is-open { width: 280px; padding: 12px; overflow-y: auto; }
 .cv-inspector.is-open .cv-menu-open { display: none; }

@@ -680,7 +680,9 @@ window.CanvasEditorUI = (function () {
     });
     const centerWrap = h('div', { class: 'cv-center' }, stage);
     const viewport = h('div', { class: 'cv-viewport' }, centerWrap);
-    const stageFrame = h('div', { class: 'cv-frame' }, viewport);
+    const fnBar = h('div', { class: 'cv-fnbar' });
+    const fnPops = h('div', { class: 'cv-fnpops' });
+    const stageFrame = h('div', { class: 'cv-frame' }, viewport, fnBar, fnPops);
     const menuNav = h('nav', { class: 'cv-menu-nav' });
     const menuBody = h('div', { class: 'cv-menu-body' });
     const menuPanel = h('div', { class: 'cv-menu-panel' },
@@ -691,7 +693,8 @@ window.CanvasEditorUI = (function () {
       menuBody);
     const menuOpenBtn = h('button', { class: 'cv-menu-open', type: 'button', title: 'Open menu', onclick: () => setMenuOpen(true) }, 'Menu');
     paneRight.append(menuOpenBtn, menuPanel);
-    let openFn = '';
+    const openFns = new Set();
+    let barPos = { x: 16, y: 16 };
     function setMenuOpen(open) {
       paneRight.classList.toggle('is-open', open);
     }
@@ -2246,28 +2249,81 @@ window.CanvasEditorUI = (function () {
         const title = node.querySelector('h4');
         const label = title ? title.textContent.trim() : 'Edit';
         return { id: label.toLowerCase(), label, body: node };
-      });
-      if (!blocks.some((b) => b.id === openFn)) openFn = '';
-      menuNav.replaceChildren(...blocks.map((block) => {
+      }).filter((block) => block.label !== 'Board');
+      [...openFns].forEach((id) => { if (!blocks.some((block) => block.id === id)) openFns.delete(id); });
+      const toggle = (id) => {
+        if (openFns.has(id)) openFns.delete(id);
+        else openFns.add(id);
+        mountFunctions(...nodes);
+      };
+      const button = (block) => {
         const btn = h('button', {
-          class: `cv-fn${openFn === block.id ? ' is-on' : ''}`,
+          class: `cv-fn${openFns.has(block.id) ? ' is-on' : ''}`,
           type: 'button',
         }, block.label);
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          openFn = openFn === block.id ? '' : block.id;
-          mountFunctions(...nodes);
+          toggle(block.id);
         });
         return btn;
-      }));
-      const active = blocks.find((b) => b.id === openFn);
+      };
+      menuNav.replaceChildren(...blocks.map(button));
       if (!blocks.length) {
+        fnBar.hidden = true;
+        fnPops.replaceChildren();
         menuBody.replaceChildren(h('p', { class: 'cv-hint' }, 'Select a layer to edit it.'));
         return;
       }
-      menuBody.replaceChildren(active
-        ? active.body
-        : h('p', { class: 'cv-hint' }, 'Choose a section above.'));
+      menuBody.replaceChildren(h('p', { class: 'cv-hint' }, 'Open a section. Several can stay open together. Board stays under the layers.'));
+      const grip = h('span', { class: 'cv-fnbar-grip', title: 'Drag this bar' }, '⋮⋮');
+      grip.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const orig = { ...barPos };
+        const move = (ev) => {
+          const frame = stageFrame.getBoundingClientRect();
+          barPos.x = clamp(orig.x + ev.clientX - startX, 0, Math.max(0, frame.width - fnBar.offsetWidth));
+          barPos.y = clamp(orig.y + ev.clientY - startY, 0, Math.max(0, frame.height - fnBar.offsetHeight));
+          placeFnBar();
+        };
+        const up = () => {
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+        };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+      });
+      fnBar.hidden = false;
+      fnBar.replaceChildren(grip, ...blocks.map(button));
+      placeFnBar();
+      const open = blocks.filter((block) => openFns.has(block.id));
+      fnPops.replaceChildren(...open.map((block) => h('div', { class: 'cv-fnpop', 'data-fn': block.id }, block.body)));
+      placePops();
+    }
+
+    function placeFnBar() {
+      fnBar.style.left = `${barPos.x}px`;
+      fnBar.style.top = `${barPos.y}px`;
+      placePops();
+    }
+
+    function placePops() {
+      const frame = stageFrame.getBoundingClientRect();
+      let floor = 0;
+      [...fnPops.children].forEach((pop) => {
+        const btn = [...fnBar.querySelectorAll('.cv-fn')].find((n) => n.textContent.trim().toLowerCase() === pop.dataset.fn);
+        const box = btn ? btn.getBoundingClientRect() : null;
+        const left = box ? box.left - frame.left : barPos.x;
+        let top = box ? box.bottom - frame.top + 6 : barPos.y + fnBar.offsetHeight + 6;
+        if (top < floor) top = floor;
+        const maxLeft = Math.max(8, frame.width - 336);
+        pop.style.left = `${Math.max(8, Math.min(left, maxLeft))}px`;
+        pop.style.top = `${Math.max(8, top)}px`;
+        floor = top + pop.offsetHeight + 8;
+      });
     }
 
     function render() {
