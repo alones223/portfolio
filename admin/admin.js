@@ -947,17 +947,11 @@
     });
   }
 
-  // Hero uses this card. When the board is open it has the same layout actions
-  // as a section: apply a saved layout, save this one, and copy it as a section.
-  function homeCanvasCard({ title, block, seed, hint, classic, extra, sections, layoutPage, layoutKind, layoutName }) {
-    const canvasOn = block.layout === 'canvas';
+  // The hero is always a canvas. Apply, save, and copy sit under the board.
+  function homeCanvasCard({ title, block, seed, hint, extra, sections, layoutPage, layoutKind, layoutName }) {
+    seed(block);
     const host = h('div', { class: 'canvas-host' });
-    if (canvasOn) attachCanvasEditor(block, host);
-    const openCanvas = () => {
-      seed(block);
-      changed();
-      render({ keepScroll: true, scrollY: window.scrollY });
-    };
+    attachCanvasEditor(block, host);
     const rerender = () => render({ keepScroll: true, scrollY: window.scrollY });
     const layoutButtons = h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
       h('button', {
@@ -998,18 +992,12 @@
       }, 'Copy as a new section') : null);
     return h('section', { class: 'card' },
       h('div', { class: 'card-head' },
-        h('h3', null, title),
-        canvasOn ? null : h('button', {
-          class: 'btn small primary',
-          type: 'button',
-          onclick: openCanvas,
-        }, 'Edit on canvas')),
+        h('h3', null, title)),
       h('p', { class: 'hint', style: 'margin-bottom:12px' }, hint),
-      canvasOn ? host : null,
+      host,
       layoutButtons,
-      canvasOn ? h('p', { class: 'hint', style: 'margin-top:10px' },
-        'Drag a layer in any direction. Arrow keys nudge it. Drag a corner to resize it, and the round handle above it to rotate it. The light-blue highlight is its own layer under the title. Choose the water photo under Board → Background image when nothing is selected.') : null,
-      !canvasOn && classic ? classic() : null,
+      h('p', { class: 'hint', style: 'margin-top:10px' },
+        'Drag a layer in any direction. Arrow keys nudge it. Drag a corner to resize it, and the round handle above it to rotate it.'),
       extra || null);
   }
 
@@ -1050,12 +1038,7 @@
         title: 'Hero (top of the page)',
         block: home.hero,
         seed: seedHeroCanvas,
-        hint: 'Edit on canvas to place the title, the light-blue highlight bar and the subtitle on a board. The first time copies what is in the form.',
-        classic: () => fields(
-          imageField(home.hero, 'image', 'Background image'),
-          textField(home.hero, 'name', 'Large name', { span: 2 }),
-          textField(home.hero, 'tagline', 'Tagline', { span: 2 }),
-          textField(home.hero, 'bigWord', 'Big colored word at the bottom', { span: 2 })),
+        hint: 'The hero is a canvas. Drag the name, the tagline and the big word. Leave words a visitor should replace as “our text here” when you save this as the default template.',
         extra: fields(textField(home, 'seoTitle', 'Browser tab title for this page', { span: 2 })),
         sections: home.sections,
         layoutPage: 'Home',
@@ -1491,50 +1474,23 @@
 
       const mountCanvas = () => attachCanvasEditor(s, editorHost, refreshMeta);
 
-      const unmountCanvas = () => {
-        const editor = editors.get(s);
-        if (!editor) return;
-        editor.destroy();
-        editor.destroyed = true;   // keeps the cached instance from being reused
-        liveEditors.delete(editor);
-        editorHost.replaceChildren();
-      };
-
-      const classicFields = () => [
-        selectField(s, 'columns', 'Columns', [[1, '1 column'], [2, '2 columns'], [3, '3 columns'], [4, '4 columns']], { span: 1, number: true }),
-        selectField(s, 'aspect', 'Image shape', ASPECTS, { span: 1 }),
-        textField(s, 'text', 'Text above the images', { multiline: true, rows: 3, span: 2 }),
-        textField(s, 'textAfter', 'Text below the images', { multiline: true, rows: 3, span: 2 }),
-        h('div', { class: 'span-4' }, tilesEditor(s.items, {
-          showWide: true,
-          captionLabel: 'Caption (optional)',
-          linkPlaceholder: 'Link, e.g. YouTube (optional)',
-        })),
-        rowList(s.buttons, {
-          label: 'Buttons (e.g. "Demo Full Video")',
-          addLabel: '+ Add button',
-          empty: 'No buttons in this section.',
-          create: () => ({ label: 'Watch video', url: '' }),
-          row: (b) => [
-            textField(b, 'label', 'Button text', { span: 1 }),
-            textField(b, 'url', 'Link', { span: 2, placeholder: 'https://youtu.be/…', list: 'page-links' }),
-          ],
-        }),
-      ];
-
-      // The shared top fields, then either the board or the simple image list.
+      // The shared top fields, then the board. A section that is still a form
+      // is opened as a canvas; the form editor is gone.
       const body = h('div', { class: 'panel-body' });
       const isWorks = page.works && s === page.works;
       const draw = () => {
-        const isCanvas = (s.layout || 'gallery') === 'canvas';
-        if (isCanvas) {
-          // An image section switched to a board starts from its own content.
-          if (!s.layers.length && ((s.heading || '') || (s.text || '') || (s.items || []).length || (s.textAfter || '') || (s.buttons || []).length)) {
-            seedCanvasFromClassic(s);
+        if ((s.layout || 'gallery') !== 'canvas') {
+          if (isWorks) seedWorksCanvas(s);
+          else {
+            s.layout = 'canvas';
+            if (!s.layers.length && ((s.heading || '') || (s.text || '') || (s.items || []).length || (s.textAfter || '') || (s.buttons || []).length)) {
+              seedCanvasFromClassic(s);
+            }
           }
-          s.canvasHeight = Number(s.canvasHeight) || 640;
-          mountCanvas();
-          mount(body, 
+        }
+        s.canvasHeight = Number(s.canvasHeight) || 640;
+        mountCanvas();
+        mount(body, 
             fields(
               textField(s, 'heading', 'Section name (for your reference)', {
                 multiline: true, rows: 1, span: 4,
@@ -1571,51 +1527,6 @@
                   toast('Copied as a new section below this one.');
                 },
               }, 'Copy as a new section')));
-        } else {
-          unmountCanvas();
-          mount(body, 
-            h('div', { style: 'display:flex;justify-content:flex-end;margin-bottom:12px' },
-              h('button', {
-                class: 'btn small primary', type: 'button',
-                onclick: () => {
-                  if (isWorks) seedWorksCanvas(s);
-                  else s.layout = 'canvas';
-                  changed();
-                  draw();
-                },
-              }, 'Edit on canvas')),
-            isWorks ? fields(
-              textField(s, 'heading', 'Heading', { span: 2, onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } }),
-              textField(s, 'decorText', 'Big faint background text', { span: 2, multiline: true, rows: 2 }),
-              textField(s, 'description', 'Description', { multiline: true, rows: 3 }),
-              h('div', { class: 'span-4' },
-                tilesEditor(s.cards, {
-                  label: 'Category cards',
-                  captionKey: 'label',
-                  captionLabel: 'Card title',
-                  linkPlaceholder: 'Link, e.g. /portfolio',
-                }))) : fields(
-              textField(s, 'heading', 'Section heading', {
-                multiline: true, rows: 1, span: 3,
-                onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; },
-              }),
-              selectField(s, 'align', 'Heading alignment', [['left', 'Left'], ['center', 'Centered']], { span: 1 }),
-              colorAlphaField(s, 'bg', 'Background'),
-              ...classicFields()),
-            h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
-              h('button', {
-                class: 'btn small', type: 'button',
-                onclick: async () => {
-                  try {
-                    const id = await applySavedLayout(s);
-                    if (!id) return;
-                    changed();
-                    redraw();
-                    toast('Applied a copy of that layout. The template itself is unchanged.');
-                  } catch (err) { toast(err.message, true); }
-                },
-              }, 'Apply a saved layout')));
-        }
         refreshMeta();
       };
       draw();
@@ -1688,25 +1599,15 @@
     };
     drawSections();
 
-    const canvasOn = page.headerBoard?.layout === 'canvas';
+    seedPageCanvas(page);
     const headerHost = h('div', { class: 'canvas-host' });
-    if (canvasOn) attachCanvasEditor(page.headerBoard, headerHost);
-    const pickHeaderMode = (mode) => {
-      if (mode === 'canvas') seedPageCanvas(page);
-      else if (page.headerBoard) page.headerBoard.layout = 'classic';
-      changed();
-      render({ keepScroll: true, scrollY: window.scrollY });
-    };
+    attachCanvasEditor(page.headerBoard, headerHost);
 
     return [
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
           h('h3', null, 'Page settings'),
           h('div', { class: 'list-tools' },
-            canvasOn ? null : h('button', {
-              class: 'btn small primary', type: 'button',
-              onclick: () => pickHeaderMode('canvas'),
-            }, 'Edit on canvas'),
             h('button', { class: 'btn small', type: 'button', disabled: idx === 0, onclick: () => { move(content.pages, idx, idx - 1); changed(); render(); } }, '↑ Earlier in menu'),
             h('button', { class: 'btn small', type: 'button', disabled: idx === content.pages.length - 1, onclick: () => { move(content.pages, idx, idx + 1); changed(); render(); } }, '↓ Later in menu'),
             h('button', {
@@ -1746,11 +1647,10 @@
             onInput: updateViewLink,
           }),
           checkField(page, 'showInNav', 'Show this page in the menu', { span: 2 })),
-        canvasOn ? h('p', { class: 'hint', style: 'margin:12px 0' },
-          'The header is a canvas. Drag the light-blue highlight to change its length, and set its colour in the style panel. The menu label and address stay on the form.') : h('p', { class: 'hint', style: 'margin:12px 0' },
-          'Edit on canvas to place the title, the highlight and the subtitle on a board. The first time copies what is in the form. The menu label and address stay on the form.'),
-        canvasOn ? headerHost : null,
-        canvasOn ? h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
+        h('p', { class: 'hint', style: 'margin:12px 0' },
+          'The header is a canvas. Drag the light-blue highlight to change its length, and set its colour in the style panel. The menu label and address stay above.'),
+        headerHost,
+        h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
           h('button', {
             class: 'btn small', type: 'button',
             onclick: async () => {
@@ -1782,20 +1682,7 @@
               render({ keepScroll: true, scrollY: window.scrollY });
               toast('Copied the header as a new section at the bottom of this page.');
             },
-          }, 'Copy as a new section')) : null,
-        canvasOn ? null : fields(
-          textField(page, 'title', 'Page title (big heading)', { span: 2 }),
-          textField(page, 'subtitle', 'Subtitle', { span: 2, multiline: true, rows: 2 }),
-          imageField(page, 'heroImage', 'Header background image'),
-          colorField(page, 'highlightColor', 'Highlight colour', { hint: 'Leave blank to use the site highlight colour.' }),
-          checkField(page, 'highlightAuto', 'Auto-fit', {
-            span: 2,
-            hint: 'Sizes the highlight line to the title. Turn off to set a length.',
-            onChange: () => render({ keepScroll: true, scrollY: window.scrollY }),
-          }),
-          page.highlightAuto === false
-            ? numField(page, 'highlightLength', 'Highlight length (px)', { span: 2, min: 8, max: 2000 })
-            : null)),
+          }, 'Copy as a new section'))),
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
           h('h3', null, `Sections (${page.sections.length})`),
@@ -2016,10 +1903,11 @@
   }
 
   const LAYOUT_GROUPS = [
-    ['hero', 'Hero', 'The default hero board is here. Edit it, or add another hero template.'],
-    ['page', 'Page settings', 'The default page header is here. Edit it, or add another page-header template.'],
-    ['section', 'Section', 'Templates for a building block.'],
+    ['hero', 'Hero', 'The default hero board is here. Leave words a visitor should replace as “our text here”, and leave pictures blank. Back to default restores this board.'],
+    ['page', 'Page settings', 'The default page header is here. Leave words a visitor should replace as “our text here”, and leave pictures blank. Back to default restores this board.'],
+    ['section', 'Section', 'Templates for a building block. Leave words a visitor should replace as “our text here”, and leave pictures blank.'],
   ];
+  const DEFAULT_TEMPLATE_IDS = new Set(['tpl-default-hero', 'tpl-default-page']);
 
   function blankTemplateSection(kind) {
     const heading = kind === 'hero' ? 'Hero' : kind === 'page' ? 'Page header' : 'New section';
@@ -2035,7 +1923,7 @@
       canvasLock: kind !== 'section',
       layers: [
         window.CanvasEditor.defaultLayer('heading', {
-          name: 'Heading', text: heading, x: 80, y: 80, w: 900, h: 80, anim: 'up',
+          name: 'Heading', text: 'our text here', x: 80, y: 80, w: 900, h: 80, anim: 'up',
         }),
       ],
       columns: 3,
@@ -2132,9 +2020,32 @@
                   toast(`Saved the template "${name}".`);
                 } catch (err) { toast(err.message, true); }
               },
-            }, 'Save template')),
+            }, 'Save template'),
+            DEFAULT_TEMPLATE_IDS.has(editing.id) ? h('button', {
+              class: 'btn small', type: 'button',
+              onclick: async () => {
+                if (!confirm('Put this default back? Your saved changes to this template are removed. Pages that already use a copy are not changed.')) return;
+                try {
+                  const res = await api('POST', `/api/layouts/${encodeURIComponent(editing.id)}/reset`);
+                  editing.name = res.name;
+                  editing.kind = res.kind;
+                  editing.section = res.section;
+                  editingBase = JSON.stringify({ name: editing.name, kind: editing.kind, section: editing.section });
+                  const row = layouts.find((t) => t.id === editing.id);
+                  if (row) {
+                    row.name = res.name;
+                    row.savedAt = '';
+                    row.layers = (res.section.layers || []).length;
+                  }
+                  toast('Restored the default.');
+                  draw();
+                } catch (err) { toast(err.message, true); }
+              },
+            }, 'Back to default') : null),
           h('p', { class: 'hint', style: 'margin-bottom:12px' },
-            'This is the template. Saving here updates the template only. A page that already uses a copy keeps its own layers, and editing a building block on a page does not change this template.'),
+            DEFAULT_TEMPLATE_IDS.has(editing.id)
+              ? 'This is the default. Leave words a visitor should replace as “our text here”, and leave pictures blank. Back to default restores that starting board. A page that already uses a copy keeps its own layers.'
+              : 'This is the template. Saving here updates the template only. Leave words a visitor should replace as “our text here”, and leave pictures blank. A page that already uses a copy keeps its own layers.'),
           h('div', { class: 'fields', style: 'margin-bottom:12px' },
             h('div', { class: 'field span-2' }, h('label', { class: 'field-label' }, 'Template name'), nameInput),
             h('div', { class: 'field span-2' }, h('label', { class: 'field-label' }, 'Group'), kindSel)),
@@ -2214,6 +2125,17 @@
                     } catch (err) { toast(err.message, true); }
                   },
                 }, 'Edit'),
+                t.builtin ? h('button', {
+                  class: 'btn small', type: 'button',
+                  onclick: async () => {
+                    if (!confirm(`Put “${t.name}” back to the default? Your saved changes to this template are removed. Pages that already use a copy are not changed.`)) return;
+                    try {
+                      await api('POST', `/api/layouts/${encodeURIComponent(t.id)}/reset`);
+                      toast('Restored the default.');
+                      viewLayouts(container);
+                    } catch (err) { toast(err.message, true); }
+                  },
+                }, 'Back to default') : null,
                 h('button', {
                   class: 'btn small', type: 'button',
                   onclick: async () => {

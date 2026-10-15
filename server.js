@@ -977,6 +977,23 @@ app.patch('/api/layouts/:id', requireAuth, (req, res) => {
   res.json({ ok: true, id: entry.id, kind: layoutKind(entry.kind), savedAt: entry.savedAt });
 });
 
+app.post('/api/layouts/:id/reset', requireAuth, (req, res) => {
+  if (!DEFAULT_TEMPLATE_IDS.has(req.params.id)) {
+    return res.status(400).json({ error: 'Only the Hero and Page settings defaults can be restored.' });
+  }
+  const library = readLibrary().filter((x) => x.id !== req.params.id);
+  writeJsonAtomic(LAYOUT_LIBRARY_FILE, library);
+  const fresh = defaultTemplates().find((item) => item.id === req.params.id);
+  res.json({
+    ok: true,
+    id: fresh.id,
+    name: fresh.name,
+    kind: fresh.kind,
+    savedAt: '',
+    section: fresh.section,
+  });
+});
+
 app.delete('/api/layouts/:id', requireAuth, (req, res) => {
   if (DEFAULT_TEMPLATE_IDS.has(req.params.id)) {
     return res.status(400).json({ error: 'The Hero and Page settings templates stay in the list. Edit one to change its design.' });
