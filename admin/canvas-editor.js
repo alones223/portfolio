@@ -1729,7 +1729,36 @@ window.CanvasEditorUI = (function () {
             h('button', { class: 'icon-btn', type: 'button', title: 'Duplicate this layer', onclick: (e) => { e.stopPropagation(); duplicateLayer(l.id); } }, '⧉'),
             h('button', { class: 'icon-btn danger', type: 'button', title: 'Delete this layer', onclick: (e) => { e.stopPropagation(); removeLayer(l.id); } }, '✕')));
           return row;
-        })));
+        })),
+        boardBlock());
+    }
+
+    function boardBlock() {
+      const height = h('input', { type: 'number', value: boardHeight(), min: 200, max: 4000, step: 10 });
+      const applyHeight = (value) => {
+        section.canvasHeight = clamp(roundToStep(value, 10), 200, 4000);
+        height.value = String(section.canvasHeight);
+        onChange();
+        paintBoard();
+      };
+      height.addEventListener('change', () => { record(); applyHeight(Number(height.value) || M.CANVAS_H); });
+      bindWheel(height, (dir) => { beginGesture(); applyHeight(boardHeight() + dir * 10); });
+      const width = h('input', { type: 'number', value: boardWidth(), min: WIDTH_MIN, max: WIDTH_MAX, step: 10 });
+      const applyWidth = (value) => {
+        section.canvasWidth = clamp(roundToStep(value, 10), WIDTH_MIN, WIDTH_MAX);
+        width.value = String(section.canvasWidth);
+        onChange();
+        paintBoard();
+      };
+      width.addEventListener('change', () => { record(); applyWidth(Number(width.value) || M.CANVAS_W); });
+      bindWheel(width, (dir) => { beginGesture(); applyWidth(boardWidth() + dir * 10); });
+      return h('div', { class: 'cv-board-block' },
+        h('h4', null, 'Board'),
+        field('Board height', height),
+        colorField(section, 'canvasBg', 'Board background'),
+        imageField(section, 'canvasImage', 'Background image'),
+        field('Board width', width),
+        h('p', { class: 'cv-hint' }, 'Drag the bottom edge of the board up or down to change its height. The width stays in the number above. On the website the board scales down to fit the screen.'));
     }
 
     function popupMenu(label, items) {
@@ -1858,39 +1887,9 @@ window.CanvasEditorUI = (function () {
       const scrollTop = paneRight.scrollTop;
       const finish = () => { paneRight.scrollTop = scrollTop; };
       const l = primary();
-      const boardSettings = [
-        field('Board height', (() => {
-          const input = h('input', { type: 'number', value: boardHeight(), min: 200, max: 4000, step: 10 });
-          const apply = (value) => {
-            section.canvasHeight = clamp(roundToStep(value, 10), 200, 4000);
-            input.value = String(section.canvasHeight);
-            onChange();
-            paintBoard();
-          };
-          input.addEventListener('change', () => { record(); apply(Number(input.value) || M.CANVAS_H); });
-          bindWheel(input, (dir) => { beginGesture(); apply(boardHeight() + dir * 10); });
-          return input;
-        })()),
-        colorField(section, 'canvasBg', 'Board background'),
-        imageField(section, 'canvasImage', 'Background image'),
-        field('Board width', (() => {
-          const input = h('input', { type: 'number', value: boardWidth(), min: WIDTH_MIN, max: WIDTH_MAX, step: 10 });
-          const apply = (value) => {
-            section.canvasWidth = clamp(roundToStep(value, 10), WIDTH_MIN, WIDTH_MAX);
-            input.value = String(section.canvasWidth);
-            onChange();
-            paintBoard();
-          };
-          input.addEventListener('change', () => { record(); apply(Number(input.value) || M.CANVAS_W); });
-          bindWheel(input, (dir) => { beginGesture(); apply(boardWidth() + dir * 10); });
-          return input;
-        })()),
-        h('p', { class: 'cv-hint' }, 'Drag the bottom edge of the board up or down to change its height. The width stays in the number above. On the website the board scales down to fit the screen.'),
-      ];
 
       if (!l) {
-        mountFunctions(
-          h('div', { class: 'cv-group' }, h('h4', null, 'Board'), ...boardSettings));
+        mountFunctions();
         finish();
         return;
       }
@@ -1907,16 +1906,10 @@ window.CanvasEditorUI = (function () {
       }
       groups.unshift(inspectorTabs());
 
-      if (inspectorMode === 'board') {
-        mountFunctions(h('div', { class: 'cv-group' }, h('h4', null, 'Board'), ...boardSettings));
-        finish();
-        return;
-      }
-
       if (count > 1) {
         groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Selection'), layerMenu([...selectedIds])));
         groups.push(alignPanel(count));
-        mountFunctions(...groups, h('div', { class: 'cv-group' }, h('h4', null, 'Board'), ...boardSettings));
+        mountFunctions(...groups);
         finish();
         return;
       }
@@ -2075,7 +2068,7 @@ window.CanvasEditorUI = (function () {
         toggleField(l, 'animated', 'Play when the visitor scrolls to it'),
         h('p', { class: 'cv-hint' }, l.anim === 'float' || l.anim === 'pulse' ? 'This effect loops forever.' : 'This effect plays once, when the section scrolls into view.')));
 
-      mountFunctions(...groups, h('div', { class: 'cv-group' }, h('h4', null, 'Board'), ...boardSettings));
+      mountFunctions(...groups);
       finish();
     }
 
@@ -2085,6 +2078,15 @@ window.CanvasEditorUI = (function () {
         const label = title ? title.textContent.trim() : 'Edit';
         return { id: label.toLowerCase(), label, body: node };
       });
+      if (!blocks.length) {
+        openFn = '';
+        fnBar.hidden = true;
+        fnPop.hidden = true;
+        fnPop.replaceChildren();
+        fnBar.replaceChildren();
+        return;
+      }
+      fnBar.hidden = false;
       if (!blocks.some((b) => b.id === openFn)) openFn = '';
       const grip = h('span', { class: 'cv-fnbar-grip', title: 'Drag this bar' }, '⋮⋮');
       grip.addEventListener('pointerdown', (e) => {
