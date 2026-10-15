@@ -336,6 +336,13 @@ button { font: inherit; color: inherit; }
   background: var(--hero-bg) var(--hero-image) center / cover no-repeat;
   text-align: center;
 }
+.page-hero .title-highlight span::before { background: var(--page-highlight, var(--highlight)); }
+.page-hero.is-highlight-fixed .title-highlight span::before {
+  left: 50%;
+  right: auto;
+  width: var(--highlight-len, calc(100% + 16px));
+  transform: translateX(-50%);
+}
 .page-hero-inner { display: flex; flex-direction: column; align-items: center; padding-top: clamp(140px, 19.7vw, 281px); max-width: 839px; }
 .page-hero-rule { width: 54px; height: 1px; margin-top: 50px; background: #fff; }
 .page-subtitle {

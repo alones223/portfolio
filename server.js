@@ -71,7 +71,10 @@ function normContent(raw) {
   }
   if (Array.isArray(content.pages)) {
     content.pages.forEach((p) => {
-      if (p && typeof p === 'object') p.sections = normSections(p.sections);
+      if (p && typeof p === 'object') {
+        p.sections = normSections(p.sections);
+        normPageChrome(p);
+      }
     });
   }
   return content;
@@ -118,8 +121,28 @@ function validateContent(c) {
   if (Array.isArray(c.home?.sections)) checkSections(c.home.sections, 'Home');
   if (c.home?.hero?.layout === 'canvas') validateSection(c.home.hero, 'Hero (Home)', errors);
   if (c.home?.works?.layout === 'canvas') validateSection(c.home.works, 'Works (Home)', errors);
-  (c.pages || []).forEach((p) => checkSections(p.sections, p.navLabel || p.title || p.slug));
+  (c.pages || []).forEach((p) => {
+    const pageLabel = p.navLabel || p.title || p.slug;
+    checkSections(p.sections, pageLabel);
+    if (p.headerBoard?.layout === 'canvas') validateSection(p.headerBoard, `Page header (${pageLabel})`, errors);
+  });
   return errors;
+}
+
+// Page header chrome. Missing highlightAuto means the bar still hugs the title.
+// A classic header is left alone; only a canvas header is normalised as a board.
+function normPageChrome(page) {
+  const color = safeColor(page.highlightColor);
+  if (color) page.highlightColor = color;
+  else delete page.highlightColor;
+  if (page.highlightAuto === false) page.highlightAuto = false;
+  else delete page.highlightAuto;
+  const len = Number(page.highlightLength);
+  if (Number.isFinite(len) && len > 0) page.highlightLength = Math.min(2000, Math.max(8, Math.round(len)));
+  else delete page.highlightLength;
+  if (page.headerBoard && page.headerBoard.layout === 'canvas') {
+    page.headerBoard = normSection(page.headerBoard, 0);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -179,6 +202,15 @@ const LAYER_FONTS = new Set([
   '', 'var(--font-display)', 'var(--font-serif)', 'var(--font-body)',
   'Georgia, serif', 'Arial, Helvetica, sans-serif', '"Courier New", monospace',
 ]);
+
+// Built-in families, plus an uploaded face stored as `"Name", sans-serif`.
+function safeFontFamily(value) {
+  const v = String(value ?? '').trim();
+  if (!v) return '';
+  if (LAYER_FONTS.has(v)) return v;
+  if (/^"[A-Za-z0-9][A-Za-z0-9 .]{0,80}", sans-serif$/.test(v)) return v;
+  return '';
+}
 const LAYER_ALIGN = new Set(['left', 'center', 'right']);
 
 // Colours go straight into a style attribute, so only plain CSS colours pass.
@@ -353,7 +385,8 @@ function styleToCss(style) {
   const px = (v, min = 0, max = 3000) => Math.min(Math.max(Number(v) || 0, min), max);
   if (safeColor(s.bg)) out.push(`background:${safeColor(s.bg)}`);
   if (safeColor(s.color)) out.push(`color:${safeColor(s.color)}`);
-  if (LAYER_FONTS.has(s.font)) { if (s.font) out.push(`font-family:${s.font}`); }
+  const font = safeFontFamily(s.font);
+  if (font) out.push(`font-family:${font}`);
   if (s.size) out.push(`font-size:${px(s.size, 6, 300)}px`);
   if (s.weight) out.push(`font-weight:${px(s.weight, 100, 900)}`);
   if (s.lineHeight) out.push(`line-height:${Math.min(Math.max(Number(s.lineHeight) || 1.25, 0.7), 3)}`);
@@ -447,12 +480,17 @@ function normCell(item) {
   // A gallery slot may be written as a plain URL string by hand.
   if (typeof item === 'string') return { image: item, caption: '', link: '' };
   if (!item || typeof item !== 'object') return { image: '', caption: '', link: '' };
-  return {
+  const out = {
     image: safeUrl(item.image),
     caption: typeof item.caption === 'string' ? item.caption : '',
     link: safeUrl(item.link),
     ...(item.wide == null ? {} : { wide: Boolean(item.wide) }),
   };
+  ['x', 'y', 'w', 'h'].forEach((key) => {
+    const n = Number(item[key]);
+    if (Number.isFinite(n)) out[key] = Math.round(Math.min(8000, Math.max(-2000, n)));
+  });
+  return out;
 }
 
 function normLayer(rawLayer, index) {
@@ -482,6 +520,16 @@ function normLayer(rawLayer, index) {
   const rot = Number(rawLayer?.rotate);
   if (Number.isFinite(rot)) out.rotate = Math.min(360, Math.max(-360, rot));
   if (out.textShadow != null) out.textShadow = Boolean(out.textShadow);
+  if (out.radiusLock != null) out.radiusLock = Boolean(out.radiusLock);
+  if (type === 'gallery' && out.freeform != null) out.freeform = Boolean(out.freeform);
+  if (type === 'image') {
+    const subtitle = typeof rawLayer?.subtitle === 'string' ? rawLayer.subtitle.slice(0, 400) : '';
+    if (subtitle) out.subtitle = subtitle;
+    else delete out.subtitle;
+  }
+  const font = safeFontFamily(out.font);
+  if (font) out.font = font;
+  else delete out.font;
   return out;
 }
 
@@ -501,6 +549,9 @@ function normSection(rawSection, index) {
       .slice(0, MAX_LAYERS)
       .map(normLayer);
     section.canvasHeight = Math.min(Math.max(Number(section.canvasHeight) || 640, 200), 4000);
+    const width = Number(section.canvasWidth);
+    if (Number.isFinite(width) && width > 0) section.canvasWidth = Math.min(4000, Math.max(480, Math.round(width)));
+    else delete section.canvasWidth;
   }
   section.buttons = Array.isArray(rawSection?.buttons)
     ? rawSection.buttons.filter((b) => b && typeof b === 'object')
@@ -508,6 +559,11 @@ function normSection(rawSection, index) {
   section.heading = typeof section.heading === 'string' ? section.heading : '';
   if (rawSection?.canvasLock) section.canvasLock = true;
   else delete section.canvasLock;
+  ['bg', 'canvasBg'].forEach((key) => {
+    const color = safeColor(section[key]);
+    if (color) section[key] = color;
+    else delete section[key];
+  });
   if (typeof rawSection?.canvasImage === 'string' && rawSection.canvasImage.trim()) {
     section.canvasImage = safeUrl(rawSection.canvasImage);
   } else {
@@ -607,6 +663,10 @@ app.locals.layerBox = layerBox;
 app.locals.turnStyle = turnStyle;
 app.locals.layerText = layerText;
 app.locals.safeColor = safeColor;
+app.use((req, res, next) => {
+  res.locals.customFontFaces = customFontCss();
+  next();
+});
 app.locals.safeUrl = safeUrl;
 app.locals.ANIMATIONS = ANIMATIONS;
 app.locals.LAYER_FITS = LAYER_FITS;
@@ -754,15 +814,35 @@ app.post('/api/sections/copy', requireAuth, (req, res) => {
   res.json({ section: copySection(source, { rename: req.body?.rename !== false }) });
 });
 
+const LAYOUT_KINDS = new Set(['hero', 'page', 'section']);
+
+function layoutKind(value) {
+  return LAYOUT_KINDS.has(value) ? value : 'section';
+}
+
 app.get('/api/layouts', requireAuth, (req, res) => {
   res.json(readLibrary().map((entry) => ({
     id: entry.id,
     name: entry.name,
     savedAt: entry.savedAt,
     page: entry.page || '',
+    kind: layoutKind(entry.kind),
     layers: (entry.section?.layers || []).length,
     layout: entry.section?.layout || 'canvas',
   })));
+});
+
+app.get('/api/layouts/:id', requireAuth, (req, res) => {
+  const entry = readLibrary().find((x) => x.id === req.params.id);
+  if (!entry) return res.status(404).json({ error: 'That saved layout no longer exists.' });
+  res.json({
+    id: entry.id,
+    name: entry.name,
+    savedAt: entry.savedAt,
+    page: entry.page || '',
+    kind: layoutKind(entry.kind),
+    section: entry.section,
+  });
 });
 
 // Save the current section onto the shelf. The section is copied on the way in,
@@ -773,10 +853,14 @@ app.post('/api/layouts', requireAuth, (req, res) => {
   if (!source || typeof source !== 'object') return res.status(400).json({ error: 'There is no section to save.' });
   if (!name) return res.status(400).json({ error: 'Give the layout a name so you can find it later.' });
 
+  if (req.body?.kind != null && req.body.kind !== '' && !LAYOUT_KINDS.has(req.body.kind)) {
+    return res.status(400).json({ error: 'A template belongs in Hero, Page settings, or Section.' });
+  }
   const library = readLibrary();
   const entry = {
     id: freshId('tpl'),
     name,
+    kind: layoutKind(req.body?.kind),
     page: String(req.body?.page || '').slice(0, 120),
     savedAt: new Date().toISOString(),
     section: copySection(source, { rename: false }),
@@ -797,11 +881,32 @@ app.patch('/api/layouts/:id', requireAuth, (req, res) => {
   const library = readLibrary();
   const entry = library.find((x) => x.id === req.params.id);
   if (!entry) return res.status(404).json({ error: 'That saved layout no longer exists.' });
-  const name = String(req.body?.name || '').trim().slice(0, 120);
-  if (!name) return res.status(400).json({ error: 'The layout needs a name.' });
-  entry.name = name;
+  const body = req.body || {};
+  if (body.name == null && body.kind == null && body.section == null) {
+    return res.status(400).json({ error: 'Nothing to update on this template.' });
+  }
+  if (body.name != null) {
+    const name = String(body.name).trim().slice(0, 120);
+    if (!name) return res.status(400).json({ error: 'The layout needs a name.' });
+    entry.name = name;
+  }
+  if (body.kind != null) {
+    if (!LAYOUT_KINDS.has(body.kind)) {
+      return res.status(400).json({ error: 'A template belongs in Hero, Page settings, or Section.' });
+    }
+    entry.kind = body.kind;
+  }
+  if (body.section != null) {
+    if (!body.section || typeof body.section !== 'object') {
+      return res.status(400).json({ error: 'The template layout is missing.' });
+    }
+    // Keep this template's own ids. Pages receive a copy with fresh ids.
+    entry.section = normSection(body.section, 0);
+    entry.savedAt = new Date().toISOString();
+  }
+  if (!entry.kind) entry.kind = 'section';
   writeJsonAtomic(LAYOUT_LIBRARY_FILE, library);
-  res.json({ ok: true });
+  res.json({ ok: true, id: entry.id, kind: layoutKind(entry.kind), savedAt: entry.savedAt });
 });
 
 app.delete('/api/layouts/:id', requireAuth, (req, res) => {
@@ -816,7 +921,42 @@ app.delete('/api/layouts/:id', requireAuth, (req, res) => {
 // Media uploads
 // ---------------------------------------------------------------------------
 
-const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.mp4', '.webm']);
+const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.mp4', '.webm', '.woff', '.woff2', '.ttf', '.otf']);
+const FONT_EXT = new Set(['.woff', '.woff2', '.ttf', '.otf']);
+
+function fontFormat(ext) {
+  if (ext === '.woff2') return 'woff2';
+  if (ext === '.woff') return 'woff';
+  if (ext === '.otf') return 'opentype';
+  return 'truetype';
+}
+
+function fontLabel(filename) {
+  const base = path.basename(filename, path.extname(filename)).replace(/-[0-9a-f]{6}$/i, '');
+  const label = base.replace(/[-_]+/g, ' ').replace(/[^A-Za-z0-9 .]/g, '').trim().slice(0, 60);
+  return label || 'Custom font';
+}
+
+function listFontFiles() {
+  if (!fs.existsSync(UPLOAD_DIR)) return [];
+  const used = new Map();
+  return fs.readdirSync(UPLOAD_DIR)
+    .filter((name) => FONT_EXT.has(path.extname(name).toLowerCase()))
+    .map((name) => {
+      let family = fontLabel(name);
+      const seen = used.get(family.toLowerCase()) || 0;
+      used.set(family.toLowerCase(), seen + 1);
+      if (seen) family = `${family} ${seen + 1}`.slice(0, 80);
+      const ext = path.extname(name).toLowerCase();
+      const css = `"${family}", sans-serif`;
+      const face = `@font-face{font-family:"${family}";src:url("/uploads/${encodeURIComponent(name)}") format("${fontFormat(ext)}");font-display:swap;}`;
+      return { name, url: `/uploads/${name}`, family, css, face };
+    });
+}
+
+function customFontCss() {
+  return listFontFiles().map((font) => font.face).join('\n');
+}
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -869,8 +1009,13 @@ function mediaFolders(content) {
     });
   }
   folders.push({ id: 'site', label: 'Site-wide (logo, socials)', node: site });
-  return folders.map((f) => ({ id: f.id, label: f.label, urls: collectStrings(f.node, new Set()) }));
+  folders.push({ id: 'fonts', label: 'Fonts', urls: new Set(listFontFiles().map((font) => font.url)) });
+  return folders.map((f) => ({ id: f.id, label: f.label, urls: f.urls || collectStrings(f.node, new Set()) }));
 }
+
+app.get('/api/fonts', requireAuth, (req, res) => {
+  res.json(listFontFiles().map(({ name, url, family, css }) => ({ name, url, family, css })));
+});
 
 app.get('/api/media/folders', requireAuth, (req, res) => {
   res.json(mediaFolders(getContent()).map(({ id, label }) => ({ id, label })));
@@ -880,12 +1025,14 @@ app.get('/api/media', requireAuth, (req, res) => {
   const content = getContent();
   const used = collectStrings(content, new Set());
   const folders = mediaFolders(content);
+  const fontsByUrl = new Map(listFontFiles().map((item) => [item.url, item]));
   const files = fs
     .readdirSync(UPLOAD_DIR)
     .filter((f) => ALLOWED_EXT.has(path.extname(f).toLowerCase()))
     .map((name) => {
       const stat = fs.statSync(path.join(UPLOAD_DIR, name));
       const url = `/uploads/${name}`;
+      const font = fontsByUrl.get(url);
       return {
         name,
         url,
@@ -893,6 +1040,7 @@ app.get('/api/media', requireAuth, (req, res) => {
         modified: stat.mtimeMs,
         used: used.has(url),
         folders: folders.filter((f) => f.urls.has(url)).map((f) => f.id),
+        ...(font ? { fontFamily: font.css } : {}),
       };
     })
     .sort((a, b) => b.modified - a.modified);
@@ -905,7 +1053,7 @@ app.delete('/api/media/:name', requireAuth, (req, res) => {
   if (!fs.existsSync(file)) return res.status(404).json({ error: 'File not found' });
   const used = collectStrings(getContent(), new Set());
   if (used.has(`/uploads/${name}`) && req.query.force !== '1') {
-    return res.status(409).json({ error: 'This image is still used on the site. Remove it from the page first.' });
+    return res.status(409).json({ error: 'This file is still used on the site. Remove it from the page first.' });
   }
   fs.unlinkSync(file);
   res.json({ ok: true });

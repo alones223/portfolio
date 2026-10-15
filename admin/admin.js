@@ -12,6 +12,7 @@
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const pad2 = (n) => String(n).padStart(2, '0');
   const isVideo = (url) => /\.(mp4|webm)(\?|$)/i.test(url || '');
+  const isFontFile = (url) => /\.(woff2?|ttf|otf)(\?|$)/i.test(url || '');
 
   // Tiny DOM builder: h('div', { class: 'x', onclick: fn }, child, 'text', ...)
   function h(tag, attrs, ...children) {
@@ -96,6 +97,7 @@
     try {
       const res = await api('POST', '/api/upload', fd);
       toast(`Uploaded ${res.files.length} file${res.files.length > 1 ? 's' : ''}.`);
+      if (res.files.some((f) => isFontFile(f.url))) await loadCustomFonts();
       return res.files.map((f) => f.url);
     } catch (err) {
       toast(`Upload failed: ${err.message}`, true);
@@ -106,7 +108,34 @@
   function mediaPreview(url) {
     if (!url) return document.createTextNode('No image');
     if (isVideo(url)) return h('video', { src: url, muted: true, preload: 'metadata' });
+    if (isFontFile(url)) {
+      const hit = (window.CanvasFonts || []).find((font) => font.url === url);
+      return h('span', { class: 'font-sample', style: hit ? `font-family:${hit.css}` : '' }, 'Ag');
+    }
     return h('img', { src: url, alt: '', loading: 'lazy' });
+  }
+
+  async function loadCustomFonts() {
+    try {
+      window.CanvasFonts = await api('GET', '/api/fonts');
+    } catch (err) {
+      window.CanvasFonts = window.CanvasFonts || [];
+      return;
+    }
+    let style = document.getElementById('custom-fonts');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'custom-fonts';
+      document.head.append(style);
+    }
+    style.textContent = (window.CanvasFonts || []).map((font) => {
+      const family = String(font.family || '').replace(/[^A-Za-z0-9 .]/g, '').trim();
+      const url = String(font.url || '');
+      if (!family || !url.startsWith('/uploads/')) return '';
+      const ext = (url.split('.').pop() || '').toLowerCase();
+      const format = ext === 'woff2' ? 'woff2' : ext === 'woff' ? 'woff' : ext === 'otf' ? 'opentype' : 'truetype';
+      return `@font-face{font-family:"${family}";src:url("${url}") format("${format}");font-display:swap;}`;
+    }).join('\n');
   }
 
   const hasFiles = (e) => [...((e.dataTransfer && e.dataTransfer.types) || [])].includes('Files');
@@ -338,6 +367,96 @@
     return h('div', { class: `field span-${opts.span || 4}` },
       h('label', { class: 'field check' }, input, label),
       opts.hint ? h('p', { class: 'hint' }, opts.hint) : null);
+  }
+
+  function numField(obj, key, label, opts = {}) {
+    const id = uid();
+    const input = h('input', {
+      id, type: 'number',
+      min: opts.min != null ? String(opts.min) : '',
+      max: opts.max != null ? String(opts.max) : '',
+      step: opts.step != null ? String(opts.step) : '1',
+    });
+    input.value = obj[key] ?? '';
+    input.addEventListener('input', () => {
+      if (input.value === '') obj[key] = '';
+      else {
+        const n = Number(input.value);
+        if (Number.isFinite(n)) obj[key] = n;
+      }
+      if (opts.onInput) opts.onInput(obj[key]);
+      changed({ coalesce: true });
+    });
+    return wrapField(label, input, opts, id);
+  }
+
+  function parseCssColor(value) {
+    const v = String(value || '').trim();
+    const hex6 = /^#([0-9a-f]{6})$/i.exec(v);
+    if (hex6) return { hex: `#${hex6[1].toUpperCase()}`, alpha: 1 };
+    const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(v);
+    if (rgb) {
+      const hex = '#' + [rgb[1], rgb[2], rgb[3]]
+        .map((n) => Math.min(255, Math.max(0, Number(n))).toString(16).padStart(2, '0')).join('').toUpperCase();
+      const alpha = rgb[4] == null ? 1 : Math.min(1, Math.max(0, Number(rgb[4])));
+      return { hex, alpha };
+    }
+    return { hex: '#FDFDFD', alpha: 1 };
+  }
+
+  function formatCssColor(hex, alpha) {
+    const solid = String(hex || '#FDFDFD').toUpperCase();
+    if (alpha >= 0.995) return solid;
+    const r = parseInt(solid.slice(1, 3), 16);
+    const g = parseInt(solid.slice(3, 5), 16);
+    const b = parseInt(solid.slice(5, 7), 16);
+    const a = Math.round(Math.min(1, Math.max(0, alpha)) * 100) / 100;
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  }
+
+  function colorAlphaField(obj, key, label, opts = {}) {
+    const parsed = parseCssColor(obj[key]);
+    const color = h('input', { type: 'color', value: parsed.hex, 'aria-label': `${label} colour` });
+    const text = h('input', { type: 'text', value: obj[key] || '', placeholder: 'None' });
+    const alpha = h('input', {
+      type: 'range', min: '0', max: '100', step: '1',
+      value: String(Math.round((obj[key] ? parsed.alpha : 1) * 100)),
+      'aria-label': `${label} opacity`,
+    });
+    const read = h('span', { class: 'alpha-read' }, `${alpha.value}%`);
+    const write = () => {
+      obj[key] = formatCssColor(color.value, Number(alpha.value) / 100);
+      text.value = obj[key];
+      read.textContent = `${alpha.value}%`;
+      if (opts.onInput) opts.onInput(obj[key]);
+      changed({ coalesce: true });
+    };
+    color.addEventListener('input', write);
+    alpha.addEventListener('input', write);
+    text.addEventListener('input', () => {
+      obj[key] = text.value.trim();
+      const next = parseCssColor(obj[key]);
+      if (obj[key]) {
+        color.value = next.hex;
+        alpha.value = String(Math.round(next.alpha * 100));
+        read.textContent = `${alpha.value}%`;
+      }
+      if (opts.onInput) opts.onInput(obj[key]);
+      changed({ coalesce: true });
+    });
+    text.addEventListener('change', () => {
+      if (!text.value.trim()) {
+        obj[key] = '';
+        read.textContent = '100%';
+        if (opts.onInput) opts.onInput('');
+        changed();
+      }
+    });
+    return wrapField(label, h('div', { class: 'color-input' }, color, text, alpha, read), {
+      span: 2,
+      hint: 'The slider sets how see-through the background is. Clear the text to remove it.',
+      ...opts,
+    });
   }
 
   function colorField(obj, key, label, opts = {}) {
@@ -945,25 +1064,31 @@
   }
 
   // A dialog that lists the starting layouts and the ones you saved earlier.
-  function chooseSectionLayout({ title, includeSaved }) {
+  function chooseSectionLayout({ title, includeSaved, savedOnly }) {
     return new Promise((resolve) => {
       const dlg = h('dialog', { class: 'picker section-picker' });
       const list = h('div', { class: 'tpl-grid' });
       const close = (value) => { dlg.close(); dlg.remove(); resolve(value); };
+      const savedCard = (t) => h('button', {
+        class: 'tpl-card', type: 'button', onclick: () => close({ kind: 'saved', id: t.id }),
+      }, h('strong', null, t.name),
+        h('span', null, `${t.layers} layer${t.layers === 1 ? '' : 's'}${t.page ? ` · from ${t.page}` : ''}`));
 
       const draw = (presets, saved) => {
-        mount(list, 
-          h('div', { class: 'tpl-section' }, h('h4', null, 'Start from a layout'),
+        const groups = LAYOUT_GROUPS.map(([kind, label]) => {
+          const rows = saved.filter((t) => (t.kind || 'section') === kind);
+          if (!rows.length) return null;
+          return h('div', { class: 'tpl-section' }, h('h4', null, label),
+            h('div', { class: 'tpl-cards' }, rows.map(savedCard)));
+        });
+        mount(list,
+          savedOnly ? null : h('div', { class: 'tpl-section' }, h('h4', null, 'Start from a layout'),
             h('div', { class: 'tpl-cards' }, presets.map((p) => h('button', {
               class: 'tpl-card', type: 'button', onclick: () => close({ kind: 'preset', id: p.id }),
             }, h('strong', null, p.name), h('span', null, p.description))))),
-          includeSaved && saved.length ? h('div', { class: 'tpl-section' }, h('h4', null, 'Saved layouts'),
-            h('div', { class: 'tpl-cards' }, saved.map((t) => h('button', {
-              class: 'tpl-card', type: 'button', onclick: () => close({ kind: 'saved', id: t.id }),
-            }, h('strong', null, t.name),
-              h('span', null, `${t.layers} layer${t.layers === 1 ? '' : 's'}${t.page ? ` · from ${t.page}` : ''}`))))) : null,
+          includeSaved ? groups : null,
           includeSaved && !saved.length
-            ? h('p', { class: 'hint' }, 'Layouts you save from a section appear here, ready to reuse on any page.')
+            ? h('p', { class: 'hint' }, 'Layouts you save from a section, or templates you make on Section layouts, appear here.')
             : null);
       };
 
@@ -978,10 +1103,42 @@
       dlg.showModal();
       draw([], []);
 
-      api('GET', '/api/section-presets')
-        .then((presets) => (includeSaved ? api('GET', '/api/layouts').then((saved) => draw(presets, saved)) : draw(presets, [])))
+      const loadSaved = includeSaved ? api('GET', '/api/layouts') : Promise.resolve([]);
+      const loadPresets = savedOnly ? Promise.resolve([]) : api('GET', '/api/section-presets');
+      Promise.all([loadPresets, loadSaved])
+        .then(([presets, saved]) => draw(presets, saved))
         .catch((err) => mount(list, h('p', { class: 'muted' }, err.message)));
     });
+  }
+
+  // Drop a saved template onto this building block. The section keeps its id
+  // and, when it already has one, its name. The template on Section layouts
+  // is not changed — this is a copy with its own layer ids.
+  async function applySavedLayout(s) {
+    const pick = await chooseSectionLayout({
+      title: 'Apply a saved layout',
+      includeSaved: true,
+      savedOnly: true,
+    });
+    if (!pick || pick.kind !== 'saved') return null;
+    const res = await api('POST', `/api/layouts/${encodeURIComponent(pick.id)}/section`, { rename: false });
+    const incoming = res.section;
+    const keepId = s.id;
+    const keepHeading = String(s.heading || '').trim();
+    const editor = editors.get(s);
+    if (editor) {
+      editor.destroy();
+      editor.destroyed = true;
+      editors.delete(s);
+      liveEditors.delete(editor);
+    }
+    Object.keys(s).forEach((key) => { delete s[key]; });
+    Object.assign(s, incoming, {
+      id: keepId,
+      heading: keepHeading || incoming.heading || '',
+      templateId: pick.id,
+    });
+    return pick.id;
   }
 
   // "Save this layout" — keeps a copy on the server so it can be reused on any
@@ -1187,10 +1344,25 @@
                 onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; },
               }),
               selectField(s, 'layout', 'Image layout', LAYOUTS, { span: 1, onChange: draw }),
+              colorAlphaField(s, 'canvasBg', 'Background', {
+                onInput: () => { const editor = editors.get(s); if (editor) editor.render(); },
+              }),
               h('div', { class: 'span-4' }, editorHost)),
             h('p', { class: 'hint', style: 'margin-top:10px' },
-              'Each section is its own board. Drag layers to move them, drag a corner to resize, and drag the round handle above a layer to rotate it. Hold Shift while dragging to snap to the grid. Arrow keys nudge the selected layer.'),
+              'Each section is its own board. Drag layers to move them, drag a corner to resize, and drag the round handle above a layer to rotate it. Hold Shift while dragging to snap to the grid. Arrow keys nudge the selected layer. A saved template stays as it is here — change the template itself on Section layouts.'),
             h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
+              h('button', {
+                class: 'btn small', type: 'button',
+                onclick: async () => {
+                  try {
+                    const id = await applySavedLayout(s);
+                    if (!id) return;
+                    changed();
+                    redraw();
+                    toast('Applied a copy of that layout. The template itself is unchanged.');
+                  } catch (err) { toast(err.message, true); }
+                },
+              }, 'Apply a saved layout'),
               h('button', { class: 'btn small', type: 'button', onclick: () => saveSectionLayout(s, pageLabel) }, 'Save this layout'),
               h('button', {
                 class: 'btn small', type: 'button',
@@ -1213,7 +1385,21 @@
               }),
               selectField(s, 'align', 'Heading alignment', [['left', 'Left'], ['center', 'Centered']], { span: 1 }),
               selectField(s, 'layout', 'Image layout', LAYOUTS, { span: 2, onChange: draw }),
-              ...classicFields()));
+              colorAlphaField(s, 'bg', 'Background'),
+              ...classicFields()),
+            h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
+              h('button', {
+                class: 'btn small', type: 'button',
+                onclick: async () => {
+                  try {
+                    const id = await applySavedLayout(s);
+                    if (!id) return;
+                    changed();
+                    redraw();
+                    toast('Applied a copy of that layout. The template itself is unchanged.');
+                  } catch (err) { toast(err.message, true); }
+                },
+              }, 'Apply a saved layout')));
         }
         refreshMeta();
       };
@@ -1221,6 +1407,47 @@
       panel.append(body);
     }
     return panel;
+  }
+
+  // First open copies the form header onto a board. Later opens keep the layers.
+  function seedPageCanvas(page) {
+    const board = page.headerBoard && typeof page.headerBoard === 'object' ? page.headerBoard : {};
+    page.headerBoard = board;
+    board.id = board.id || `s-${String(page.id || 'page').replace(/[^a-z0-9-]/gi, '')}-header`;
+    board.heading = board.heading || 'Page header';
+    board.layout = 'canvas';
+    board.canvasLock = true;
+    board.layers = Array.isArray(board.layers) ? board.layers : [];
+    board.canvasHeight = Number(board.canvasHeight) || 774;
+    board.canvasBg = board.canvasBg || '#617092';
+    if (!board.canvasImage && page.heroImage) board.canvasImage = page.heroImage;
+    if (board.layers.length) return;
+    const add = (type, patch) => board.layers.push(window.CanvasEditor.defaultLayer(type, patch));
+    const title = page.title || 'TITLE';
+    const barW = page.highlightAuto === false && Number(page.highlightLength) > 0
+      ? Math.min(1200, Math.max(40, Math.round(Number(page.highlightLength))))
+      : Math.min(1100, Math.max(120, Math.round(title.length * 36 + 16)));
+    const barX = Math.round((1425 - barW) / 2);
+    add('shape', {
+      name: 'Title highlight', x: barX, y: 306, w: barW, h: 42,
+      bg: page.highlightColor || '#95B8FE', radius: 4, shape: 'rect',
+      z: 2, animated: true, anim: 'up', duration: 0.9, delay: 0,
+    });
+    add('heading', {
+      name: 'Title', text: title, x: 262, y: 281, w: 900, h: 64,
+      size: 53, weight: 400, align: 'center', color: '#0A192F', font: 'var(--font-display)',
+      lineHeight: 1, z: 3, anim: 'up', duration: 0.9, delay: 0,
+    });
+    add('divider', {
+      name: 'Rule', x: 686, y: 384, w: 54, h: 2, color: '#FFFFFF',
+      z: 4, animated: true, anim: 'fade', duration: 0.9, delay: 0.1,
+    });
+    add('text', {
+      name: 'Subtitle', text: page.subtitle || '',
+      x: 262, y: 456, w: 900, h: 80, size: 18, weight: 900, align: 'center',
+      color: '#FDFDFD', font: 'Arial, Helvetica, sans-serif', lineHeight: 1.1,
+      textShadow: true, z: 5, anim: 'up', duration: 0.9, delay: 0.15,
+    });
   }
 
   function viewPage(page) {
@@ -1246,11 +1473,26 @@
     };
     drawSections();
 
+    const canvasOn = page.headerBoard?.layout === 'canvas';
+    const headerHost = h('div', { class: 'canvas-host' });
+    if (canvasOn) attachCanvasEditor(page.headerBoard, headerHost);
+    const toggleHeader = () => {
+      if (page.headerBoard?.layout === 'canvas') page.headerBoard.layout = 'classic';
+      else seedPageCanvas(page);
+      changed();
+      render({ keepScroll: true, scrollY: window.scrollY });
+    };
+
     return [
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
           h('h3', null, 'Page settings'),
           h('div', { class: 'list-tools' },
+            h('button', {
+              class: `btn small${canvasOn ? '' : ' primary'}`,
+              type: 'button',
+              onclick: toggleHeader,
+            }, canvasOn ? 'Form fields' : 'Edit on canvas'),
             h('button', { class: 'btn small', type: 'button', disabled: idx === 0, onclick: () => { move(content.pages, idx, idx - 1); changed(); render(); } }, '↑ Earlier in menu'),
             h('button', { class: 'btn small', type: 'button', disabled: idx === content.pages.length - 1, onclick: () => { move(content.pages, idx, idx + 1); changed(); render(); } }, '↓ Later in menu'),
             h('button', {
@@ -1261,6 +1503,12 @@
                 copy.slug = uniqueSlug(`${page.slug}-copy`);
                 copy.navLabel = `${page.navLabel} (copy)`;
                 copy.sections.forEach((s) => { s.id = `s-${rand()}`; });
+                if (copy.headerBoard && typeof copy.headerBoard === 'object') {
+                  copy.headerBoard.id = `s-${rand()}`;
+                  if (Array.isArray(copy.headerBoard.layers)) {
+                    copy.headerBoard.layers.forEach((layer) => { layer.id = `l-${rand()}`; });
+                  }
+                }
                 content.pages.splice(idx + 1, 0, copy);
                 changed();
                 go(`page:${copy.id}`);
@@ -1283,10 +1531,23 @@
             hint: 'Lowercase letters, numbers and dashes only.',
             onInput: updateViewLink,
           }),
-          checkField(page, 'showInNav', 'Show this page in the menu', { span: 4 }),
+          checkField(page, 'showInNav', 'Show this page in the menu', { span: 4 })),
+        canvasOn ? h('p', { class: 'hint', style: 'margin:12px 0' },
+          'The header is a canvas. Drag the light-blue highlight to change its length, and set its colour in the style panel. Form fields puts the original page header back after you save. The menu label and address above stay on the form.') : h('p', { class: 'hint', style: 'margin:12px 0' },
+          'This is the header visitors see. Auto-fit sizes the highlight to the title. Turn Auto-fit off to set a fixed length. Edit on canvas places the same header on a board.'),
+        canvasOn ? headerHost : fields(
           textField(page, 'title', 'Page title (big heading)', { span: 2 }),
           textField(page, 'subtitle', 'Subtitle', { span: 2, multiline: true, rows: 2 }),
-          imageField(page, 'heroImage', 'Header background image'))),
+          imageField(page, 'heroImage', 'Header background image'),
+          colorField(page, 'highlightColor', 'Highlight colour', { hint: 'Leave blank to use the site highlight colour.' }),
+          checkField(page, 'highlightAuto', 'Auto-fit', {
+            span: 2,
+            hint: 'Sizes the highlight line to the title. Turn off to set a length.',
+            onChange: () => render({ keepScroll: true, scrollY: window.scrollY }),
+          }),
+          page.highlightAuto === false
+            ? numField(page, 'highlightLength', 'Highlight length (px)', { span: 2, min: 8, max: 2000 })
+            : null)),
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
           h('h3', null, `Sections (${page.sections.length})`),
@@ -1388,7 +1649,7 @@
     const search = h('input', { type: 'search', placeholder: 'Filter by file name…', style: 'max-width:320px' });
     const grid = h('div', { class: 'media-grid' });
     const folderNav = h('nav', { class: 'media-folders', 'aria-label': 'Folders' });
-    const fileIn = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm', multiple: true, hidden: true });
+    const fileIn = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm,.woff,.woff2,.ttf,.otf', multiple: true, hidden: true });
     fileIn.addEventListener('change', async () => {
       const urls = await uploadFiles(fileIn.files);
       fileIn.value = '';
@@ -1461,7 +1722,7 @@
 
     const total = files.reduce((n, x) => n + x.size, 0);
     mount(container, 
-      h('p', { class: 'intro' }, `${files.length} files · ${formatSize(total)}. Folders follow the pages on your saved website: a file sits in the folder of every page that uses it. New uploads stay in "Unused" until you place them on a page.`),
+      h('p', { class: 'intro' }, `${files.length} files · ${formatSize(total)}. Folders follow the pages on your saved website. Fonts you upload sit in Fonts and show up in the style panel, each in its own typeface.`),
       zone,
       h('div', { class: 'media-layout' },
         folderNav,
@@ -1506,6 +1767,36 @@
         }, 'Restore this version'))));
   }
 
+  const LAYOUT_GROUPS = [
+    ['hero', 'Hero', 'Templates for a hero board.'],
+    ['page', 'Page settings', 'Templates for a page header.'],
+    ['section', 'Section', 'Templates for a building block.'],
+  ];
+
+  function blankTemplateSection(kind) {
+    const heading = kind === 'hero' ? 'Hero' : kind === 'page' ? 'Page header' : 'New section';
+    return {
+      id: `s-${rand()}`,
+      heading,
+      align: 'left',
+      text: '',
+      textAfter: '',
+      layout: 'canvas',
+      canvasHeight: kind === 'section' ? 640 : 774,
+      canvasBg: kind === 'section' ? '#FDFDFD' : '#617092',
+      canvasLock: kind !== 'section',
+      layers: [
+        window.CanvasEditor.defaultLayer('heading', {
+          name: 'Heading', text: heading, x: 80, y: 80, w: 900, h: 80, anim: 'up',
+        }),
+      ],
+      columns: 3,
+      aspect: 'square',
+      items: [],
+      buttons: [],
+    };
+  }
+
   async function viewLayouts(container) {
     mount(container, h('p', { class: 'muted' }, 'Loading…'));
     let layouts;
@@ -1516,6 +1807,17 @@
       return;
     }
 
+    let editing = null;
+    let editingBase = '';
+    let tplEditor = null;
+
+    const closeTplEditor = () => {
+      if (!tplEditor) return;
+      try { tplEditor.destroy(); tplEditor.destroyed = true; } catch (err) { /* already gone */ }
+      liveEditors.delete(tplEditor);
+      tplEditor = null;
+    };
+
     const fileIn = h('input', { type: 'file', accept: 'application/json', hidden: true });
     fileIn.addEventListener('change', async () => {
       const file = fileIn.files?.[0];
@@ -1525,7 +1827,8 @@
         const parsed = JSON.parse(await file.text());
         const section = parsed.section || parsed;
         const name = String(parsed.name || file.name.replace(/\.json$/i, '')).slice(0, 120);
-        await api('POST', '/api/layouts', { section, name, page: 'Imported' });
+        const kind = ['hero', 'page', 'section'].includes(parsed.kind) ? parsed.kind : 'section';
+        await api('POST', '/api/layouts', { section, name, kind, page: 'Imported' });
         toast(`Imported "${name}".`);
         viewLayouts(container);
       } catch (err) {
@@ -1533,56 +1836,164 @@
       }
     });
 
+    const templateDirty = () => editing && JSON.stringify({
+      name: editing.name, kind: editing.kind, section: editing.section,
+    }) !== editingBase;
+
     const draw = () => {
-      mount(container, 
+      closeTplEditor();
+      if (editing) {
+        const host = h('div', { class: 'canvas-host' });
+        const nameInput = h('input', { type: 'text', value: editing.name, 'aria-label': 'Template name' });
+        nameInput.addEventListener('input', () => { editing.name = nameInput.value; });
+        const kindSel = h('select', { 'aria-label': 'Template group' },
+          LAYOUT_GROUPS.map(([id, label]) => h('option', { value: id, selected: editing.kind === id }, label)));
+        kindSel.addEventListener('change', () => { editing.kind = kindSel.value; });
+        mount(container,
+          h('div', { class: 'list-tools', style: 'margin-bottom:12px' },
+            h('button', {
+              class: 'btn small', type: 'button',
+              onclick: () => {
+                if (templateDirty() && !confirm('Leave without saving this template?')) return;
+                editing = null;
+                draw();
+              },
+            }, 'Back to templates'),
+            h('button', {
+              class: 'btn small primary', type: 'button',
+              onclick: async () => {
+                const name = String(editing.name || '').trim();
+                if (!name) return toast('Give the template a name.', true);
+                try {
+                  const res = await api('PATCH', `/api/layouts/${encodeURIComponent(editing.id)}`, {
+                    name, kind: editing.kind, section: editing.section,
+                  });
+                  editing.name = name;
+                  editingBase = JSON.stringify({ name, kind: editing.kind, section: editing.section });
+                  const row = layouts.find((t) => t.id === editing.id);
+                  if (row) {
+                    row.name = name;
+                    row.kind = editing.kind;
+                    row.layers = (editing.section.layers || []).length;
+                    row.layout = editing.section.layout || 'canvas';
+                    row.savedAt = res.savedAt || row.savedAt;
+                  }
+                  toast(`Saved the template "${name}".`);
+                } catch (err) { toast(err.message, true); }
+              },
+            }, 'Save template')),
+          h('p', { class: 'hint', style: 'margin-bottom:12px' },
+            'This is the template. Saving here updates the template only. A page that already uses a copy keeps its own layers, and editing a building block on a page does not change this template.'),
+          h('div', { class: 'fields', style: 'margin-bottom:12px' },
+            h('div', { class: 'field span-2' }, h('label', { class: 'field-label' }, 'Template name'), nameInput),
+            h('div', { class: 'field span-2' }, h('label', { class: 'field-label' }, 'Group'), kindSel)),
+          host);
+        tplEditor = window.CanvasEditorUI.createLayoutEditor({
+          section: editing.section,
+          onChange: () => {},
+          onRequestImage: () => pickImage(),
+          onRequestFiles: (files) => uploadFiles(files),
+        });
+        tplEditor.destroyed = false;
+        liveEditors.add(tplEditor);
+        host.replaceChildren(tplEditor.element);
+        return;
+      }
+
+      mount(container,
         h('p', { class: 'intro' },
-          'Layouts you saved from a section. They are kept apart from your pages, so reusing one never changes the section it came from. Add one to any page with "Add section".'),
+          'Templates live here, apart from your pages. Edit a template on this page. Adding one to a page gives that page its own copy, so the template stays fixed while you edit building blocks.'),
         h('div', { class: 'list-tools', style: 'margin-bottom:14px' },
-          h('button', { class: 'btn small primary', type: 'button', onclick: () => fileIn.click() }, 'Import a layout file'),
+          h('button', { class: 'btn small', type: 'button', onclick: () => fileIn.click() }, 'Import a layout file'),
           fileIn),
-        layouts.length ? null : h('div', { class: 'card muted' }, 'Nothing saved yet. Open a section and click "Save this layout".'),
-        layouts.map((t) => h('div', { class: 'card', style: 'display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;margin-bottom:10px' },
-          h('span', null,
-            h('strong', null, t.name),
-            h('span', { class: 'muted small' },
-              `  ·  ${t.layers} layer${t.layers === 1 ? '' : 's'}${t.layout === 'canvas' ? '' : ` · ${t.layout}`}${t.page ? ` · from ${t.page}` : ''}  ·  ${new Date(t.savedAt).toLocaleDateString()}`)),
-          h('span', { class: 'group-btns' },
-            h('button', {
-              class: 'btn small', type: 'button',
-              onclick: async () => {
-                const name = prompt('Rename this layout:', t.name);
-                if (name == null || !name.trim()) return;
-                try {
-                  await api('PATCH', `/api/layouts/${encodeURIComponent(t.id)}`, { name: name.trim() });
-                  t.name = name.trim();
-                  draw();
-                } catch (err) { toast(err.message, true); }
-              },
-            }, 'Rename'),
-            h('button', {
-              class: 'btn small', type: 'button',
-              onclick: async () => {
-                try {
-                  const res = await api('POST', `/api/layouts/${encodeURIComponent(t.id)}/section`, { rename: false });
-                  const blob = new Blob([JSON.stringify({ name: t.name, section: res.section }, null, 2)], { type: 'application/json' });
-                  const a = h('a', { href: URL.createObjectURL(blob), download: `${t.name.replace(/[^\w-]+/g, '-').toLowerCase()}.json` });
-                  document.body.append(a);
-                  a.click();
-                  a.remove();
-                } catch (err) { toast(err.message, true); }
-              },
-            }, 'Export'),
-            h('button', {
-              class: 'btn small danger', type: 'button',
-              onclick: async () => {
-                if (!confirm(`Delete the saved layout "${t.name}"? Sections already on your pages are not affected.`)) return;
-                try {
-                  await api('DELETE', `/api/layouts/${encodeURIComponent(t.id)}`);
-                  layouts = layouts.filter((x) => x.id !== t.id);
-                  draw();
-                } catch (err) { toast(err.message, true); }
-              },
-            }, 'Delete')))));
+        LAYOUT_GROUPS.map(([kind, title, blurb]) => {
+          const rows = layouts.filter((t) => (t.kind || 'section') === kind);
+          return h('section', { class: 'card', style: 'margin-bottom:16px' },
+            h('div', { class: 'card-head' },
+              h('h3', null, title),
+              h('button', {
+                class: 'btn small primary', type: 'button',
+                onclick: async () => {
+                  const suggested = kind === 'hero' ? 'Hero' : kind === 'page' ? 'Page header' : 'New section';
+                  const name = prompt('Name this template:', suggested);
+                  if (name == null || !name.trim()) return;
+                  try {
+                    const created = await api('POST', '/api/layouts', {
+                      section: blankTemplateSection(kind), name: name.trim(), kind, page: '',
+                    });
+                    const full = await api('GET', `/api/layouts/${encodeURIComponent(created.id)}`);
+                    layouts.unshift({
+                      id: full.id, name: full.name, kind: full.kind || kind, page: full.page || '',
+                      savedAt: full.savedAt, layers: (full.section?.layers || []).length,
+                      layout: full.section?.layout || 'canvas',
+                    });
+                    editing = { id: full.id, name: full.name, kind: full.kind || kind, section: full.section };
+                    editingBase = JSON.stringify({ name: editing.name, kind: editing.kind, section: editing.section });
+                    draw();
+                  } catch (err) { toast(err.message, true); }
+                },
+              }, 'New template')),
+            h('p', { class: 'hint', style: 'margin-bottom:12px' }, blurb),
+            rows.length ? null : h('p', { class: 'muted' }, 'No templates in this group yet.'),
+            rows.map((t) => h('div', { class: 'card', style: 'display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;margin-bottom:10px' },
+              h('span', null,
+                h('strong', null, t.name),
+                h('span', { class: 'muted small' },
+                  `  ·  ${t.layers} layer${t.layers === 1 ? '' : 's'}${t.layout === 'canvas' ? '' : ` · ${t.layout}`}${t.page ? ` · from ${t.page}` : ''}  ·  ${new Date(t.savedAt).toLocaleDateString()}`)),
+              h('span', { class: 'group-btns' },
+                h('button', {
+                  class: 'btn small primary', type: 'button',
+                  onclick: async () => {
+                    try {
+                      const full = await api('GET', `/api/layouts/${encodeURIComponent(t.id)}`);
+                      editing = {
+                        id: full.id,
+                        name: full.name,
+                        kind: full.kind || 'section',
+                        section: full.section,
+                      };
+                      editingBase = JSON.stringify({ name: editing.name, kind: editing.kind, section: editing.section });
+                      draw();
+                    } catch (err) { toast(err.message, true); }
+                  },
+                }, 'Edit'),
+                h('button', {
+                  class: 'btn small', type: 'button',
+                  onclick: async () => {
+                    const name = prompt('Rename this layout:', t.name);
+                    if (name == null || !name.trim()) return;
+                    try {
+                      await api('PATCH', `/api/layouts/${encodeURIComponent(t.id)}`, { name: name.trim() });
+                      t.name = name.trim();
+                      draw();
+                    } catch (err) { toast(err.message, true); }
+                  },
+                }, 'Rename'),
+                h('button', {
+                  class: 'btn small', type: 'button',
+                  onclick: async () => {
+                    try {
+                      const res = await api('POST', `/api/layouts/${encodeURIComponent(t.id)}/section`, { rename: false });
+                      const blob = new Blob([JSON.stringify({ name: t.name, kind: t.kind || 'section', section: res.section }, null, 2)], { type: 'application/json' });
+                      const a = h('a', { href: URL.createObjectURL(blob), download: `${t.name.replace(/[^\w-]+/g, '-').toLowerCase()}.json` });
+                      document.body.append(a);
+                      a.click();
+                      a.remove();
+                    } catch (err) { toast(err.message, true); }
+                  },
+                }, 'Export'),
+                h('button', {
+                  class: 'btn small danger', type: 'button',
+                  onclick: async () => {
+                    if (!confirm(`Delete the saved layout "${t.name}"? Sections already on your pages are not affected.`)) return;
+                    try {
+                      await api('DELETE', `/api/layouts/${encodeURIComponent(t.id)}`);
+                      layouts = layouts.filter((x) => x.id !== t.id);
+                      draw();
+                    } catch (err) { toast(err.message, true); }
+                  },
+                }, 'Delete')))));
+        }));
     };
     draw();
   }
@@ -1691,6 +2102,7 @@
 
   async function startApp() {
     content = await api('GET', '/api/content');
+    await loadCustomFonts();
     savedJson = JSON.stringify(content);
     resetEditHistory();
     $('#login').hidden = true;

@@ -105,6 +105,22 @@
   width: 100%;
   height: 100%;
 }
+.layer-frame { display: block; width: 100%; height: 100%; overflow: hidden; }
+.layer-turn:has(.layer-subtitle) { display: flex; flex-direction: column; }
+.layer-turn:has(.layer-subtitle) .layer-frame,
+.layer-turn:has(.layer-subtitle) .layer-link { flex: 1; min-height: 0; }
+.layer-subtitle {
+  flex: none;
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.25;
+  color: var(--navy);
+  text-align: center;
+}
+
+.layer-free { position: absolute; inset: 0; }
+.layer-free-item { position: absolute; overflow: hidden; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.layer-free-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .layer-gallery {
   display: grid;

@@ -14,6 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <% if (fontsUrl) { %><link rel="stylesheet" href="<%= fontsUrl %>"><% } %>
+  <% if (customFontFaces) { %><style><%- customFontFaces %></style><% } %>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/canvas.css?v=hero-canvas">
   <style>

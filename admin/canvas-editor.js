@@ -303,10 +303,33 @@ window.CanvasEditorUI = (function () {
     }
     if (l.type === 'image') {
       if (!l.src) return [h('div', { class: 'cv-placeholder' }, 'No image yet')];
-      if (/\.(mp4|webm)(\?|$)/i.test(l.src)) return [h('video', { src: safeUrl(l.src), muted: true, playsinline: true, preload: 'metadata' })];
-      return [h('img', { src: safeUrl(l.src), alt: '', draggable: 'false' })];
+      const fit = ['cover', 'contain', 'fill'].includes(l.fit) ? l.fit : 'cover';
+      const mediaStyle = `border-radius:${Math.max(0, Number(l.radius) || 0)}px;object-fit:${fit}`;
+      const media = /\.(mp4|webm)(\?|$)/i.test(l.src)
+        ? h('video', { src: safeUrl(l.src), muted: true, playsinline: true, preload: 'metadata', style: mediaStyle })
+        : h('img', { src: safeUrl(l.src), alt: '', draggable: 'false', style: mediaStyle });
+      const sub = String(l.subtitle || '').trim();
+      if (!sub) return [media];
+      return [media, h('div', { class: 'cv-image-sub' }, sub)];
     }
     if (l.type === 'gallery') {
+      const images = l.images || [];
+      if (l.freeform) {
+        const board = h('div', { class: 'cv-free' });
+        if (!images.length) board.append(h('div', { class: 'cv-placeholder' }, 'No images yet'));
+        images.forEach((item, index) => {
+          const cell = h('div', {
+            class: 'cv-free-item',
+            'data-free': String(index),
+            style: `left:${Number(item.x) || 0}px;top:${Number(item.y) || 0}px;width:${Math.max(20, Number(item.w) || 80)}px;height:${Math.max(20, Number(item.h) || 80)}px`,
+          }, item.image
+            ? h('img', { src: safeUrl(item.image), alt: '', draggable: 'false', style: `object-fit:${l.fit || 'cover'}` })
+            : h('span', null, 'Empty'));
+          cell.append(h('span', { class: 'cv-free-resize', 'data-free': String(index), title: 'Drag to resize this image' }));
+          board.append(cell);
+        });
+        return [board];
+      }
       const cols = clamp(Number(l.columns) || 3, 1, 4);
       const gap = Number(l.gap) || 16;
       const natural = naturalGallery(l);
@@ -315,7 +338,6 @@ window.CanvasEditorUI = (function () {
         class: natural ? 'cv-gallery is-natural' : 'cv-gallery',
         style: `grid-template-columns:repeat(${cols},1fr);gap:${gap}px`,
       });
-      const images = l.images || [];
       if (!images.length) grid.append(h('div', { class: 'cv-placeholder' }, 'No images yet'));
       images.forEach((item) => {
         grid.append(item.image
@@ -418,6 +440,13 @@ window.CanvasEditorUI = (function () {
 
     const layers = () => (section.layers = section.layers || []);
     const boardHeight = () => Number(section.canvasHeight) || M.CANVAS_H;
+    const WIDTH_MIN = 480;
+    const WIDTH_MAX = 4000;
+    const boardWidth = () => {
+      const n = Number(section.canvasWidth);
+      if (!Number.isFinite(n) || n <= 0) return M.CANVAS_W;
+      return clamp(Math.round(n), WIDTH_MIN, WIDTH_MAX);
+    };
     const ordered = () => [...layers()].sort((a, b) => (Number(a.z) || 0) - (Number(b.z) || 0));
     const byId = (id) => layers().find((l) => l.id === id) || null;
     const selectedLayers = () => layers().filter((l) => selectedIds.has(l.id));
@@ -592,7 +621,43 @@ window.CanvasEditorUI = (function () {
     // Guides start hidden: they only show while a layer snaps to something.
     const guideX = h('div', { class: 'cv-guide cv-guide-v', hidden: true });
     const guideY = h('div', { class: 'cv-guide cv-guide-h', hidden: true });
-    const stage = h('div', { class: 'cv-stage' }, board, guideX, guideY);
+    const widthLeft = h('div', { class: 'cv-width-handle cv-width-left', title: 'Drag to change the page width' });
+    const widthRight = h('div', { class: 'cv-width-handle cv-width-right', title: 'Drag to change the page width' });
+    const stage = h('div', { class: 'cv-stage' }, board, guideX, guideY, widthLeft, widthRight);
+    const onWidthDown = (edge, e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startW = boardWidth();
+      const origin = layers().map((l) => ({ id: l.id, x: l.x }));
+      beginGesture();
+      const move = (ev) => {
+        const dx = (ev.clientX - startX) / scale();
+        const raw = edge === 'right' ? startW + dx : startW - dx;
+        const next = clamp(Math.round(raw), WIDTH_MIN, WIDTH_MAX);
+        section.canvasWidth = next;
+        if (edge === 'left') {
+          const shift = next - startW;
+          layers().forEach((l) => {
+            const was = origin.find((item) => item.id === l.id);
+            if (was) l.x = Math.round(was.x + shift);
+          });
+        }
+        onChange();
+        paintBoard();
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        endGesture();
+        paintInspector();
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    };
+    widthLeft.addEventListener('pointerdown', (e) => onWidthDown('left', e));
+    widthRight.addEventListener('pointerdown', (e) => onWidthDown('right', e));
     const viewport = h('div', { class: 'cv-viewport' }, stage);
     const zoomLabel = h('span', { class: 'cv-hint cv-zoomlabel' });
     const root = h('div', { class: 'cv', tabindex: '0' },
@@ -608,7 +673,7 @@ window.CanvasEditorUI = (function () {
     function fitScale() {
       const avail = viewport.clientWidth - 24 - 2;
       if (avail <= 0) return 1;
-      return clamp(Number((avail / M.CANVAS_W).toFixed(3)), 0.2, 1);
+      return clamp(Number((avail / boardWidth()).toFixed(3)), 0.2, 1);
     }
 
     const scale = () => fixedScale || fitScale();
@@ -634,6 +699,60 @@ window.CanvasEditorUI = (function () {
     }
 
     // ------------------------------------------------------------ selection
+
+    function cellBox(l, index) {
+      const cols = clamp(Number(l.columns) || 3, 1, 4);
+      const gap = Number(l.gap) || 0;
+      const count = Math.max(1, (l.images || []).length);
+      const rows = Math.max(1, Math.ceil(count / cols));
+      const cellW = Math.max(20, (Number(l.w) - gap * (cols - 1)) / cols);
+      const cellH = Math.max(20, (Number(l.h) - gap * (rows - 1)) / rows);
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+      return {
+        x: Math.round(col * (cellW + gap)),
+        y: Math.round(row * (cellH + gap)),
+        w: Math.round(cellW),
+        h: Math.round(cellH),
+      };
+    }
+
+    function layoutFreeform(l) {
+      (l.images || []).forEach((item, index) => {
+        const box = cellBox(l, index);
+        if (item.x == null) item.x = box.x;
+        if (item.y == null) item.y = box.y;
+        if (!item.w) item.w = box.w;
+        if (!item.h) item.h = box.h;
+      });
+    }
+
+    function separateGallery(l) {
+      const images = l.images || [];
+      if (!images.length) return;
+      record();
+      const list = layers();
+      const index = list.findIndex((item) => item.id === l.id);
+      if (index < 0) return;
+      const made = images.map((item, i) => {
+        const grid = cellBox(l, i);
+        return M.defaultLayer('image', {
+          name: item.caption || `Image ${i + 1}`,
+          src: item.image || '',
+          alt: item.caption || '',
+          link: item.link || '',
+          fit: l.fit || 'cover',
+          x: Math.round(l.x + (l.freeform ? (Number(item.x) || 0) : grid.x)),
+          y: Math.round(l.y + (l.freeform ? (Number(item.y) || 0) : grid.y)),
+          w: Math.max(20, Math.round(l.freeform ? (Number(item.w) || grid.w) : grid.w)),
+          h: Math.max(20, Math.round(l.freeform ? (Number(item.h) || grid.h) : grid.h)),
+        });
+      });
+      list.splice(index, 1, ...made);
+      applyOrder(ordered());
+      onChange();
+      selectOnly(made[0] ? made[0].id : null);
+    }
 
     function selectOnly(id) {
       selectedIds = new Set(id ? [id] : []);
@@ -756,6 +875,24 @@ window.CanvasEditorUI = (function () {
     function bringForward(id) { moveLayer(id, 1); }
     function sendBackward(id) { moveLayer(id, -1); }
 
+    // The list is drawn front to back. Dropping a row writes that order back
+    // onto z, so the board and the list stay in step.
+    function reorderFront(fromId, toId) {
+      if (!fromId || !toId || fromId === toId) return;
+      const front = ordered().slice().reverse();
+      const from = front.findIndex((l) => l.id === fromId);
+      const to = front.findIndex((l) => l.id === toId);
+      if (from < 0 || to < 0) return;
+      const [item] = front.splice(from, 1);
+      front.splice(to, 0, item);
+      applyOrder(front.slice().reverse());
+      record();
+      onChange();
+      paintBoard();
+      paintList();
+      paintInspector();
+    }
+
     // ------------------------------------------------------------- alignment
 
     // Everything works in board pixels. `bounds` is either the board or the
@@ -777,7 +914,7 @@ window.CanvasEditorUI = (function () {
       const useGroup = withOthers && targets.length > 1;
       const box = useGroup
         ? alignBox(targets)
-        : { x: 0, y: 0, w: M.CANVAS_W, h: boardHeight() };
+        : { x: 0, y: 0, w: boardWidth(), h: boardHeight() };
 
       switch (edge) {
         case 'left': targets.forEach((l) => { l.x = box.x; }); break;
@@ -821,7 +958,7 @@ window.CanvasEditorUI = (function () {
     // ------------------------------------------------------- snapping guides
 
     function showGuides(l, others) {
-      const vLines = [0, round(M.CANVAS_W / 2), M.CANVAS_W];
+      const vLines = [0, round(boardWidth() / 2), boardWidth()];
       const hLines = [0, round(boardHeight() / 2), boardHeight()];
       others.forEach((o) => {
         vLines.push(o.x, round(o.x + o.w / 2), round(o.x + o.w));
@@ -936,6 +1073,50 @@ window.CanvasEditorUI = (function () {
         paintList();
       });
       return field(label, input, true);
+    }
+
+    function fontChoices() {
+      const custom = (window.CanvasFonts || []).map((font) => [font.css, font.family]);
+      return [...M.FONTS, ...custom];
+    }
+
+    function fontField(l) {
+      const wrap = h('div', { class: 'cv-font-pick' });
+      const btn = h('button', { class: 'cv-font-btn', type: 'button' });
+      const menu = h('div', { class: 'cv-font-menu', hidden: true });
+      const choices = fontChoices();
+      const current = choices.find(([value]) => value === (l.font || ''));
+      btn.textContent = current ? current[1] : 'Choose a font';
+      if (current) btn.style.fontFamily = current[0];
+      choices.forEach(([value, text]) => {
+        const opt = h('button', {
+          class: `cv-font-opt${l.font === value ? ' is-on' : ''}`,
+          type: 'button',
+        }, text);
+        opt.style.fontFamily = value;
+        opt.addEventListener('click', (e) => {
+          e.stopPropagation();
+          record();
+          l.font = value;
+          onChange();
+          render();
+        });
+        menu.append(opt);
+      });
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const willOpen = menu.hidden;
+        document.querySelectorAll('.cv-font-menu').forEach((node) => { node.hidden = true; });
+        menu.hidden = !willOpen;
+      });
+      if (!window.__cvFontCloser) {
+        window.__cvFontCloser = true;
+        document.addEventListener('click', () => {
+          document.querySelectorAll('.cv-font-menu').forEach((node) => { node.hidden = true; });
+        });
+      }
+      wrap.append(btn, menu);
+      return field('Font', wrap);
     }
 
     function selectField(l, key, label, options, numeric) {
@@ -1134,6 +1315,7 @@ window.CanvasEditorUI = (function () {
     // correct is left alone, so a layer under the pointer is never torn down.
     function paintBoard() {
       const s = scale();
+      board.style.width = `${boardWidth()}px`;
       board.style.height = `${boardHeight()}px`;
       board.style.backgroundColor = section.canvasBg || '';
       const bgUrl = safeUrl(section.canvasImage || '');
@@ -1143,7 +1325,7 @@ window.CanvasEditorUI = (function () {
       board.style.backgroundRepeat = 'no-repeat';
       board.style.transform = `scale(${s})`;
       board.style.transformOrigin = 'top left';
-      stage.style.width = `${M.CANVAS_W * s}px`;
+      stage.style.width = `${boardWidth() * s}px`;
       stage.style.height = `${boardHeight() * s}px`;
       // Handles and guides are drawn inside the scaled board, so they carry the
       // inverse factor to stay a constant size on screen at any zoom.
@@ -1218,9 +1400,9 @@ window.CanvasEditorUI = (function () {
 
     function contentSignature(l) {
       if (l.type === 'heading' || l.type === 'text') return `${l.type}:${l.text}`;
-      if (l.type === 'image') return `image:${l.src}:${l.fit}`;
+      if (l.type === 'image') return `image:${l.src}:${l.fit}:${l.radius}:${l.subtitle || ''}`;
       if (l.type === 'gallery') {
-        return `gallery:${l.columns}:${l.gap}:${l.aspect}:${l.fit}:${(l.images || []).map((i) => i.image).join('|')}`;
+        return `gallery:${l.freeform ? 1 : 0}:${l.columns}:${l.gap}:${l.aspect}:${l.fit}:${(l.images || []).map((i) => i.image).join('|')}`;
       }
       if (l.type === 'button') return `button:${l.text}:${l.buttonStyle}:${l.color}:${l.bg}:${l.size}:${l.weight}:${l.font}`;
       if (l.type === 'shape') return `shape:${l.shape}:${l.shapePoints}:${l.bg}:${l.borderWidth}:${l.borderColor}:${l.radius}:${l.starInner}:${l.starCount}:${l.w}:${l.h}`;
@@ -1270,15 +1452,39 @@ window.CanvasEditorUI = (function () {
       paneLeft.replaceChildren(
         h('div', { class: 'cv-pane-head' },
           h('strong', null, `Layers (${layers().length})`),
-          h('span', { class: 'cv-hint' }, 'Top of the list is in front.')),
+          h('span', { class: 'cv-hint' }, 'Top of the list is in front. Drag ⋮⋮ to reorder.')),
         layers().length ? null : h('p', { class: 'cv-hint' }, 'No layers yet — use the buttons above the board.'),
-        h('ul', { class: 'cv-layers' }, list.map((l) => h('li', {
-          class: `cv-layer-row${selectedIds.has(l.id) ? ' selected' : ''}${l.hidden ? ' is-hidden' : ''}`,
-          onclick: (e) => {
-            if (e.shiftKey || e.ctrlKey || e.metaKey) toggleSelect(l.id); else selectOnly(l.id);
-          },
-        },
-          h('span', { class: 'cv-layer-icon' }, ICONS[l.type] || '•'),
+        h('ul', { class: 'cv-layers' }, list.map((l) => {
+          const row = h('li', {
+            class: `cv-layer-row${selectedIds.has(l.id) ? ' selected' : ''}${l.hidden ? ' is-hidden' : ''}`,
+            'data-id': l.id,
+            onclick: (e) => {
+              if (e.shiftKey || e.ctrlKey || e.metaKey) toggleSelect(l.id); else selectOnly(l.id);
+            },
+          });
+          const handle = h('span', { class: 'cv-drag', title: 'Drag to reorder' }, '⋮⋮');
+          handle.draggable = true;
+          handle.addEventListener('dragstart', (e) => {
+            e.stopPropagation();
+            e.dataTransfer.setData('text/plain', l.id);
+            e.dataTransfer.effectAllowed = 'move';
+            row.classList.add('is-dragging');
+          });
+          handle.addEventListener('dragend', () => row.classList.remove('is-dragging'));
+          row.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            row.classList.add('is-drop');
+          });
+          row.addEventListener('dragleave', () => row.classList.remove('is-drop'));
+          row.addEventListener('drop', (e) => {
+            e.preventDefault();
+            row.classList.remove('is-drop');
+            reorderFront(e.dataTransfer.getData('text/plain'), l.id);
+          });
+          row.append(
+            handle,
+            h('span', { class: 'cv-layer-icon' }, ICONS[l.type] || '•'),
           h('span', { class: 'cv-layer-name', title: l.name }, l.name || M.layerTypeLabel(l.type)),
           h('span', { class: 'cv-layer-tools' },
             h('button', { class: 'icon-btn', type: 'button', title: 'Move forward', onclick: (e) => { e.stopPropagation(); bringForward(l.id); } }, '↑'),
@@ -1286,15 +1492,55 @@ window.CanvasEditorUI = (function () {
             h('button', { class: 'icon-btn', type: 'button', title: l.hidden ? 'Show on the website' : 'Hide from the website', onclick: (e) => { e.stopPropagation(); l.hidden = !l.hidden; onChange(); render(); } }, l.hidden ? '◌' : '●'),
             h('button', { class: 'icon-btn', type: 'button', title: l.locked ? 'Unlock so it can be moved' : 'Lock in place', onclick: (e) => { e.stopPropagation(); l.locked = !l.locked; onChange(); render(); } }, l.locked ? '🔒' : '🔓'),
             h('button', { class: 'icon-btn', type: 'button', title: 'Duplicate this layer', onclick: (e) => { e.stopPropagation(); duplicateLayer(l.id); } }, '⧉'),
-            h('button', { class: 'icon-btn danger', type: 'button', title: 'Delete this layer', onclick: (e) => { e.stopPropagation(); removeLayer(l.id); } }, '✕'))))));
+            h('button', { class: 'icon-btn danger', type: 'button', title: 'Delete this layer', onclick: (e) => { e.stopPropagation(); removeLayer(l.id); } }, '✕')));
+          return row;
+        })));
     }
 
-    function moveButtonRow(ids) {
-      return h('div', { class: 'cv-btnrow' },
-        h('button', { class: 'btn small', type: 'button', onclick: () => { ids.forEach((id) => setZ(id, 'front')); } }, 'Bring to front'),
-        h('button', { class: 'btn small', type: 'button', onclick: () => { ids.forEach((id) => setZ(id, 'back')); } }, 'Send to back'),
-        h('button', { class: 'btn small', type: 'button', onclick: () => { ids.forEach((id) => moveLayer(id, -1)); } }, 'Forward'),
-        h('button', { class: 'btn small', type: 'button', onclick: () => { ids.forEach((id) => moveLayer(id, 1)); } }, 'Backward'));
+    function popupMenu(label, items) {
+      const wrap = h('div', { class: 'cv-pop' });
+      const btn = h('button', { class: 'btn small', type: 'button' }, label);
+      const menu = h('div', { class: 'cv-pop-menu', hidden: true });
+      items.filter(Boolean).forEach((item) => {
+        const choice = h('button', {
+          class: `cv-pop-item${item.danger ? ' danger' : ''}${item.on ? ' is-on' : ''}`,
+          type: 'button',
+        }, item.label);
+        choice.addEventListener('click', (e) => {
+          e.stopPropagation();
+          menu.hidden = true;
+          item.run();
+        });
+        menu.append(choice);
+      });
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const willOpen = menu.hidden;
+        document.querySelectorAll('.cv-pop-menu').forEach((node) => { node.hidden = true; });
+        if (!willOpen) return;
+        const rect = btn.getBoundingClientRect();
+        menu.hidden = false;
+        menu.style.left = `${rect.left}px`;
+        menu.style.top = `${rect.bottom + 4}px`;
+      });
+      if (!window.__cvPopCloser) {
+        window.__cvPopCloser = true;
+        document.addEventListener('click', () => {
+          document.querySelectorAll('.cv-pop-menu').forEach((node) => { node.hidden = true; });
+        });
+      }
+      wrap.append(btn, menu);
+      return wrap;
+    }
+
+    function layerMenu(ids, extra) {
+      return popupMenu('Layer', [
+        { label: 'Bring to front', run: () => { ids.forEach((id) => setZ(id, 'front')); } },
+        { label: 'Send to back', run: () => { ids.forEach((id) => setZ(id, 'back')); } },
+        { label: 'Forward', run: () => { ids.forEach((id) => bringForward(id)); } },
+        { label: 'Backward', run: () => { ids.forEach((id) => sendBackward(id)); } },
+        ...(extra || []),
+      ]);
     }
 
     // Alignment acts on the selection. With several layers selected the arrows
@@ -1359,7 +1605,19 @@ window.CanvasEditorUI = (function () {
         })()),
         colorField(section, 'canvasBg', 'Board background'),
         imageField(section, 'canvasImage', 'Background image'),
-        h('p', { class: 'cv-hint' }, 'A background image covers this board. On the website it also fills the width of the section, behind the layers. The board is 1425px wide and scales down on smaller screens.'),
+        field('Board width', (() => {
+          const input = h('input', { type: 'number', value: boardWidth(), min: WIDTH_MIN, max: WIDTH_MAX, step: 10 });
+          const apply = (value) => {
+            section.canvasWidth = clamp(roundToStep(value, 10), WIDTH_MIN, WIDTH_MAX);
+            input.value = String(section.canvasWidth);
+            onChange();
+            paintBoard();
+          };
+          input.addEventListener('change', () => { record(); apply(Number(input.value) || M.CANVAS_W); });
+          bindWheel(input, (dir) => { beginGesture(); apply(boardWidth() + dir * 10); });
+          return input;
+        })()),
+        h('p', { class: 'cv-hint' }, 'Drag the left or right edge of the board to change the page width. Height stays in the number above. On the website the board scales down to fit the screen.'),
       ];
 
       if (!l) {
@@ -1377,7 +1635,7 @@ window.CanvasEditorUI = (function () {
         h('span', { class: 'cv-hint' }, count > 1 ? '' : `${round(l.w)}×${round(boxHeight(l))}`))];
 
       if (count > 1) {
-        groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Selection'), moveButtonRow([...selectedIds])));
+        groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Selection'), layerMenu([...selectedIds])));
         groups.push(alignPanel(count));
         groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Board'), ...boardSettings));
         paneRight.replaceChildren(...groups);
@@ -1405,8 +1663,8 @@ window.CanvasEditorUI = (function () {
         h('p', { class: 'cv-hint' }, 'Drag the round handle above the layer to rotate it. Hold Shift to snap every 15°.'),
         isTextual(l) ? toggleField(l, 'hugging', 'Height follows the text') : null,
         isTextual(l) ? h('p', { class: 'cv-hint' }, 'Drag a corner to scale the text. Drag an edge to change the box without changing the type size.') : null,
-        isTextual(l) ? h('div', { class: 'cv-btnrow' },
-          h('button', { class: 'btn small', type: 'button', title: 'Shrink the box to fit the text', onclick: () => {
+        h('div', { class: 'cv-btnrow' },
+          isTextual(l) ? h('button', { class: 'btn small', type: 'button', title: 'Shrink the box to fit the text', onclick: () => {
             record();
             const el = elFor(l.id);
             const box = el && el.querySelector('.cv-layer-box');
@@ -1421,16 +1679,16 @@ window.CanvasEditorUI = (function () {
               l.h = measuredH;
             }
             onChange(); render();
-          } }, 'Auto-fit size'),
-          h('button', { class: `btn small${l.align === 'left' ? ' primary' : ''}`, type: 'button', title: 'Align text left', onclick: () => { record(); l.align = 'left'; onChange(); render(); } }, '⇤ Left'),
-          h('button', { class: `btn small${l.align === 'center' ? ' primary' : ''}`, type: 'button', title: 'Centre text', onclick: () => { record(); l.align = 'center'; onChange(); render(); } }, '⇹ Centre'),
-          h('button', { class: `btn small${l.align === 'right' ? ' primary' : ''}`, type: 'button', title: 'Align text right', onclick: () => { record(); l.align = 'right'; onChange(); render(); } }, '⇥ Right')
-        ) : null,
-        moveButtonRow([l.id]),
-        h('div', { class: 'cv-btnrow' },
-          h('button', { class: 'btn small', type: 'button', onclick: () => { l.x = 0; l.y = 0; onChange(); render(); } }, 'Top-left corner'),
-          h('button', { class: 'btn small', type: 'button', onclick: () => duplicateLayer(l.id) }, 'Duplicate layer'),
-          h('button', { class: 'btn small danger', type: 'button', onclick: () => removeLayer(l.id) }, 'Delete layer')));
+          } }, 'Auto-fit size') : null,
+          isTextual(l) ? popupMenu('Align', [
+            { label: 'Left', on: l.align === 'left', run: () => { record(); l.align = 'left'; onChange(); render(); } },
+            { label: 'Centre', on: l.align === 'center', run: () => { record(); l.align = 'center'; onChange(); render(); } },
+            { label: 'Right', on: l.align === 'right', run: () => { record(); l.align = 'right'; onChange(); render(); } },
+          ]) : null,
+          layerMenu([l.id], [
+            { label: 'Duplicate layer', run: () => duplicateLayer(l.id) },
+            { label: 'Delete layer', danger: true, run: () => removeLayer(l.id) },
+          ])));
       groups.push(pos);
       groups.push(alignPanel(1));
 
@@ -1447,6 +1705,7 @@ window.CanvasEditorUI = (function () {
         content.push(
           imageField(l, 'src', 'Image'),
           textField(l, 'alt', 'Description for screen readers'),
+          textField(l, 'subtitle', 'Subtitle under the image'),
           selectField(l, 'fit', 'How the image fills its box', M.FITS),
           numField(l, 'radius', 'Rounded corners', 0, 200));
       }
@@ -1460,6 +1719,22 @@ window.CanvasEditorUI = (function () {
           content.push(h('p', { class: 'cv-hint' }, 'Original shape locks every image to its own proportions. The height of the group follows the pictures, so they are not cropped.'));
         }
         content.push(galleryField(l));
+        content.push((() => {
+          const box = h('input', { type: 'checkbox', checked: Boolean(l.freeform) });
+          box.addEventListener('change', () => {
+            record();
+            l.freeform = box.checked;
+            if (l.freeform) layoutFreeform(l);
+            onChange();
+            render();
+          });
+          return h('label', { class: 'cv-check' }, box, 'Freeform layout');
+        })());
+        content.push(h('p', { class: 'cv-hint' }, 'Freeform lets you drag each image inside the group, and drag its corner to resize it. Turning it on starts from the current grid.'));
+        content.push(h('button', {
+          class: 'btn small', type: 'button',
+          onclick: () => separateGallery(l),
+        }, 'Separate into images'));
       }
       if (l.type === 'shape') {
         const shapeSel = h('select', null, [
@@ -1492,7 +1767,7 @@ window.CanvasEditorUI = (function () {
       const style = [];
       if (isTextual(l) || l.type === 'button') {
         style.push(
-          selectField(l, 'font', 'Font', M.FONTS),
+          fontField(l),
           h('div', { class: 'cv-grid2' },
             numField(l, 'size', 'Text size', 8, 200),
             numField(l, 'weight', 'Weight (400 normal, 700 bold)', 100, 900, 100),
@@ -1515,6 +1790,10 @@ window.CanvasEditorUI = (function () {
         numField(l, 'radius', 'Rounded corners', 0, 300),
         numField(l, 'borderWidth', 'Border width', 0, 40)));
       if (l.type !== 'text' && l.type !== 'heading') style.push(colorField(l, 'borderColor', 'Border colour'));
+      if (l.type === 'shape') {
+        style.push(toggleField(l, 'radiusLock', 'Lock radius'));
+        style.push(h('p', { class: 'cv-hint' }, 'Lock radius keeps the corner roundness in proportion while you drag a resize handle.'));
+      }
       groups.push(h('div', { class: 'cv-group' }, h('h4', null, 'Style'), ...style.filter(Boolean)));
 
       groups.push(h('div', { class: 'cv-group' },
@@ -1562,6 +1841,39 @@ window.CanvasEditorUI = (function () {
       else if (!selectedIds.has(layer.id)) selectOnly(layer.id);
 
       if (layer.locked) return;
+      const freeResize = e.target.closest('.cv-free-resize');
+      const freeItem = freeResize ? null : e.target.closest('.cv-free-item');
+      if ((freeResize || freeItem) && layer.type === 'gallery' && layer.freeform) {
+        const index = Number((freeResize || freeItem).dataset.free);
+        const item = (layer.images || [])[index];
+        if (item) {
+          if (!selectedIds.has(layer.id)) selectOnly(layer.id);
+          beginGesture();
+          const live = elFor(layer.id);
+          dragging = {
+            lead: layer,
+            el: live,
+            mode: freeResize ? 'free-resize' : 'free',
+            freeIndex: index,
+            dir: null,
+            startX: e.clientX,
+            startY: e.clientY,
+            startAngle: 0,
+            origin: {
+              x: Number(item.x) || 0,
+              y: Number(item.y) || 0,
+              w: Number(item.w) || 80,
+              h: Number(item.h) || 80,
+            },
+            items: [],
+          };
+          live?.classList.add('dragging');
+          e.preventDefault();
+          window.addEventListener('pointermove', onPointerMove);
+          window.addEventListener('pointerup', onPointerUp);
+          return;
+        }
+      }
       // Selection repainted the board, so look the element up again before
       // keeping a reference to it.
       const el = elFor(layer.id);
@@ -1612,6 +1924,7 @@ window.CanvasEditorUI = (function () {
           l, x: l.x, y: l.y, w: l.w, h: l.h,
           size: Number(l.size) || 0,
           rotate: Number(l.rotate) || 0,
+          radius: Number(l.radius) || 0,
         })),
       };
       if (mode === 'rotate') {
@@ -1637,6 +1950,30 @@ window.CanvasEditorUI = (function () {
       const rawDy = (e.clientY - dragging.startY) / s;
       const snap = e.shiftKey;
       const lead = dragging.items.find((item) => item.l === dragging.lead) || dragging.items[0];
+
+      if (dragging.mode === 'free' || dragging.mode === 'free-resize') {
+        const item = (dragging.lead.images || [])[dragging.freeIndex];
+        if (item) {
+          const dx = (e.clientX - dragging.startX) / s;
+          const dy = (e.clientY - dragging.startY) / s;
+          if (dragging.mode === 'free') {
+            item.x = Math.round(dragging.origin.x + dx);
+            item.y = Math.round(dragging.origin.y + dy);
+          } else {
+            item.w = Math.max(20, Math.round(dragging.origin.w + dx));
+            item.h = Math.max(20, Math.round(dragging.origin.h + dy));
+          }
+          const node = dragging.el?.querySelector(`.cv-free-item[data-free="${dragging.freeIndex}"]`);
+          if (node) {
+            node.style.left = `${item.x}px`;
+            node.style.top = `${item.y}px`;
+            node.style.width = `${item.w}px`;
+            node.style.height = `${item.h}px`;
+          }
+        }
+        onChange();
+        return;
+      }
 
       if (dragging.mode === 'point') {
         const l = dragging.lead;
@@ -1727,6 +2064,11 @@ window.CanvasEditorUI = (function () {
           w = clamp(round(w), 20, 6000);
           h = clamp(round(h), 2, 4000);
           placeFromAnchor(l, lead, dir, w, h);
+        }
+        if (l.type === 'shape' && l.radiusLock) {
+          const sx = l.w / Math.max(lead.w, 1);
+          const sy = (Number(l.h) || 0) / Math.max(lead.h, 1);
+          l.radius = clamp(Math.round((Number(lead.radius) || 0) * Math.min(sx, sy)), 0, 500);
         }
       } else {
         // Move the lead layer to where the pointer is, let it snap to guides,

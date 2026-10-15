@@ -44,7 +44,6 @@ window.CanvasEditor = (function () {
   ];
 
   const FONTS = [
-    ['', 'Same as the rest of the site'],
     ['var(--font-display)', 'Display (Krona One)'],
     ['var(--font-serif)', 'Serif (Playfair)'],
     ['var(--font-body)', 'Body (Zen Kaku)'],

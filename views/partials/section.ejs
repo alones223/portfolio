@@ -9,6 +9,7 @@
   const __canvas = (__s.layout || 'gallery') === 'canvas';
   const __layers = (__s.layers || []).filter(l => l && l.hidden !== true);
   const __h = Number(__s.canvasHeight) > 0 ? Math.min(Math.max(Number(__s.canvasHeight), 200), 4000) : 720;
+  const __w = Number(__s.canvasWidth) > 0 ? Math.min(4000, Math.max(480, Math.round(Number(__s.canvasWidth)))) : 1425;
   // safeColor() only lets plain CSS colours through, so a stray value can never
   // break out of the style attribute on the board below.
   const __colours = [esc(safeColor(__s.canvasBg) || 'transparent')];
@@ -16,7 +17,7 @@
 %>
 <% if (__canvas) { %>
   <section class="content-section layout-canvas<%= __s.canvasLock ? ' canvas-lock' : '' %>"
-    style="--canvas-h: <%= __h %>; --canvas-bg: <%= __colours[0] %><% if (__img) { %>; --canvas-image: url('<%= __img %>')<% } %>"
+    style="--canvas-h: <%= __h %>; --canvas-w: <%= __w %>; --canvas-bg: <%= __colours[0] %><% if (__img) { %>; --canvas-image: url('<%= __img %>')<% } %>"
     <% if (__s.heading) { %>aria-label="<%= __s.heading %>"<% } %>>
     <div class="canvas-board">
       <% __layers.forEach(function (l) {
@@ -39,14 +40,37 @@
             <div class="layer-text" style="<%= style %>"><%- paragraphs(l.text) %></div>
           <% } else if (l.type === 'image') { %>
             <% if (l.src) { %>
+              <% const __rad = Math.min(Math.max(Number(l.radius) || 0, 0), 500); %>
               <% if (l.link) { %><a href="<%= safeUrl(l.link) %>"<% if (isExternal(l.link)) { %> target="_blank" rel="noopener"<% } %> class="layer-link"><% } %>
+              <span class="layer-frame" style="border-radius:<%= __rad %>px">
               <% if (/\.(mp4|webm)(\?|$)/i.test(l.src)) { %>
-                <video class="layer-media" src="<%= safeUrl(l.src) %>" muted loop playsinline controls style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>"></video>
+                <video class="layer-media" src="<%= safeUrl(l.src) %>" muted loop playsinline controls style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>;border-radius:<%= __rad %>px"></video>
               <% } else { %>
-                <img class="layer-media" src="<%= safeUrl(l.src) %>" alt="<%= l.alt || '' %>" loading="lazy" style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>">
+                <img class="layer-media" src="<%= safeUrl(l.src) %>" alt="<%= l.alt || '' %>" loading="lazy" style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>;border-radius:<%= __rad %>px">
               <% } %>
+              </span>
+              <% if (l.subtitle) { %><span class="layer-subtitle"><%= l.subtitle %></span><% } %>
               <% if (l.link) { %></a><% } %>
             <% } %>
+          <% } else if (l.type === 'gallery' && l.freeform) { %>
+            <div class="layer-free">
+              <% (l.images || []).forEach(function (item, i) {
+                   const fx = Math.round(Number(item.x) || 0);
+                   const fy = Math.round(Number(item.y) || 0);
+                   const fw = Math.max(10, Math.round(Number(item.w) || 80));
+                   const fh = Math.max(10, Math.round(Number(item.h) || 80));
+              %>
+                <button class="zoom gallery-tile layer-free-item" type="button"
+                        style="left:<%= fx %>px;top:<%= fy %>px;width:<%= fw %>px;height:<%= fh %>px"
+                        data-full="<%= safeUrl(item.image) %>"
+                        data-caption="<%= item.caption || '' %>"
+                        data-link="<%= safeUrl(item.link) %>"
+                        aria-label="<%= item.caption || 'Enlarge image' %>">
+                  <img src="<%= safeUrl(item.image) %>" alt="<%= item.caption || '' %>" loading="lazy"
+                       style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>">
+                </button>
+              <% }) %>
+            </div>
           <% } else if (l.type === 'gallery') { %>
             <% const imgs = (l.images || []);
                const galAspect = String(l.aspect || 'natural');
@@ -98,7 +122,7 @@
     const aspect = __s.aspect || 'natural';
     const cols = Math.min(Math.max(Number(__s.columns) || 3, 1), 4);
   %>
-  <section class="content-section align-<%= __s.align || 'left' %> layout-<%= __s.layout || 'gallery' %>">
+  <section class="content-section align-<%= __s.align || 'left' %> layout-<%= __s.layout || 'gallery' %>"<% if (safeColor(__s.bg)) { %> style="background:<%= esc(safeColor(__s.bg)) %>"<% } %>>
     <% if (__s.heading) { %><h2 class="section-heading reveal"><%- lines(__s.heading) %></h2><% } %>
     <% if (__s.text) { %><div class="section-text reveal"><%- paragraphs(__s.text) %></div><% } %>
 
