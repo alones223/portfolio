@@ -947,9 +947,9 @@
     });
   }
 
-  // Hero and Works share one card: the canvas board, or the original fields.
-  // When `modes` is set, the card uses the same Layout menu as a section.
-  function homeCanvasCard({ title, block, seed, hint, classic, extra }) {
+  // Hero uses this card. When the board is open it has the same layout actions
+  // as a section: apply a saved layout, save this one, and copy it as a section.
+  function homeCanvasCard({ title, block, seed, hint, classic, extra, sections, layoutPage, layoutKind, layoutName }) {
     const canvasOn = block.layout === 'canvas';
     const host = h('div', { class: 'canvas-host' });
     if (canvasOn) attachCanvasEditor(block, host);
@@ -958,6 +958,44 @@
       changed();
       render({ keepScroll: true, scrollY: window.scrollY });
     };
+    const rerender = () => render({ keepScroll: true, scrollY: window.scrollY });
+    const layoutButtons = h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
+      h('button', {
+        class: 'btn small', type: 'button',
+        onclick: async () => {
+          try {
+            const id = await applySavedLayout(block);
+            if (!id) return;
+            block.layout = 'canvas';
+            changed();
+            rerender();
+            toast('Applied a copy of that layout. The template itself is unchanged.');
+          } catch (err) { toast(err.message, true); }
+        },
+      }, 'Apply a saved layout'),
+      h('button', {
+        class: 'btn small', type: 'button',
+        onclick: () => {
+          const payload = clone(block);
+          payload.layout = 'canvas';
+          saveSectionLayout(payload, layoutPage || 'Home', {
+            suggested: layoutName || block.heading || title || 'Hero',
+            kind: layoutKind || 'hero',
+          });
+        },
+      }, 'Save this layout'),
+      sections ? h('button', {
+        class: 'btn small', type: 'button',
+        onclick: async () => {
+          const copy = await copySectionOnServer(block);
+          copy.layout = 'canvas';
+          sections.push(copy);
+          setPanelOpen(copy, true);
+          changed();
+          rerender();
+          toast('Copied the hero as a new section under the hero.');
+        },
+      }, 'Copy as a new section') : null);
     return h('section', { class: 'card' },
       h('div', { class: 'card-head' },
         h('h3', null, title),
@@ -968,6 +1006,7 @@
         }, 'Edit on canvas')),
       h('p', { class: 'hint', style: 'margin-bottom:12px' }, hint),
       canvasOn ? host : null,
+      layoutButtons,
       canvasOn ? h('p', { class: 'hint', style: 'margin-top:10px' },
         'Drag a layer in any direction. Arrow keys nudge it. Drag a corner to resize it, and the round handle above it to rotate it. The light-blue highlight is its own layer under the title. Choose the water photo under Board → Background image when nothing is selected.') : null,
       !canvasOn && classic ? classic() : null,
@@ -1018,6 +1057,10 @@
           textField(home.hero, 'tagline', 'Tagline', { span: 2 }),
           textField(home.hero, 'bigWord', 'Big colored word at the bottom', { span: 2 })),
         extra: fields(textField(home, 'seoTitle', 'Browser tab title for this page', { span: 2 })),
+        sections: home.sections,
+        layoutPage: 'Home',
+        layoutKind: 'hero',
+        layoutName: 'Hero',
       }),
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
