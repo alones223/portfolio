@@ -525,6 +525,12 @@ function normLayer(rawLayer, index) {
     y: Number.isFinite(Number(rawLayer?.y)) ? Number(rawLayer.y) : 60 + index * 16,
     z: Number.isFinite(Number(rawLayer?.z)) ? Number(rawLayer.z) : index + 1,
   });
+  if (type === 'paragraph' || (type === 'text' && rawLayer?.paragraph === true)) {
+    out.type = 'text';
+    out.paragraph = true;
+  } else if (out.type === 'text') {
+    delete out.paragraph;
+  }
   if (type === 'gallery') {
     out.images = Array.isArray(rawLayer?.images) ? rawLayer.images.map(normCell) : [];
   }

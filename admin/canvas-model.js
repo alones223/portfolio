@@ -22,7 +22,6 @@ window.CanvasEditor = (function () {
   const LAYER_TYPES = [
     ['heading', 'Heading'],
     ['text', 'Text'],
-    ['paragraph', 'Paragraph'],
     ['image', 'Image'],
     ['gallery', 'Image group'],
     ['group', 'Group'],
@@ -66,11 +65,14 @@ window.CanvasEditor = (function () {
   const seal = (text) => ({ __html: String(text), __id: `h${++sealCounter}` });
 
   function layerTypeLabel(type) {
+    if (type === 'paragraph') return 'Text';
     const found = LAYER_TYPES.find(([v]) => v === type);
     return found ? found[1] : 'Layer';
   }
 
   function defaultLayer(type, patch) {
+    const asParagraph = type === 'paragraph';
+    if (asParagraph) type = 'text';
     const base = {
       id: `l-${Math.random().toString(36).slice(2, 9)}`,
       type,
@@ -112,8 +114,9 @@ window.CanvasEditor = (function () {
       newTab: true,
     };
     if (type === 'heading') Object.assign(base, { text: 'New heading', size: 46, weight: 700, anim: 'up', color: '' });
-    if (type === 'text') Object.assign(base, { text: 'Write something here.', size: 18, weight: 400, w: 560, h: 160, anim: 'fade', hugging: false });
-    if (type === 'paragraph') Object.assign(base, {
+    if (type === 'text') Object.assign(base, { text: 'Write something here.', size: 18, weight: 400, w: 560, h: 160, anim: 'fade', hugging: false, paragraph: false });
+    if (asParagraph) Object.assign(base, {
+      paragraph: true,
       text: 'This is a paragraph. The words wrap inside the box.\n\nLeave a blank line to start the next paragraph.',
       size: 18, weight: 400, w: 480, h: 180, lineHeight: 1.55,
       font: 'var(--font-body)', color: '#4F5E75', align: 'left',

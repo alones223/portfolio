@@ -89,6 +89,8 @@ window.CanvasEditorUI = (function () {
     return n ? `;transform:rotate(${n}deg);transform-origin:center center` : '';
   }
   const isTextual = (l) => l.type === 'heading' || l.type === 'text' || l.type === 'paragraph';
+  // Paragraph is a setting on a text layer. Older boards still store it as its own type.
+  const isParagraph = (l) => Boolean(l) && (l.type === 'paragraph' || (l.type === 'text' && l.paragraph === true));
   // Original shape means each picture keeps its own proportions. The group
   // grows with those pictures instead of cropping them into the layer box.
   const naturalGallery = (l) => l.type === 'gallery' && (!l.aspect || l.aspect === 'natural');
@@ -299,7 +301,7 @@ window.CanvasEditorUI = (function () {
     if (l.type === 'heading' || l.type === 'text' || l.type === 'paragraph') {
       const text = String(l.text ?? '');
       if (!text.trim()) return [h('div', { class: 'cv-placeholder' }, l.type === 'heading' ? 'Empty heading' : 'Empty text box')];
-      if (l.type !== 'paragraph') return text.split('\n').map((line) => h('div', null, line || '\u00a0'));
+      if (!isParagraph(l)) return text.split('\n').map((line) => h('div', null, line || '\u00a0'));
       return text.split(/\n\s*\n/).map((block) => {
         const p = h('p', { class: 'cv-paragraph' });
         block.split('\n').forEach((line, i) => {
@@ -385,9 +387,10 @@ window.CanvasEditorUI = (function () {
     const el = h('div', {
       class: `cv-layer cv-t-${l.type}${l.hidden ? ' is-hidden' : ''}${l.locked ? ' is-locked' : ''}`,
       'data-id': l.id,
-      style: `left:${l.x}px;top:${l.y}px;width:${l.w}px;z-index:${Number(l.z) || 0}${(isTextual(l) && l.hugging && l.type !== 'paragraph') || (naturalGallery(l) && !l.freeform) ? '' : `;height:${l.h}`}${layerTurn(l)}`,
+      style: `left:${l.x}px;top:${l.y}px;width:${l.w}px;z-index:${Number(l.z) || 0}${(isTextual(l) && l.hugging && !isParagraph(l)) || (naturalGallery(l) && !l.freeform) ? '' : `;height:${l.h}`}${layerTurn(l)}`,
     });
-    if (isTextual(l) && l.hugging && l.type !== 'paragraph') el.classList.add('cv-hug');
+    if (isParagraph(l)) el.classList.add('is-paragraph');
+    if (isTextual(l) && l.hugging && !isParagraph(l)) el.classList.add('cv-hug');
     if (l.type === 'gallery' && l.freeform) el.classList.add('cv-freeform');
     const box = h('div', { class: 'cv-layer-box', style: layerStyle(l) }, ...drawLayerContent(l));
     el.append(box);
@@ -978,6 +981,14 @@ window.CanvasEditorUI = (function () {
     // Shrink a text box to its words. Used while Auto-fit stays on.
     function applyAutoFit(l) {
       if (!l || l.autoFit !== true) return;
+      if (isParagraph(l)) {
+        l.hugging = true;
+        const el = elFor(l.id);
+        const box = el && el.querySelector('.cv-layer-box');
+        if (el && box) fitParagraphHeight(el, box, l);
+        paintBoard();
+        return;
+      }
       if (isTextual(l) || l.type === 'button') fitTextBox(l);
       if (l.type === 'image') {
         l.fit = 'contain';
@@ -986,7 +997,7 @@ window.CanvasEditorUI = (function () {
     }
 
     function fitTextBox(l) {
-      if (!l || l.autoFit !== true || !(isTextual(l) || l.type === 'button')) return;
+      if (!l || l.autoFit !== true || isParagraph(l) || !(isTextual(l) || l.type === 'button')) return;
       const el = elFor(l.id);
       const box = el && el.querySelector('.cv-layer-box');
       if (!box) return;
@@ -1707,10 +1718,11 @@ window.CanvasEditorUI = (function () {
         const groupResize = dragging && dragging.mode === 'resize' && dragging.lead === l;
         if (l.type === 'gallery' && l.freeform && !groupResize) syncFreeformBox(l);
         const size = `left:${l.x}px;top:${l.y}px;width:${l.w}px;z-index:${Number(l.z) || 0}`;
-        const followWords = isTextual(l) && l.hugging && l.type !== 'paragraph';
+        const followWords = isTextual(l) && l.hugging && !isParagraph(l);
         const lockHeight = (followWords || naturalGallery(l)) && !(l.type === 'gallery' && l.freeform);
         el.style.cssText = lockHeight ? `${size}${layerTurn(l)}` : `${size};height:${l.h}px${layerTurn(l)}`;
         el.classList.toggle('cv-hug', followWords);
+        el.classList.toggle('is-paragraph', isParagraph(l));
         el.classList.toggle('cv-natural-gallery', naturalGallery(l));
         const box = el.querySelector('.cv-layer-box');
         if (box) {
@@ -1733,7 +1745,7 @@ window.CanvasEditorUI = (function () {
             node.style.height = `${Math.max(20, Math.round(Number(item.h) || 80))}px`;
           });
         }
-        if (l.type === 'paragraph' && l.hugging !== false && box) fitParagraphHeight(el, box, l);
+        if (isParagraph(l) && l.hugging !== false && box) fitParagraphHeight(el, box, l);
         syncImageCaption(el, l);
         const divider = el.querySelector('.cv-divider-fill');
         if (divider) divider.style.background = l.color || '#0A192F';
@@ -1742,9 +1754,11 @@ window.CanvasEditorUI = (function () {
           const corner = ['nw', 'ne', 'se', 'sw'].includes(handle.dataset.resize);
           handle.title = naturalGallery(l)
             ? 'Drag to change the width. Height stays locked to the original image shape.'
-            : (isTextual(l) && corner
-              ? 'Drag to scale the text'
-              : (l.type === 'shape' ? 'Drag to resize. Hold Shift for a square.' : 'Drag to resize'));
+            : (isParagraph(l) && (handle.dataset.resize === 'e' || handle.dataset.resize === 'w')
+              ? 'Drag to change how wide the lines run.'
+              : (isTextual(l) && corner
+                ? 'Drag to scale the text'
+                : (l.type === 'shape' ? 'Drag to resize. Hold Shift for a square.' : 'Drag to resize')));
         });
       });
       // Anything left over is a deleted layer.
@@ -1818,7 +1832,7 @@ window.CanvasEditorUI = (function () {
     }
 
     function contentSignature(l) {
-      if (l.type === 'heading' || l.type === 'text' || l.type === 'paragraph') return `${l.type}:${l.text}`;
+      if (l.type === 'heading' || l.type === 'text' || l.type === 'paragraph') return `${isParagraph(l) ? 'paragraph' : l.type}:${l.text}`;
       if (l.type === 'image') return `image:${l.src}:${l.fit}:${l.radius}:${l.subtitle || ''}:${l.subtitleAlign || ''}`;
       if (l.type === 'gallery') {
         return `gallery:${l.freeform ? 1 : 0}:${l.columns}:${l.gap}:${l.aspect}:${l.fit}:${(l.images || []).map((i) => i.image).join('|')}`;
@@ -1851,7 +1865,6 @@ window.CanvasEditorUI = (function () {
           h('button', { class: 'btn small', type: 'button', title: 'Redo (Ctrl + Y)', disabled: !(opts.canRedo ? opts.canRedo() : canRedo()), onclick: () => (opts.onRedo ? opts.onRedo() : redo()) }, '↷ Redo'),
           addSel,
           h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('text') }, '+ Text'),
-          h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('paragraph') }, '+ Paragraph'),
           h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('image') }, '+ Image'),
           h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('gallery') }, '+ Image group'),
           h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('button') }, '+ Button')),
@@ -2272,9 +2285,25 @@ window.CanvasEditorUI = (function () {
       }
 
       const content = [];
-      if (isTextual(l)) content.push(areaField(l, 'text', l.type === 'paragraph' ? 'Paragraph' : 'Text', l.type === 'heading' ? 2 : l.type === 'paragraph' ? 6 : 5), h('p', { class: 'cv-hint' }, l.type === 'paragraph'
-        ? 'The words wrap inside the box. A blank line starts a new paragraph. Drag the left or right edge to change how wide the lines run.'
-        : 'Enter makes a new line; a blank line starts a new paragraph. Double-click the name in the layer list to rename the layer.'));
+      if (isTextual(l)) {
+        content.push(areaField(l, 'text', l.type === 'heading' ? 'Heading' : 'Text', l.type === 'heading' ? 2 : isParagraph(l) ? 6 : 5));
+        if (l.type === 'text' || l.type === 'paragraph') {
+          const box = h('input', { type: 'checkbox', checked: isParagraph(l) });
+          box.addEventListener('change', () => {
+            record();
+            if (l.type === 'paragraph') l.type = 'text';
+            l.paragraph = box.checked;
+            if (box.checked) l.hugging = true;
+            onChange();
+            render();
+            if (!box.checked && l.autoFit === true) fitTextBox(l);
+          });
+          content.push(h('label', { class: 'cv-check' }, box, 'Paragraph'));
+        }
+        content.push(h('p', { class: 'cv-hint' }, isParagraph(l)
+          ? 'The words wrap inside the box. A blank line starts a new paragraph. Drag the left or right edge to change how wide the lines run.'
+          : 'Enter makes a new line. Double-click the name in the layer list to rename the layer.'));
+      }
       if (l.type === 'button') {
         content.push(
           textField(l, 'text', 'Button label'),
@@ -2791,6 +2820,13 @@ window.CanvasEditorUI = (function () {
           if (snap) w = round(w / M.GRID) * M.GRID;
           w = clamp(round(w), 20, 6000);
           placeFromAnchor(l, lead, dir, w, lead.h);
+        } else if (isParagraph(l) && (dir === 'e' || dir === 'w')) {
+          // The side handles set how wide the lines run. Height follows the words.
+          if (snap) w = round(w / M.GRID) * M.GRID;
+          w = clamp(round(w), 20, 6000);
+          placeFromAnchor(l, lead, dir, w, lead.h);
+          l.autoFit = false;
+          l.hugging = true;
         } else if (e.shiftKey && l.type === 'shape') {
           // Shift locks every shape to a square. Side handles follow the axis
           // being dragged; corners follow whichever axis moved further.
@@ -2819,8 +2855,10 @@ window.CanvasEditorUI = (function () {
           h = clamp(round(h), 2, 4000);
           placeFromAnchor(l, lead, dir, w, h);
         }
-        l.autoFit = false;
-        l.hugging = false;
+        if (!(isParagraph(l) && (dir === 'e' || dir === 'w'))) {
+          l.autoFit = false;
+          l.hugging = false;
+        }
         if (l.type === 'shape' && l.radiusLock) {
           const sx = l.w / Math.max(lead.w, 1);
           const sy = (Number(l.h) || 0) / Math.max(lead.h, 1);

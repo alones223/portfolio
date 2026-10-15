@@ -463,8 +463,14 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .cv-resize-w  { left: -6px; top: 50%; margin-top: -5.5px; cursor: ew-resize; transform-origin: right center; }
 /* While the box height follows the words, only the corners are offered.
    A corner drag turns that off and scales the text. */
+.cv-layer.is-paragraph .cv-paragraph,
 .cv-layer.cv-t-paragraph .cv-paragraph { margin: 0; }
+.cv-layer.is-paragraph .cv-paragraph + .cv-paragraph,
 .cv-layer.cv-t-paragraph .cv-paragraph + .cv-paragraph { margin-top: 0.85em; }
+.cv-layer.is-paragraph .cv-resize-n,
+.cv-layer.is-paragraph .cv-resize-s,
+.cv-layer.cv-t-paragraph .cv-resize-n,
+.cv-layer.cv-t-paragraph .cv-resize-s { display: none !important; }
 .cv-layer.cv-hug .cv-resize-n,
 .cv-layer.cv-hug .cv-resize-s,
 .cv-layer.cv-hug .cv-resize-e,

@@ -43,7 +43,7 @@
           <% if (l.type === 'heading') { %>
             <h2 class="layer-heading" style="<%= style %>"><%- layerText(l.text) %></h2>
           <% } else if (l.type === 'text' || l.type === 'paragraph') { %>
-            <div class="layer-text<%= l.type === 'paragraph' ? ' is-paragraph' : '' %>" style="<%= style %>"><%- paragraphs(l.text) %></div>
+            <div class="layer-text<%= (l.type === 'paragraph' || l.paragraph) ? ' is-paragraph' : '' %>" style="<%= style %>"><%- paragraphs(l.text) %></div>
           <% } else if (l.type === 'image') { %>
             <% if (l.src) { %>
               <% const __rad = Math.min(Math.max(Number(l.radius) || 0, 0), 500); %>
@@ -71,7 +71,7 @@
                   <% } else if (c.type === 'heading') { %>
                     <div class="layer-heading"><%- layerText(c.text) %></div>
                   <% } else if (c.type === 'text' || c.type === 'paragraph') { %>
-                    <div class="layer-text<%= c.type === 'paragraph' ? ' is-paragraph' : '' %>"><%- paragraphs(c.text) %></div>
+                    <div class="layer-text<%= (c.type === 'paragraph' || c.paragraph) ? ' is-paragraph' : '' %>"><%- paragraphs(c.text) %></div>
                   <% } else if (c.type === 'shape') { %>
                     <span class="layer-shape" style="background:<%= esc(safeColor(c.bg) || '#E1E5EB') %>"></span>
                   <% } %>
