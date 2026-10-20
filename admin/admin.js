@@ -282,7 +282,6 @@
     clearTimeout(sidebarTimer);
     sidebarTimer = setTimeout(renderSidebar, 150);
     recordEdit(Boolean(opts && opts.coalesce));
-    scheduleLivePreview();
   }
 
   async function save() {
@@ -294,7 +293,6 @@
       savedJson = JSON.stringify(content);
       hasSavedOnce = true;
       toast('Saved — your website is updated.');
-      refreshLivePreview();
     } catch (err) {
       toast(err.message, true);
     }
@@ -2351,40 +2349,6 @@
       navItem('backups', 'Backups'));
   }
 
-  function publicPath() {
-    const view = currentView();
-    if (view === 'home') return '/';
-    if (view.startsWith('page:')) {
-      const page = content.pages.find((p) => p.id === view.slice(5));
-      if (page && page.slug) return `/${page.slug}`;
-    }
-    return '';
-  }
-
-  let previewTimer = null;
-  function scheduleLivePreview() {
-    const dock = $('#live-preview');
-    if (!dock || dock.hidden) return;
-    clearTimeout(previewTimer);
-    previewTimer = setTimeout(refreshLivePreview, 700);
-  }
-
-  async function refreshLivePreview() {
-    const dock = $('#live-preview');
-    const frame = $('#preview-frame');
-    const note = $('#preview-note');
-    const path = publicPath();
-    if (!dock || dock.hidden || !frame || !path) return;
-    note.textContent = 'Updating…';
-    try {
-      await api('POST', '/api/preview-draft', content);
-      frame.src = `${path}?preview=1&t=${Date.now()}`;
-      note.textContent = 'Shows this page, including unsaved edits.';
-    } catch (err) {
-      note.textContent = err.message || 'Preview failed';
-    }
-  }
-
   function updateViewLink() {
     const link = $('#view-link');
     const view = currentView();
@@ -2397,12 +2361,6 @@
     link.hidden = !href;
     if (href) link.href = href;
     link.textContent = isDirty() ? 'View on website (save first to see changes) ↗' : 'View on website ↗';
-    const toggle = $('#preview-toggle');
-    if (toggle) toggle.hidden = !href;
-    if (!href) {
-      const dock = $('#live-preview');
-      if (dock) dock.hidden = true;
-    }
   }
 
   function render(opts = {}) {
@@ -2494,12 +2452,6 @@
   });
 
   $('#save').addEventListener('click', save);
-  $('#preview-toggle').addEventListener('click', () => {
-    const dock = $('#live-preview');
-    dock.hidden = !dock.hidden;
-    $('#preview-toggle').textContent = dock.hidden ? 'Live preview' : 'Hide preview';
-    if (!dock.hidden) refreshLivePreview();
-  });
   $('#discard').addEventListener('click', discard);
 
   document.addEventListener('keydown', (e) => {

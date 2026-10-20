@@ -1235,26 +1235,13 @@ function navFor(content, currentSlug) {
   return items;
 }
 
-app.post('/api/preview-draft', requireAuth, (req, res) => {
-  const data = normContent(req.body);
-  const errors = validateContent(data);
-  if (errors.length) return res.status(400).json({ error: errors[0], errors });
-  req.session.previewDraft = data;
-  res.json({ ok: true });
-});
-
-function contentFor(req) {
-  if (req.query.preview === '1' && req.session?.admin && req.session.previewDraft) return req.session.previewDraft;
-  return getContent();
-}
-
 app.get('/', (req, res) => {
-  const content = contentFor(req);
+  const content = getContent();
   res.render('home', { site: content.site, home: content.home, nav: navFor(content, ''), pageTitle: content.home.seoTitle || 'Home' });
 });
 
 app.get('/:slug', (req, res, next) => {
-  const content = contentFor(req);
+  const content = getContent();
   const page = content.pages.find((p) => p.slug === req.params.slug);
   if (!page) return next();
   res.render('page', { site: content.site, page, nav: navFor(content, page.slug), pageTitle: page.navLabel || page.title });
