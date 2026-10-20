@@ -497,6 +497,7 @@
         "name": "About Me",
         "heading": "About Me",
         "layout": "canvas",
+        "canvasLock": true,
         "canvasHeight": 820,
         "canvasBg": "#E1E5EB",
         "layers": [
@@ -923,6 +924,7 @@
           "text": "",
           "textAfter": "",
           "layout": "canvas",
+          "canvasLock": true,
           "columns": 3,
           "aspect": "square",
           "items": [
@@ -1329,6 +1331,7 @@
           "text": "",
           "textAfter": "",
           "layout": "canvas",
+          "canvasLock": true,
           "columns": 2,
           "aspect": "natural",
           "items": [
@@ -1600,6 +1603,7 @@
           "text": "",
           "textAfter": "",
           "layout": "canvas",
+          "canvasLock": true,
           "columns": 2,
           "aspect": "natural",
           "items": [
@@ -1969,6 +1973,7 @@
           "text": "",
           "textAfter": "",
           "layout": "canvas",
+          "canvasLock": true,
           "columns": 2,
           "aspect": "natural",
           "items": [
@@ -3215,6 +3220,7 @@
           "text": "",
           "textAfter": "",
           "layout": "canvas",
+          "canvasLock": true,
           "canvasHeight": 640,
           "layers": [
             {

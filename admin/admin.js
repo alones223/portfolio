@@ -2056,7 +2056,7 @@
       layout: 'canvas',
       canvasHeight: kind === 'section' ? 640 : 774,
       canvasBg: kind === 'section' ? '#FDFDFD' : '#617092',
-      canvasLock: kind !== 'section',
+      canvasLock: true,
       layers: [
         window.CanvasEditor.defaultLayer('heading', {
           name: 'Heading', text: 'our text here', x: 80, y: 80, w: 900, h: 80, anim: 'up',
