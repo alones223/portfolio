@@ -342,11 +342,11 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
    when zoomed in and pans with the middle mouse button / space-drag. */
 .cv-viewport {
   overflow: auto; border: 1px solid var(--line); border-radius: 10px;
-  background: #eef1f5; padding: 12px;
+  background: #eef1f5; padding: 0;
   height: 78vh;
   max-height: 78vh;
   overscroll-behavior: contain;
-  display: flex;
+  display: block;
 }
 .cv-viewport.is-panning { cursor: grabbing; }
 .cv-frame { position: relative; min-width: 0; }
@@ -387,13 +387,14 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 }
 .cv-fn.is-on, .cv-fn:hover { background: var(--accent-soft); border-color: var(--accent); }
 .cv-center {
-  margin: auto;
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
   min-width: 100%;
   min-height: 100%;
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
 }
 .cv-stage { position: relative; flex: none; }
 /* The board is scaled with transform, which does not shrink its layout box.

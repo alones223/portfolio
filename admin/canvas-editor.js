@@ -736,11 +736,21 @@ window.CanvasEditorUI = (function () {
 
     // -------------------------------------------------------------- geometry
 
-    // The widest scale that still fits the board in the panel.
+    // Width the board may use inside the grey viewport, same idea as the live
+    // page using the section's clientWidth. Padding is subtracted so the white
+    // board fills that content box instead of sitting short of it.
+    function fitWidth() {
+      const style = getComputedStyle(viewport);
+      const pad = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+      return Math.max(0, viewport.clientWidth - pad);
+    }
+
+    // The widest scale that still fits the board in the panel. Matches the
+    // public page: available width divided by the artboard width, capped at 1.
     function fitScale() {
-      const avail = viewport.clientWidth - 24 - 2;
+      const avail = fitWidth();
       if (avail <= 0) return 1;
-      return clamp(Number((avail / boardWidth()).toFixed(3)), 0.2, 1);
+      return clamp(avail / boardWidth(), 0.2, 1);
     }
 
     const scale = () => fixedScale || fitScale();
@@ -758,6 +768,10 @@ window.CanvasEditorUI = (function () {
       fixedScale = refit ? null : clamp(Number(Number(next).toFixed(3)), 0.1, 4);
       paintBoard();
       paintToolbar();
+      if (refit || fixedScale == null) {
+        pinFrame();
+        return;
+      }
       if (!(view.width > 0) || !(before.width > 0)) return;
       const s = scale();
       const after = stage.getBoundingClientRect();
@@ -1691,6 +1705,27 @@ window.CanvasEditorUI = (function () {
 
     // ---------------------------------------------------------------- paints
 
+    // Put the scaled stage in the middle of the grey viewport. Fit width has
+    // no leftover scroll. A stage that is narrower or wider is centred with
+    // scrollLeft, which is what stays correct after the layout settles.
+    function pinFrame() {
+      const inner = fitWidth();
+      const stageW = stage.offsetWidth || 0;
+      if (inner <= 0) return;
+      if (stageW > 0 && stageW < inner - 0.5) {
+        centerWrap.style.width = `${inner}px`;
+        centerWrap.style.paddingLeft = `${(inner - stageW) / 2}px`;
+        centerWrap.style.boxSizing = 'border-box';
+        viewport.scrollLeft = 0;
+        return;
+      }
+      centerWrap.style.paddingLeft = '0px';
+      centerWrap.style.boxSizing = 'border-box';
+      centerWrap.style.width = `${Math.max(inner, stageW)}px`;
+      const overflow = viewport.scrollWidth - viewport.clientWidth;
+      viewport.scrollLeft = overflow > 1 ? overflow / 2 : 0;
+    }
+
     // The board is patched rather than rebuilt: an element that is already
     // correct is left alone, so a layer under the pointer is never torn down.
     function paintBoard() {
@@ -1718,13 +1753,17 @@ window.CanvasEditorUI = (function () {
       boardBg.style.backgroundPosition = `${place.x}% ${place.y}%`;
       board.classList.toggle('has-photo', hasImage);
       if (hasImage) rememberPhotoSize(bgUrl);
-      board.style.transform = `scale(${s})`;
+      const fitted = fixedScale == null && fitWidth() > 0;
+      const stageW = fitted ? fitWidth() : boardWidth() * s;
+      const drawScale = stageW / boardWidth();
+      board.style.transform = `scale(${drawScale})`;
       board.style.transformOrigin = 'top left';
-      stage.style.width = `${boardWidth() * s}px`;
-      stage.style.height = `${boardHeight() * s}px`;
+      stage.style.width = `${stageW}px`;
+      stage.style.height = `${boardHeight() * drawScale}px`;
       // Handles and guides are drawn inside the scaled board, so they carry the
       // inverse factor to stay a constant size on screen at any zoom.
-      root.style.setProperty('--cv-inv', String(1 / s));
+      root.style.setProperty('--cv-inv', String(1 / drawScale));
+      if (fitted) pinFrame();
 
       const list = ordered();
       list.forEach((l, index) => {
