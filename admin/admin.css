@@ -102,14 +102,14 @@ h1, h2, h3, h4 { margin: 0; }
 .save-state { font-size: 12.5px; color: var(--slate); }
 .save-state.dirty { color: #b25c00; font-weight: 600; }
 
-.editor { padding: 24px 28px 120px; max-width: 1180px; width: 100%; }
+.editor { padding: 24px 28px 120px; max-width: 1180px; width: 100%; margin-left: auto; margin-right: auto; }
 /* A section panel that holds a layout board gets the full window width: the
    board is 1425px across, and squeezing it into 1180px would render the resize
    handles too small to grab. */
 .editor:has(.canvas-host) { max-width: none; }
 /* Form cards stay on the normal column. Only a card that holds a board
    uses the wider editor, so About / Contact fields do not stretch. */
-.editor:has(.canvas-host) > .card:not(:has(.canvas-host)) { max-width: 1180px; }
+.editor:has(.canvas-host) > .card:not(:has(.canvas-host)) { max-width: 1180px; margin-left: auto; margin-right: auto; }
 
 /* Cards / panels */
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
