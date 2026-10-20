@@ -186,7 +186,7 @@
       var data = Object.fromEntries(new FormData(form).entries());
       var missing = ['name', 'email', 'subject', 'message'].filter(function (k) { return !String(data[k] || '').trim(); });
       if (missing.length) {
-        status.textContent = '請填寫所有必填欄位。';
+        status.textContent = 'Please fill in every required field.';
         status.classList.add('error');
         form.elements[missing[0]].focus();
         return;

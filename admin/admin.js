@@ -1057,20 +1057,20 @@
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, true)); drawSections(); } }, 'Expand all'),
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, false)); drawSections(); } }, 'Collapse all'))),
         h('p', { class: 'hint', style: 'margin-bottom:12px' },
-          'About、Works 和一般文字用表單編輯。Hero 和自由排版用畫布。兩種編輯寫進同一份內容。'),
+          'About, Works, and ordinary text use form edit. The hero and freeform layouts use the canvas. Both write the same content.'),
         sectionsWrap),
-      card('聯絡 Contact',
-        h('p', { class: 'hint', style: 'margin-bottom:12px' }, '表單編輯。這段文字和欄位名稱直接出現在首頁聯絡區。'),
+      card('Contact',
+        h('p', { class: 'hint', style: 'margin-bottom:12px' }, 'Form edit. This text and these field names appear in the contact section on the home page.'),
         fields(
-          textField(home.contact, 'heading', '標題', { span: 2 }),
-          textField(home.contact, 'emailLine', '電郵行', { span: 2 }),
-          textField(home.contact, 'text', '內文', { multiline: true, rows: 3 }),
-          textField(home.contact, 'labelName', '欄位：姓名', { span: 1 }),
-          textField(home.contact, 'labelEmail', '欄位：電郵', { span: 1 }),
-          textField(home.contact, 'labelSubject', '欄位：主旨', { span: 1 }),
-          textField(home.contact, 'labelMessage', '欄位：訊息', { span: 1 }),
-          textField(home.contact, 'labelSubmit', '送出按鈕', { span: 1 }),
-          textField(home.contact, 'successMessage', '送出後的提示', { span: 3 }))),
+          textField(home.contact, 'heading', 'Heading', { span: 2 }),
+          textField(home.contact, 'emailLine', 'Email line', { span: 2 }),
+          textField(home.contact, 'text', 'Text', { multiline: true, rows: 3 }),
+          textField(home.contact, 'labelName', 'Field: name', { span: 1 }),
+          textField(home.contact, 'labelEmail', 'Field: email', { span: 1 }),
+          textField(home.contact, 'labelSubject', 'Field: subject', { span: 1 }),
+          textField(home.contact, 'labelMessage', 'Field: message', { span: 1 }),
+          textField(home.contact, 'labelSubmit', 'Submit button', { span: 1 }),
+          textField(home.contact, 'successMessage', 'Message after sending', { span: 3 }))),
       card('Scrolling text band',
         fields(textField(home, 'marquee', 'Text', { hint: 'Repeats endlessly across the screen.' }))),
     ];
@@ -1529,7 +1529,7 @@
           h('button', {
             class: mode === 'form' ? 'btn small primary' : 'btn small', type: 'button',
             onclick: () => { if (s.id) editorMode.set(s.id, 'form'); redraw(); },
-          }, '表單編輯'),
+          }, 'Form edit'),
           h('button', {
             class: mode === 'canvas' ? 'btn small primary' : 'btn small', type: 'button',
             onclick: () => {
@@ -1545,18 +1545,18 @@
               changed();
               redraw();
             },
-          }, '畫布編輯'));
+          }, 'Canvas edit'));
 
         if (mode === 'form') {
           if (s.layout === 'case') {
             mount(body,
               fields(
-                textField(s, 'heading', '標題', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } }),
-                textField(s, 'role', '角色（可留空）', { placeholder: '例如 Animator' }),
+                textField(s, 'heading', 'Title', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } }),
+                textField(s, 'role', 'Role (optional)', { placeholder: 'For example, Animator' }),
                 textField(s, 'brief', 'Brief', { multiline: true, rows: 6 }),
                 textField(s, 'process', 'Process', { multiline: true, rows: 6 }),
                 textField(s, 'outcome', 'Outcome', { multiline: true, rows: 6 })),
-              h('p', { class: 'hint' }, '訪客只會看到有填寫的部分。'));
+              h('p', { class: 'hint' }, 'Visitors only see the parts that are filled in.'));
             refreshMeta();
             return;
           }
@@ -1572,17 +1572,17 @@
             mount(body,
               switcher,
               fields(
-                textField(s, 'heading', '標題', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; sync(); } }),
-                textField(s, 'decorText', '裝飾字', { multiline: true, rows: 2, onInput: sync }),
-                textField(s, 'description', '簡介', { multiline: true, rows: 4, onInput: sync })),
+                textField(s, 'heading', 'Heading', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; sync(); } }),
+                textField(s, 'decorText', 'Decorative word', { multiline: true, rows: 2, onInput: sync }),
+                textField(s, 'description', 'Introduction', { multiline: true, rows: 4, onInput: sync })),
               tilesEditor(s.cards, {
-                label: '分類卡',
+                label: 'Category cards',
                 captionKey: 'label',
-                captionLabel: '分類名稱',
+                captionLabel: 'Category name',
                 linkPlaceholder: '/artworks',
                 onEdit: sync,
               }),
-              h('p', { class: 'hint' }, '名稱、圖片和連結寫進 Works 分類卡。畫布上的同一組卡片會一起更新。'));
+              h('p', { class: 'hint' }, 'The name, image, and link are saved on the Works category cards. The same cards on the canvas update with them.'));
             refreshMeta();
             return;
           }
@@ -1591,12 +1591,12 @@
           const blocks = [switcher];
           if (s.layout !== 'canvas' || !textLayers.length) {
             blocks.push(fields(
-              textField(s, 'heading', '標題', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } }),
-              textField(s, 'text', '內文', { multiline: true, rows: 6 }),
-              textField(s, 'textAfter', '後段文字', { multiline: true, rows: 4 })));
+              textField(s, 'heading', 'Heading', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } }),
+              textField(s, 'text', 'Text', { multiline: true, rows: 6 }),
+              textField(s, 'textAfter', 'Text after', { multiline: true, rows: 4 })));
           } else {
             blocks.push(fields(
-              ...textLayers.map((l) => textField(l, 'text', l.name || (l.type === 'heading' ? '標題' : '內文'), {
+              ...textLayers.map((l) => textField(l, 'text', l.name || (l.type === 'heading' ? 'Heading' : 'Text'), {
                 multiline: true,
                 rows: l.type === 'heading' ? 2 : 6,
                 onInput: l.type === 'heading' ? (v) => { s.heading = v; titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } : undefined,
@@ -1605,13 +1605,13 @@
           if (galleries.length) {
             galleries.forEach((l) => {
               l.images = l.images || [];
-              blocks.push(tilesEditor(l.images, { label: l.name || '圖片', captionLabel: '說明', linkPlaceholder: '連結（可留空）' }));
+              blocks.push(tilesEditor(l.images, { label: l.name || 'Images', captionLabel: 'Caption', linkPlaceholder: 'Link (optional)' }));
             });
           } else if (s.layout !== 'canvas') {
             s.items = s.items || [];
-            blocks.push(tilesEditor(s.items, { label: '圖片', captionLabel: '說明', showWide: true }));
+            blocks.push(tilesEditor(s.items, { label: 'Images', captionLabel: 'Caption', showWide: true }));
           }
-          blocks.push(h('p', { class: 'hint' }, '表單改的是這一節的文字和圖片。Hero 和自由排版才需要畫布。'));
+          blocks.push(h('p', { class: 'hint' }, 'The form edits this section’s text and images. The hero and freeform layouts use the canvas.'));
           mount(body, ...blocks);
           refreshMeta();
           return;
