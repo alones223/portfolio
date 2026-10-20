@@ -41,6 +41,13 @@ window.CanvasEditorUI = (function () {
   const round = (n) => Math.round(n);
   const isTextual = (l) => l.type === 'heading' || l.type === 'text';
 
+  function youtubeId(input) {
+    const v = String(input || '').trim();
+    if (/^[\w-]{11}$/.test(v)) return v;
+    const m = v.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|shorts\/|live\/|watch\?(?:.*&)?v=))([\w-]{11})/);
+    return m ? m[1] : '';
+  }
+
   function safeUrl(url) {
     const value = String(url || '').trim();
     if (/^\s*(javascript|data|vbscript):/i.test(value)) return '#';
@@ -92,6 +99,14 @@ window.CanvasEditorUI = (function () {
           : h('div', { class: 'cv-placeholder' }, 'Empty'));
       });
       return [grid];
+    }
+    if (l.type === 'youtube') {
+      const id = youtubeId(l.src || l.text);
+      return [h('div', { class: 'cv-placeholder' }, id ? `YouTube · ${id}` : 'Paste a YouTube link')];
+    }
+    if (l.type === 'pdf') {
+      const name = String(l.src || '').split('/').pop();
+      return [h('div', { class: 'cv-placeholder' }, name || 'No PDF yet')];
     }
     if (l.type === 'button') {
       const kind = l.buttonStyle === 'solid' ? 'solid' : l.buttonStyle === 'outline' ? 'outline' : 'pill';
@@ -890,6 +905,7 @@ window.CanvasEditorUI = (function () {
     function contentSignature(l) {
       if (l.type === 'heading' || l.type === 'text') return `${l.type}:${l.text}`;
       if (l.type === 'image') return `image:${l.src}:${l.fit}`;
+      if (l.type === 'youtube' || l.type === 'pdf') return `${l.type}:${l.src}`;
       if (l.type === 'gallery') {
         return `gallery:${l.columns}:${l.gap}:${l.aspect}:${l.fit}:${(l.images || []).map((i) => i.image).join('|')}`;
       }
@@ -922,7 +938,9 @@ window.CanvasEditorUI = (function () {
           h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('text') }, '+ Text'),
           h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('image') }, '+ Image'),
           h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('gallery') }, '+ Image group'),
-          h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('button') }, '+ Button')),
+          h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('button') }, '+ Button'),
+          h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('youtube') }, '+ YouTube'),
+          h('button', { class: 'btn small', type: 'button', onclick: () => addLayer('pdf') }, '+ PDF')),
         h('div', { class: 'cv-tools cv-zoom' },
           h('span', { class: 'cv-hint' }, 'Zoom'),
           h('button', { class: 'btn small', type: 'button', title: 'Zoom out (Ctrl + scroll down)', onclick: () => zoomStep(-1) }, '−'),
@@ -1097,7 +1115,7 @@ window.CanvasEditorUI = (function () {
       if (l.type === 'button') {
         content.push(
           textField(l, 'text', 'Button label'),
-          textField(l, 'link', 'Link', '/portfolio or https://…'),
+          textField(l, 'link', 'Link', '/artworks or https://…'),
           selectField(l, 'buttonStyle', 'Button look', [['pill', 'Rounded pill'], ['solid', 'Rectangle'], ['outline', 'Outline']]),
           toggleField(l, 'newTab', 'Open in a new tab'));
       }
@@ -1107,6 +1125,21 @@ window.CanvasEditorUI = (function () {
           textField(l, 'alt', 'Description for screen readers'),
           selectField(l, 'fit', 'How the image fills its box', M.FITS),
           numField(l, 'radius', 'Rounded corners', 0, 200));
+      }
+      if (l.type === 'youtube') {
+        content.push(textField(l, 'src', 'YouTube URL or video id', 'https://youtu.be/…'));
+      }
+      if (l.type === 'pdf') {
+        content.push(textField(l, 'src', 'PDF address', '/uploads/file.pdf or https://…'));
+        const upload = h('input', { type: 'file', accept: 'application/pdf,.pdf', hidden: true });
+        upload.addEventListener('change', async () => {
+          const urls = await onRequestFiles([...upload.files]);
+          upload.value = '';
+          if (urls.length) { l.src = urls[0]; onChange(); render(); }
+        });
+        content.push(h('div', { class: 'cv-btnrow' },
+          h('button', { class: 'btn small', type: 'button', onclick: () => upload.click() }, 'Upload PDF'),
+          upload));
       }
       if (l.type === 'gallery') {
         content.push(h('div', { class: 'cv-grid2' },

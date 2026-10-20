@@ -11,6 +11,32 @@
     </div>
   </section>
 
+  <% if (page.kind === 'case') { %>
+    <section class="content-section case-study">
+      <% if (page.role) { %><p class="case-role"><%= page.role %></p><% } %>
+      <dl class="case-grid">
+        <% if (page.brief) { %>
+          <div>
+            <dt>Brief</dt>
+            <dd class="section-text"><%- paragraphs(page.brief) %></dd>
+          </div>
+        <% } %>
+        <% if (page.process) { %>
+          <div>
+            <dt>Process</dt>
+            <dd class="section-text"><%- paragraphs(page.process) %></dd>
+          </div>
+        <% } %>
+        <% if (page.outcome) { %>
+          <div>
+            <dt>Outcome</dt>
+            <dd class="section-text"><%- paragraphs(page.outcome) %></dd>
+          </div>
+        <% } %>
+      </dl>
+    </section>
+  <% } %>
+
   <% (page.sections || []).forEach(function (section) { %>
     <%- include('partials/section', { section }) %>
   <% }) %>

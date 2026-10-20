@@ -366,6 +366,12 @@ button { font: inherit; color: inherit; }
 .align-center .section-text { margin-left: auto; margin-right: auto; }
 .section-text.after { margin-top: 40px; }
 
+.case-study { max-width: 975px; margin: 48px auto 0; padding: 0 24px; }
+.case-role { margin: 0 0 18px; font-weight: 700; letter-spacing: .04em; }
+.case-grid { display: grid; gap: 22px; margin: 0; }
+.case-grid dt { font-family: var(--font-display); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 6px; }
+.case-grid .section-text { margin-top: 0; }
+
 .items { display: grid; gap: 30px; margin-top: 64px; align-items: start; }
 .cols-1 { grid-template-columns: 1fr; max-width: 1028px; margin-left: auto; margin-right: auto; }
 .cols-2 { grid-template-columns: repeat(2, 1fr); }

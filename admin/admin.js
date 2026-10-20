@@ -12,6 +12,7 @@
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const pad2 = (n) => String(n).padStart(2, '0');
   const isVideo = (url) => /\.(mp4|webm)(\?|$)/i.test(url || '');
+  const isPdf = (url) => /\.pdf(\?|$)/i.test(url || '');
 
   // Tiny DOM builder: h('div', { class: 'x', onclick: fn }, child, 'text', ...)
   function h(tag, attrs, ...children) {
@@ -106,6 +107,7 @@
   function mediaPreview(url) {
     if (!url) return document.createTextNode('No image');
     if (isVideo(url)) return h('video', { src: url, muted: true, preload: 'metadata' });
+    if (isPdf(url)) return h('span', { class: 'pdf-badge' }, 'PDF');
     return h('img', { src: url, alt: '', loading: 'lazy' });
   }
 
@@ -157,6 +159,36 @@
     state.classList.toggle('dirty', dirty);
     clearTimeout(sidebarTimer);
     sidebarTimer = setTimeout(renderSidebar, 150);
+    schedulePreview();
+  }
+
+  let previewTimer = 0;
+  let previewToken = 0;
+  function schedulePreview() {
+    const view = currentView();
+    if (view !== 'home' && !view.startsWith('page:')) return;
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => { refreshPreview(); }, 700);
+  }
+
+  async function refreshPreview() {
+    const frame = document.querySelector('#live-preview');
+    if (!frame || !content) return;
+    const token = ++previewToken;
+    const view = currentView();
+    let path = '/preview';
+    if (view.startsWith('page:')) {
+      const page = content.pages.find((p) => p.id === view.slice(5));
+      if (!page || !page.slug) return;
+      path = `/preview/${page.slug}`;
+    }
+    try {
+      await api('POST', '/api/preview', content);
+    } catch (err) {
+      return;
+    }
+    if (token !== previewToken) return;
+    frame.src = `${path}?t=${Date.now()}`;
   }
 
   async function save() {
@@ -357,9 +389,29 @@
 
       let link = null;
       if (opts.showLink !== false) {
-        link = h('input', { type: 'text', placeholder: opts.linkPlaceholder || 'Link (optional)', 'aria-label': 'Link', list: 'page-links' });
+        const pages = [{ value: '/', label: 'Home' }, ...(content?.pages || []).map((p) => ({
+          value: `/${p.slug}`,
+          label: p.navLabel || p.title || p.slug,
+        }))];
+        const known = pages.some((p) => p.value === (item.link || ''));
+        const pagePick = h('select', { 'aria-label': 'Site page' },
+          h('option', { value: '' }, 'Choose a page…'),
+          pages.map((p) => h('option', { value: p.value, selected: item.link === p.value }, `${p.label} (${p.value})`)),
+          !known && item.link ? h('option', { value: item.link, selected: true }, item.link) : null);
+        pagePick.addEventListener('change', () => {
+          if (!pagePick.value) return;
+          item.link = pagePick.value;
+          link.value = item.link;
+          changed();
+        });
+        link = h('input', { type: 'text', placeholder: opts.linkPlaceholder || 'Or type a link', 'aria-label': 'Link', list: 'page-links' });
         link.value = item.link || '';
-        link.addEventListener('input', () => { item.link = link.value.trim(); changed(); });
+        link.addEventListener('input', () => {
+          item.link = link.value.trim();
+          pagePick.value = pages.some((p) => p.value === item.link) ? item.link : '';
+          changed();
+        });
+        link = h('div', { class: 'tile-link' }, pagePick, link);
       }
 
       let wide = null;
@@ -627,7 +679,7 @@
               label: 'Category cards',
               captionKey: 'label',
               captionLabel: 'Card title',
-              linkPlaceholder: 'Link, e.g. /portfolio',
+              linkPlaceholder: 'Or paste a link',
             })))),
       card('Contact section',
         fields(
@@ -758,6 +810,19 @@
 
   // Add a new page, starting from the same blank section as before. Use
   // "Add a section" on the new page to swap in another layout afterwards.
+  function blankCasePage() {
+    const page = {
+      id: `p-${rand()}`, slug: uniqueSlug('case-study'), navLabel: 'Case study', showInNav: true,
+      title: 'Case study', subtitle: '', heroImage: '',
+      kind: 'case', role: '', brief: '', process: '', outcome: '',
+      sections: [newSection()],
+    };
+    openPanels.add(page.sections[0]);
+    content.pages.push(page);
+    changed();
+    go(`page:${page.id}`);
+  }
+
   function newPage() {
     const page = {
       id: `p-${rand()}`, slug: uniqueSlug('new-page'), navLabel: 'New page', showInNav: true,
@@ -1046,7 +1111,23 @@
           checkField(page, 'showInNav', 'Show this page in the menu', { span: 4 }),
           textField(page, 'title', 'Page title (big heading)', { span: 2 }),
           textField(page, 'subtitle', 'Subtitle', { span: 2, multiline: true, rows: 2 }),
-          imageField(page, 'heroImage', 'Header background image'))),
+          imageField(page, 'heroImage', 'Header background image'),
+          h('div', { class: 'field span-4' },
+            h('label', { class: 'field check' },
+              (() => {
+                const input = h('input', { type: 'checkbox', checked: page.kind === 'case' });
+                input.addEventListener('change', () => {
+                  page.kind = input.checked ? 'case' : '';
+                  changed();
+                  render();
+                });
+                return input;
+              })(),
+              'Case study (brief, process, outcome)')),
+          page.kind === 'case' ? textField(page, 'role', 'Role', { span: 4, placeholder: 'e.g. Animator & Illustrator' }) : null,
+          page.kind === 'case' ? textField(page, 'brief', 'Brief', { span: 4, multiline: true, rows: 4 }) : null,
+          page.kind === 'case' ? textField(page, 'process', 'Process', { span: 4, multiline: true, rows: 4 }) : null,
+          page.kind === 'case' ? textField(page, 'outcome', 'Outcome', { span: 4, multiline: true, rows: 3 }) : null)),
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
           h('h3', null, `Sections (${page.sections.length})`),
@@ -1148,7 +1229,7 @@
     const search = h('input', { type: 'search', placeholder: 'Filter by file name…', style: 'max-width:320px' });
     const grid = h('div', { class: 'media-grid' });
     const folderNav = h('nav', { class: 'media-folders', 'aria-label': 'Folders' });
-    const fileIn = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm', multiple: true, hidden: true });
+    const fileIn = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm,application/pdf,.pdf', multiple: true, hidden: true });
     fileIn.addEventListener('change', async () => {
       const urls = await uploadFiles(fileIn.files);
       fileIn.value = '';
@@ -1375,6 +1456,7 @@
       content.pages.map((p) => navItem(`page:${p.id}`, p.navLabel || p.title || '(untitled)',
         p.showInNav === false ? h('span', { class: 'tag' }, 'hidden') : null)),
       h('button', { class: 'nav-item nav-add', type: 'button', onclick: newPageFromLayout }, '+ New page'),
+      h('button', { class: 'nav-item nav-add', type: 'button', onclick: blankCasePage }, '+ New case study'),
       h('div', { class: 'nav-heading' }, 'Settings & files'),
       navItem('site', 'Site settings'),
       navItem('layouts', 'Section layouts'),
@@ -1395,6 +1477,19 @@
     link.hidden = !href;
     if (href) link.href = href;
     link.textContent = isDirty() ? 'View on website (save first to see changes) ↗' : 'View on website ↗';
+  }
+
+  function withPreview(nodes) {
+    const view = currentView();
+    if (view !== 'home' && !view.startsWith('page:')) return nodes;
+    const frame = h('iframe', { id: 'live-preview', title: 'Live preview of this page' });
+    return [h('div', { class: 'editor-with-preview' },
+      h('div', { class: 'editor-main' }, ...nodes.filter(Boolean)),
+      h('aside', { class: 'live-preview' },
+        h('div', { class: 'live-preview-bar' },
+          h('strong', null, 'Live preview'),
+          h('button', { class: 'btn small', type: 'button', onclick: () => refreshPreview() }, 'Refresh')),
+        frame))];
   }
 
   function render() {
@@ -1427,12 +1522,13 @@
       const page = content.pages.find((p) => p.id === view.slice(5));
       if (!page) return go('home');
       title.textContent = page.navLabel || page.title;
-      mount(editor, datalist, ...viewPage(page));
+      mount(editor, datalist, ...withPreview(viewPage(page)));
     } else {
       title.textContent = 'Home page';
-      mount(editor, datalist, ...viewHome());
+      mount(editor, datalist, ...withPreview(viewHome()));
     }
     updateViewLink();
+    if (view === 'home' || view.startsWith('page:')) refreshPreview();
   }
 
   // =========================================================================
