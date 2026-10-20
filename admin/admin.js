@@ -253,10 +253,9 @@
     restoringEdit = true;
     editCoalesce = false;
     clearTimeout(editTimer);
-    const y = window.scrollY;
     content = JSON.parse(snap);
     changed();
-    render({ keepScroll: true, scrollY: y });
+    render({ keepScroll: true });
     restoringEdit = false;
   }
 
@@ -834,6 +833,7 @@
   // Works cards. One editor instance per section object, dropped on the next
   // full redraw so it is never saved with the content.
   function attachCanvasEditor(section, host, onEdit) {
+    if (section && section.id) host.dataset.canvasKey = section.id;
     const existing = editors.get(section);
     if (existing && !existing.destroyed) {
       if (existing.element.parentNode !== host) host.replaceChildren(existing.element);
@@ -2363,14 +2363,61 @@
     link.textContent = isDirty() ? 'View on website (save first to see changes) ↗' : 'View on website ↗';
   }
 
+  // Undo rebuilds the editor. The page and each board viewport must come back
+  // to the same place: a new canvas starts scrolled to the top, and Chrome
+  // also jumps the page when the focused field is removed.
+  function captureScrollState() {
+    return {
+      x: window.scrollX,
+      y: window.scrollY,
+      canvases: [...document.querySelectorAll('.canvas-host')].map((host, index) => {
+        const viewport = host.querySelector('.cv-viewport');
+        const inspector = host.querySelector('.cv-inspector');
+        const layers = host.querySelector('.cv-layers');
+        return {
+          key: host.dataset.canvasKey || '',
+          index,
+          left: viewport ? viewport.scrollLeft : 0,
+          top: viewport ? viewport.scrollTop : 0,
+          inspector: inspector ? inspector.scrollTop : 0,
+          layers: layers ? layers.scrollTop : 0,
+        };
+      }),
+    };
+  }
+
+  function restoreScrollState(state) {
+    if (!state) return;
+    window.scrollTo(state.x, state.y);
+    const hosts = [...document.querySelectorAll('.canvas-host')];
+    state.canvases.forEach((saved) => {
+      const host = (saved.key && hosts.find((el) => el.dataset.canvasKey === saved.key)) || hosts[saved.index];
+      if (!host) return;
+      const viewport = host.querySelector('.cv-viewport');
+      const inspector = host.querySelector('.cv-inspector');
+      const layers = host.querySelector('.cv-layers');
+      if (viewport) {
+        viewport.scrollLeft = saved.left;
+        viewport.scrollTop = saved.top;
+      }
+      if (inspector) inspector.scrollTop = saved.inspector;
+      if (layers) layers.scrollTop = saved.layers;
+    });
+  }
+
   function render(opts = {}) {
     const view = currentView();
     const editor = $('#editor');
     const title = $('#view-title');
-    const keepY = opts.keepScroll ? (opts.scrollY || 0) : 0;
+    const scroll = opts.keepScroll ? captureScrollState() : null;
+    if (scroll && opts.scrollY != null) scroll.y = opts.scrollY;
+    if (scroll) {
+      const active = document.activeElement;
+      if (active && active !== document.body && editor.contains(active)) active.blur();
+    }
     destroyLiveEditors();
     renderSidebar();
-    window.scrollTo(0, keepY);
+    if (scroll) restoreScrollState(scroll);
 
     // Suggestions for link fields: all page addresses.
     const datalist = h('datalist', { id: 'page-links' },
@@ -2401,7 +2448,16 @@
       mount(editor, datalist, ...viewHome());
     }
     updateViewLink();
-    if (opts.keepScroll) window.scrollTo(0, keepY);
+    if (scroll) {
+      restoreScrollState(scroll);
+      // The browser scrolls again after this handler, once the focused node
+      // is gone. Put the page and the boards back on the next frames.
+      requestAnimationFrame(() => {
+        restoreScrollState(scroll);
+        requestAnimationFrame(() => restoreScrollState(scroll));
+      });
+      setTimeout(() => restoreScrollState(scroll), 0);
+    }
   }
 
   // =========================================================================

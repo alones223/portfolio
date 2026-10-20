@@ -88,7 +88,7 @@ h1, h2, h3, h4 { margin: 0; }
 .logout { color: #aab6c8; margin-top: 12px; align-self: flex-start; }
 .logout:hover { background: rgba(255, 255, 255, .07); color: #fff; }
 
-.main { min-width: 0; display: flex; flex-direction: column; }
+.main { min-width: 0; display: flex; flex-direction: column; overflow-anchor: none; }
 .topbar {
   position: sticky; top: 0; z-index: 10;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -352,7 +352,7 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 /* Board + zoom viewport. The board is 1425px wide, so the viewport scrolls
    when zoomed in and pans with the middle mouse button / space-drag. */
 .cv-viewport {
-  overflow: auto; border: 1px solid var(--line); border-radius: 10px;
+  overflow: auto; overflow-anchor: none; border: 1px solid var(--line); border-radius: 10px;
   background: #eef1f5; padding: 12px;
   height: 78vh;
   max-height: 78vh;
