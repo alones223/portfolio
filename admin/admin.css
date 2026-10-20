@@ -396,7 +396,9 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
   min-height: 100%;
 }
 .cv-stage { position: relative; flex: none; }
-.cv-board { position: relative; width: 1425px; transform-origin: top left; background: #fff; box-shadow: 0 1px 3px rgba(10, 25, 47, .12); }
+/* The board is scaled with transform, which does not shrink its layout box.
+   Keep it out of flow so the stage (the scaled size) is what gets centred. */
+.cv-board { position: absolute; left: 0; top: 0; width: 1425px; transform-origin: top left; background: #fff; box-shadow: 0 1px 3px rgba(10, 25, 47, .12); }
 .cv-board-bg { position: absolute; inset: 0; pointer-events: none; background-repeat: no-repeat; background-position: center; background-size: cover; z-index: 0; }
 .cv-board.has-photo { cursor: grab; }
 .cv-board.is-panning-bg { cursor: grabbing; }
