@@ -83,9 +83,9 @@
                   <% if (c.type === 'image' && c.src) { %>
                     <img src="<%= safeUrl(c.src) %>" alt="<%= c.alt || '' %>" style="object-fit:<%= c.fit === 'contain' || c.fit === 'fill' ? c.fit : 'cover' %>">
                   <% } else if (c.type === 'heading') { %>
-                    <div class="layer-heading"><%- layerText(c.text) %></div>
+                    <div class="layer-heading" style="<%= styleToCss(c) %>"><%- layerText(c.text) %></div>
                   <% } else if (c.type === 'text' || c.type === 'paragraph') { %>
-                    <div class="layer-text<%= (c.type === 'paragraph' || c.paragraph) ? ' is-paragraph' : '' %>"><%- paragraphs(c.text) %></div>
+                    <div class="layer-text<%= (c.type === 'paragraph' || c.paragraph) ? ' is-paragraph' : '' %>" style="<%= styleToCss(c) %>"><%- paragraphs(c.text) %></div>
                   <% } else if (c.type === 'shape') { %>
                     <span class="layer-shape" style="background:<%= esc(safeColor(c.bg) || '#E1E5EB') %>"></span>
                   <% } %>

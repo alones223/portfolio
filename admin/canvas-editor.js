@@ -294,7 +294,27 @@ window.CanvasEditorUI = (function () {
     if (l.textShadow) parts.push('text-shadow:0 0 6px rgba(0,0,0,.55),0 1px 2px rgba(0,0,0,.6)');
     if (l.radius) parts.push(`border-radius:${Number(l.radius)}px`);
     if (l.borderWidth) parts.push(`border:${Number(l.borderWidth)}px solid ${l.borderColor || '#0A192F'}`);
+    parts.push(...textOutlineStyle(l));
     return parts.join(';');
+  }
+
+  // Matches the public renderer: stroke first, then fill, so the outline
+  // rings the letters. Fill off leaves only that outline.
+  function textOutlineStyle(l) {
+    if (!isTextual(l)) return [];
+    const parts = [];
+    const width = clamp(Number(l.strokeWidth) || 0, 0, 40);
+    const stroke = l.strokeColor || '#0A192F';
+    if (l.fill === false) {
+      parts.push('color:transparent');
+      parts.push('-webkit-text-fill-color:transparent');
+      if (l.stroke === true && width > 0) parts.push(`caret-color:${stroke}`);
+    }
+    if (l.stroke === true && width > 0) {
+      parts.push(`-webkit-text-stroke:${width}px ${stroke}`);
+      parts.push('paint-order:stroke fill');
+    }
+    return parts;
   }
 
   function drawLayerContent(l) {
@@ -2451,7 +2471,35 @@ window.CanvasEditorUI = (function () {
             numField(l, 'weight', 'Weight (400 normal, 700 bold)', 100, 900, 100),
             numField(l, 'lineHeight', 'Line spacing', 0.8, 3, 0.05),
             numField(l, 'letterSpacing', 'Letter spacing', -10, 40, 0.5)),
-          colorField(l, 'color', 'Text colour'),
+          isTextual(l) ? (() => {
+            const box = h('input', { type: 'checkbox', checked: l.fill !== false });
+            box.addEventListener('change', () => {
+              record();
+              if (box.checked) delete l.fill;
+              else l.fill = false;
+              onChange();
+              render();
+            });
+            return h('label', { class: 'cv-check' }, box, 'Fill');
+          })() : null,
+          colorField(l, 'color', isTextual(l) ? 'Fill colour' : 'Text colour'),
+          isTextual(l) ? (() => {
+            const box = h('input', { type: 'checkbox', checked: l.stroke === true });
+            box.addEventListener('change', () => {
+              record();
+              l.stroke = box.checked;
+              if (box.checked) {
+                if (!l.strokeColor) l.strokeColor = '#0A192F';
+                if (!(Number(l.strokeWidth) > 0)) l.strokeWidth = 2;
+              }
+              onChange();
+              render();
+            });
+            return h('label', { class: 'cv-check' }, box, 'Outline');
+          })() : null,
+          isTextual(l) ? colorField(l, 'strokeColor', 'Outline colour') : null,
+          isTextual(l) ? numField(l, 'strokeWidth', 'Outline width', 0, 40, 0.5, 2) : null,
+          isTextual(l) ? h('p', { class: 'cv-hint' }, 'Fill colours the letters. Outline draws around them. Use either one, or both. Width is in pixels.') : null,
           toggleField(l, 'textShadow', 'Shadow behind the text'));
       }
       if (l.type !== 'image') style.push(colorField(l, 'bg', l.type === 'divider' ? 'Line colour' : (clippedShape(l) ? 'Fill colour' : 'Background colour')));

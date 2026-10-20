@@ -416,6 +416,7 @@ function styleToCss(style) {
   const px = (v, min = 0, max = 3000) => Math.min(Math.max(Number(v) || 0, min), max);
   if (safeColor(s.bg)) out.push(`background:${safeColor(s.bg)}`);
   if (safeColor(s.color)) out.push(`color:${safeColor(s.color)}`);
+  out.push(...textOutlineCss(s));
   const font = safeFontFamily(s.font);
   if (font) out.push(`font-family:${font}`);
   if (s.size) out.push(`font-size:${px(s.size, 6, 360)}px`);
@@ -433,6 +434,28 @@ function styleToCss(style) {
     out.push(`border:1px solid ${borderColour}`);
   }
   return out.join(';');
+}
+
+// Text outline, in the same sense as Illustrator's stroke on type.
+// The stroke is painted first and the fill covers the inner half, so a
+// thick outline sits around the letters instead of eating them.
+// Fill off uses a transparent fill, so only the outline remains.
+function textOutlineCss(layer) {
+  const type = layer?.type;
+  if (type !== 'heading' && type !== 'text' && type !== 'paragraph') return [];
+  const parts = [];
+  if (layer.fill === false) {
+    parts.push('color:transparent');
+    parts.push('-webkit-text-fill-color:transparent');
+  }
+  const width = Math.min(Math.max(Number(layer.strokeWidth) || 0, 0), 40);
+  if (layer.stroke === true && width > 0) {
+    const stroke = safeColor(layer.strokeColor) || '#0A192F';
+    const px = Math.round(width * 10) / 10;
+    parts.push(`-webkit-text-stroke:${px}px ${stroke}`);
+    parts.push('paint-order:stroke fill');
+  }
+  return parts;
 }
 
 function animationAttrs(layer) {
@@ -587,6 +610,20 @@ function normLayer(rawLayer, index) {
   const font = safeFontFamily(out.font);
   if (font) out.font = font;
   else delete out.font;
+  const textual = out.type === 'heading' || out.type === 'text';
+  if (textual) {
+    if (rawLayer?.fill === false) out.fill = false;
+    else delete out.fill;
+    if (rawLayer?.stroke === true) out.stroke = true;
+    else delete out.stroke;
+    const strokeWidth = Number(rawLayer?.strokeWidth);
+    if (Number.isFinite(strokeWidth) && strokeWidth > 0) {
+      out.strokeWidth = Math.min(40, Math.round(strokeWidth * 10) / 10);
+    } else delete out.strokeWidth;
+    const strokeColor = safeColor(rawLayer?.strokeColor);
+    if (strokeColor) out.strokeColor = strokeColor;
+    else delete out.strokeColor;
+  }
   return out;
 }
 
