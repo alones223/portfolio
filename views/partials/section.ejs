@@ -69,6 +69,21 @@
                 </li>
               <% }) %>
             </ul>
+          <% } else if (l.type === 'youtube') { %>
+            <% const yid = youtubeId(l.src || l.text); %>
+            <% if (yid) { %>
+              <div class="layer-frame">
+                <iframe src="https://www.youtube-nocookie.com/embed/<%= yid %>" title="<%= l.alt || l.name || 'YouTube video' %>" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+              </div>
+            <% } %>
+          <% } else if (l.type === 'pdf') { %>
+            <% if (l.src) { %>
+              <div class="layer-frame">
+                <object data="<%= safeUrl(l.src) %>" type="application/pdf" aria-label="<%= l.alt || l.name || 'PDF' %>">
+                  <a href="<%= safeUrl(l.src) %>" target="_blank" rel="noopener">Open PDF</a>
+                </object>
+              </div>
+            <% } %>
           <% } else if (l.type === 'button') { %>
             <span class="layer-button-slot" style="justify-content:<%= LAYER_ALIGN.has(l.align) ? (l.align === 'center' ? 'center' : l.align === 'right' ? 'flex-end' : 'flex-start') : 'flex-start' %>">
               <a class="layer-button style-<%= ['pill', 'solid', 'outline'].includes(l.buttonStyle) ? l.buttonStyle : 'pill' %>"

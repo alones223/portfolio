@@ -67,7 +67,12 @@ function normContent(raw) {
   }
   if (Array.isArray(content.pages)) {
     content.pages.forEach((p) => {
-      if (p && typeof p === 'object') p.sections = normSections(p.sections);
+      if (!p || typeof p !== 'object') return;
+      p.kind = p.kind === 'case' ? 'case' : '';
+      for (const key of ['role', 'brief', 'process', 'outcome']) {
+        p[key] = typeof p[key] === 'string' ? p[key] : '';
+      }
+      p.sections = normSections(p.sections);
     });
   }
   return content;
@@ -81,7 +86,7 @@ function backupContent() {
   backups.slice(0, Math.max(0, backups.length - MAX_BACKUPS)).forEach((f) => fs.unlinkSync(path.join(BACKUP_DIR, f)));
 }
 
-const RESERVED_SLUGS = new Set(['admin', 'api', 'uploads', 'css', 'js', 'contact', 'fonts', 'favicon.ico']);
+const RESERVED_SLUGS = new Set(['admin', 'api', 'uploads', 'css', 'js', 'contact', 'fonts', 'favicon.ico', 'preview']);
 
 function validateContent(c) {
   const errors = [];
@@ -100,6 +105,9 @@ function validateContent(c) {
       errors.push(`"${label}": another page already uses the URL slug "${p.slug}"`);
     }
     seen.add(p.slug);
+    if (p.kind != null && p.kind !== '' && p.kind !== 'case') {
+      errors.push(`"${label}": page kind "${p.kind}" is not supported`);
+    }
     if (!Array.isArray(p.sections)) errors.push(`"${label}": sections must be a list`);
   });
 
@@ -155,6 +163,14 @@ function isExternal(url) {
   return /^https?:\/\//i.test(url || '');
 }
 
+// Accept a bare 11-character id or a youtube.com / youtu.be URL.
+function youtubeId(input) {
+  const v = String(input || '').trim();
+  if (/^[\w-]{11}$/.test(v)) return v;
+  const m = v.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|shorts\/|live\/|watch\?(?:.*&)?v=))([\w-]{11})/);
+  return m ? m[1] : '';
+}
+
 // ---------------------------------------------------------------------------
 // Layout-canvas helpers
 //
@@ -164,7 +180,7 @@ function isExternal(url) {
 // ---------------------------------------------------------------------------
 
 const ANIMATIONS = new Set(['none', 'fade', 'up', 'down', 'left', 'right', 'zoom', 'zoomOut', 'float', 'pulse']);
-const LAYER_TYPES = new Set(['heading', 'text', 'image', 'gallery', 'button', 'divider', 'shape']);
+const LAYER_TYPES = new Set(['heading', 'text', 'image', 'gallery', 'button', 'divider', 'shape', 'youtube', 'pdf']);
 const LAYOUT_SUPPORTED = new Set(['canvas', 'gallery']);
 const LAYER_FITS = new Set(['cover', 'contain', 'fill']);
 const MAX_LAYERS = 200;
@@ -414,6 +430,7 @@ app.locals.lines = lines;
 app.locals.fontFamily = fontFamily;
 app.locals.googleFontsUrl = googleFontsUrl;
 app.locals.isExternal = isExternal;
+app.locals.youtubeId = youtubeId;
 
 // Helpers used by views/partials/section.ejs to render layout canvases.
 app.locals.styleToCss = styleToCss;
@@ -630,7 +647,7 @@ app.delete('/api/layouts/:id', requireAuth, (req, res) => {
 // Media uploads
 // ---------------------------------------------------------------------------
 
-const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.mp4', '.webm']);
+const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.mp4', '.webm', '.pdf']);
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -784,9 +801,33 @@ function navFor(content, currentSlug) {
   return items;
 }
 
+app.post('/api/preview', requireAuth, (req, res) => {
+  const next = normContent(req.body);
+  const errors = validateContent(next);
+  if (errors.length) return res.status(400).json({ error: errors.join('\n') });
+  req.session.previewContent = next;
+  res.json({ ok: true });
+});
+
+function contentForPreview(req) {
+  const draft = req.session && req.session.previewContent;
+  return draft && typeof draft === 'object' ? draft : getContent();
+}
+
 app.get('/', (req, res) => {
   const content = getContent();
   res.render('home', { site: content.site, home: content.home, nav: navFor(content, ''), pageTitle: content.home.seoTitle || 'Home' });
+});
+
+app.get(['/preview', '/preview/:slug'], (req, res, next) => {
+  const content = contentForPreview(req);
+  res.set('Cache-Control', 'no-store');
+  if (!req.params.slug) {
+    return res.render('home', { site: content.site, home: content.home, nav: navFor(content, ''), pageTitle: content.home.seoTitle || 'Home' });
+  }
+  const page = (content.pages || []).find((p) => p.slug === req.params.slug);
+  if (!page) return next();
+  res.render('page', { site: content.site, page, nav: navFor(content, page.slug), pageTitle: page.navLabel || page.title });
 });
 
 app.get('/:slug', (req, res, next) => {

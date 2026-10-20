@@ -128,6 +128,17 @@
   object-fit: contain;
 }
 
+.layer-frame,
+.layer-frame iframe,
+.layer-frame object {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #111;
+}
+.layer-frame a { color: #fff; padding: 12px; display: inline-block; }
+
 .layer-button-slot {
   display: flex;
   align-items: center;
