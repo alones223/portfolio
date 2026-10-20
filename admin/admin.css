@@ -106,10 +106,18 @@ h1, h2, h3, h4 { margin: 0; }
 /* A section panel that holds a layout board gets the full window width: the
    board is 1425px across, and squeezing it into 1180px would render the resize
    handles too small to grab. */
-.editor:has(.canvas-host) { max-width: none; }
+.editor:has(.canvas-host) {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+  align-self: stretch;
+}
 /* Form cards stay on the normal column. Only a card that holds a board
    uses the wider editor, so About / Contact fields do not stretch. */
 .editor:has(.canvas-host) > .card:not(:has(.canvas-host)) { max-width: 1180px; margin-left: auto; margin-right: auto; }
+.card:has(.canvas-host) { width: 100%; max-width: none; }
+.canvas-host, .cv, .cv-panes { width: 100%; min-width: 0; }
 
 /* Cards / panels */
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
