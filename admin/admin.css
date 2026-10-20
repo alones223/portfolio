@@ -107,6 +107,9 @@ h1, h2, h3, h4 { margin: 0; }
    board is 1425px across, and squeezing it into 1180px would render the resize
    handles too small to grab. */
 .editor:has(.canvas-host) { max-width: none; }
+/* Form cards stay on the normal column. Only a card that holds a board
+   uses the wider editor, so About / Contact fields do not stretch. */
+.editor:has(.canvas-host) > .card:not(:has(.canvas-host)) { max-width: 1180px; }
 
 /* Cards / panels */
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
@@ -342,11 +345,11 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
    when zoomed in and pans with the middle mouse button / space-drag. */
 .cv-viewport {
   overflow: auto; border: 1px solid var(--line); border-radius: 10px;
-  background: #eef1f5; padding: 0;
+  background: #eef1f5; padding: 12px;
   height: 78vh;
   max-height: 78vh;
   overscroll-behavior: contain;
-  display: block;
+  display: flex;
 }
 .cv-viewport.is-panning { cursor: grabbing; }
 .cv-frame { position: relative; min-width: 0; }
@@ -387,25 +390,25 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 }
 .cv-fn.is-on, .cv-fn:hover { background: var(--accent-soft); border-color: var(--accent); }
 .cv-center {
-  box-sizing: border-box;
-  width: 100%;
+  margin: auto;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 100%;
   min-height: 100%;
-  margin: 0;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
 }
-.cv-stage { position: relative; flex: none; }
-/* The board is scaled with transform, which does not shrink its layout box.
-   Keep it out of flow so the stage (the scaled size) is what gets centred. */
-.cv-board { position: absolute; left: 0; top: 0; width: 1425px; transform-origin: top left; background: #fff; box-shadow: 0 1px 3px rgba(10, 25, 47, .12); }
+/* The board stays 1425px and is only visually scaled. min-width: 0 lets the
+   stage keep the scaled size from paintBoard. overflow clips that layout box
+   so it cannot pin the artboard to the left of the panel. */
+.cv-stage { position: relative; flex: none; min-width: 0; min-height: 0; overflow: hidden; }
+.cv-board { position: relative; width: 1425px; transform-origin: top left; background: #fff; box-shadow: 0 1px 3px rgba(10, 25, 47, .12); }
 .cv-board-bg { position: absolute; inset: 0; pointer-events: none; background-repeat: no-repeat; background-position: center; background-size: cover; z-index: 0; }
 .cv-board.has-photo { cursor: grab; }
 .cv-board.is-panning-bg { cursor: grabbing; }
 .cv-place { display: flex; align-items: center; gap: 8px; }
 .cv-place input[type="range"] { flex: 1; min-height: 0; }
-.cv-height-handle { position: absolute; left: 0; right: 0; bottom: -7px; height: 14px; cursor: ns-resize; z-index: 6; }
+.cv-height-handle { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; cursor: ns-resize; z-index: 6; }
 .cv-height-handle::after { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: var(--accent); opacity: 0; }
 .cv-height-handle:hover::after { opacity: 1; }
 
