@@ -158,6 +158,10 @@
 
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('.zoom');
+      if (btn && btn.dataset.link && btn.dataset.link.charAt(0) === '/') {
+        window.location.href = btn.dataset.link;
+        return;
+      }
       if (btn) open(btn);
     });
     lb.querySelector('.lb-close').addEventListener('click', close);

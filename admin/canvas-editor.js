@@ -311,6 +311,17 @@ window.CanvasEditorUI = (function () {
         return p;
       });
     }
+    if (l.type === 'youtube') {
+      const id = String(l.src || '').match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+      const bare = /^[A-Za-z0-9_-]{11}$/.test(String(l.src || '').trim()) ? String(l.src).trim() : '';
+      const yt = id ? id[1] : bare;
+      if (!yt) return [h('div', { class: 'cv-placeholder' }, 'Paste a YouTube link')];
+      return [h('img', { src: `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`, alt: '', draggable: 'false', style: 'width:100%;height:100%;object-fit:cover' })];
+    }
+    if (l.type === 'pdf') {
+      if (!l.src) return [h('div', { class: 'cv-placeholder' }, 'Add a PDF')];
+      return [h('div', { class: 'cv-placeholder' }, 'PDF')];
+    }
     if (l.type === 'image') {
       if (!l.src) return [h('div', { class: 'cv-placeholder' }, 'No image yet')];
       const fit = ['cover', 'contain', 'fill'].includes(l.fit) ? l.fit : 'cover';
@@ -1353,6 +1364,7 @@ window.CanvasEditorUI = (function () {
 
     function textField(l, key, label, placeholder) {
       const input = h('input', { type: 'text', value: l[key] ?? '', placeholder: placeholder || '' });
+      if (key === 'link') input.setAttribute('list', 'page-links');
       input.addEventListener('input', () => {
         beginTyping();
         l[key] = input.value;
@@ -1574,6 +1586,21 @@ window.CanvasEditorUI = (function () {
 
     // Choosing an image for an image layer. Dropping a file straight onto the
     // thumbnail uploads it, so replacing a picture takes one gesture.
+    function pdfField(l) {
+      const upload = h('input', { type: 'file', accept: 'application/pdf,.pdf', hidden: true });
+      upload.addEventListener('change', async () => {
+        const urls = await onRequestFiles([...upload.files]);
+        upload.value = '';
+        if (urls.length) { l.src = urls[0]; onChange(); render(); }
+      });
+      return field('PDF',
+        h('div', { class: 'cv-imgrow-side' },
+          textField(l, 'src', 'File address', '/uploads/….pdf or https://…'),
+          h('button', { class: 'btn small', type: 'button', onclick: () => upload.click() }, 'Upload PDF'),
+          upload),
+        true);
+    }
+
     function imageField(l, key, label) {
       const thumb = h('button', {
         class: 'cv-thumb', type: 'button',
@@ -1644,7 +1671,7 @@ window.CanvasEditorUI = (function () {
             thumb,
             h('div', { class: 'cv-gal-side' },
               h('input', { type: 'text', value: item.caption || '', placeholder: 'Caption (optional)', oninput: (e) => { item.caption = e.target.value; onChange(); paintBoard(); } }),
-              h('input', { type: 'text', value: item.link || '', placeholder: 'Link, e.g. YouTube (optional)', oninput: (e) => { item.link = e.target.value; onChange(); } })),
+              h('input', { type: 'text', value: item.link || '', placeholder: 'Page or URL (optional)', list: 'page-links', oninput: (e) => { item.link = e.target.value; onChange(); } })),
             h('div', { class: 'cv-gal-btns' },
               h('button', { class: 'icon-btn', type: 'button', title: 'Upload a replacement', onclick: () => itemUpload.click() }, '⤒'),
               h('button', { class: 'icon-btn', type: 'button', title: 'Move earlier', disabled: i === 0, onclick: () => swap(i, i - 1) }, '←'),
@@ -2304,10 +2331,16 @@ window.CanvasEditorUI = (function () {
           ? 'The words wrap inside the box. A blank line starts a new paragraph. Drag the left or right edge to change how wide the lines run.'
           : 'Enter makes a new line. Double-click the name in the layer list to rename the layer.'));
       }
+      if (l.type === 'youtube') {
+        content.push(
+          textField(l, 'src', 'YouTube link or id', 'https://youtu.be/…'),
+          h('p', { class: 'cv-hint' }, 'The board shows a still. Visitors see the video.'));
+      }
+      if (l.type === 'pdf') content.push(pdfField(l));
       if (l.type === 'button') {
         content.push(
           textField(l, 'text', 'Button label'),
-          textField(l, 'link', 'Link', '/portfolio or https://…'),
+          textField(l, 'link', 'Link', '/artworks or https://…'),
           selectField(l, 'buttonStyle', 'Button look', [['pill', 'Rounded pill'], ['solid', 'Rectangle'], ['outline', 'Outline']]),
           toggleField(l, 'newTab', 'Open in a new tab'));
       }

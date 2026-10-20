@@ -40,6 +40,7 @@
         <div class="topbar-title">
           <h2 id="view-title"></h2>
           <a id="view-link" class="small" target="_blank" rel="noopener" hidden>View on website ↗</a>
+          <button class="btn small" id="preview-toggle" type="button" hidden>Live preview</button>
         </div>
         <div class="topbar-actions">
           <span id="save-state" class="save-state"></span>
@@ -48,6 +49,13 @@
         </div>
       </header>
       <main id="editor" class="editor"></main>
+      <section id="live-preview" class="live-preview" hidden>
+        <div class="live-preview-bar">
+          <strong>Live preview</strong>
+          <span class="hint" id="preview-note"></span>
+        </div>
+        <iframe id="preview-frame" title="Page preview"></iframe>
+      </section>
     </div>
   </div>
 

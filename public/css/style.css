@@ -33,6 +33,11 @@ button { font: inherit; color: inherit; }
 .js .reveal { opacity: 0; transform: translateY(28px); transition: opacity .9s ease, transform .9s ease; }
 .js .reveal.in-view { opacity: 1; transform: none; }
 
+.case-study { max-width: 860px; margin: 0 auto; padding: 56px 24px 72px; }
+.case-role { margin: 8px 0 28px; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
+.case-block + .case-block { margin-top: 28px; }
+.case-block h3 { font-family: var(--font-display); font-size: 22px; margin-bottom: 10px; color: var(--navy); }
+
 /* ------------------------------------------------------------------ */
 /* Header                                                              */
 /* ------------------------------------------------------------------ */

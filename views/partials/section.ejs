@@ -21,7 +21,21 @@
     return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : 50;
   };
 %>
-<% if (__canvas) { %>
+<% if (__s.layout === 'case') { %>
+  <section class="content-section case-study"<% if (__s.heading) { %> aria-label="<%= __s.heading %>"<% } %>>
+    <% if (__s.heading) { %><h2 class="section-heading reveal"><%= __s.heading %></h2><% } %>
+    <% if (__s.role) { %><p class="case-role reveal"><%= __s.role %></p><% } %>
+    <% if (__s.brief) { %>
+      <div class="case-block reveal"><h3>Brief</h3><div class="section-text"><%- paragraphs(__s.brief) %></div></div>
+    <% } %>
+    <% if (__s.process) { %>
+      <div class="case-block reveal"><h3>Process</h3><div class="section-text"><%- paragraphs(__s.process) %></div></div>
+    <% } %>
+    <% if (__s.outcome) { %>
+      <div class="case-block reveal"><h3>Outcome</h3><div class="section-text"><%- paragraphs(__s.outcome) %></div></div>
+    <% } %>
+  </section>
+<% } else if (__canvas) { %>
   <section class="content-section layout-canvas<%= __s.canvasLock ? ' canvas-lock' : '' %>"
     style="--canvas-h: <%= __h %>; --canvas-w: <%= __w %>; --canvas-bg: <%= __bgColor %>; --canvas-bg-alpha: <%= __bgAlpha %><% if (__img) { %>; --canvas-image: url('<%= __img %>'); --canvas-image-x: <%= __place(__s.canvasImageX) %>%; --canvas-image-y: <%= __place(__s.canvasImageY) %>%<% } %>"
     <% if (__s.heading) { %>aria-label="<%= __s.heading %>"<% } %>>
@@ -121,6 +135,18 @@
                 </li>
               <% }) %>
             </ul>
+          <% } else if (l.type === 'youtube') { %>
+            <% const __yt = l.youtubeId || youtubeId(l.src); %>
+            <% if (__yt) { %>
+              <iframe class="layer-embed" title="<%= l.name || 'YouTube video' %>"
+                src="https://www.youtube-nocookie.com/embed/<%= __yt %>"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen loading="lazy"></iframe>
+            <% } %>
+          <% } else if (l.type === 'pdf') { %>
+            <% if (l.src) { %>
+              <iframe class="layer-embed" title="<%= l.name || 'PDF' %>" src="<%= safeUrl(l.src) %>" loading="lazy"></iframe>
+            <% } %>
           <% } else if (l.type === 'button') { %>
             <span class="layer-button-slot" style="justify-content:<%= LAYER_ALIGN.has(l.align) ? (l.align === 'center' ? 'center' : l.align === 'right' ? 'flex-end' : 'flex-start') : 'flex-start' %>">
               <a class="layer-button style-<%= ['pill', 'solid', 'outline'].includes(l.buttonStyle) ? l.buttonStyle : 'pill' %>"

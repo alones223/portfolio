@@ -193,8 +193,8 @@ function isExternal(url) {
 // ---------------------------------------------------------------------------
 
 const ANIMATIONS = new Set(['none', 'fade', 'up', 'down', 'left', 'right', 'zoom', 'zoomOut', 'float', 'pulse']);
-const LAYER_TYPES = new Set(['heading', 'text', 'paragraph', 'image', 'gallery', 'group', 'button', 'divider', 'shape']);
-const LAYOUT_SUPPORTED = new Set(['canvas', 'gallery']);
+const LAYER_TYPES = new Set(['heading', 'text', 'paragraph', 'image', 'gallery', 'group', 'button', 'divider', 'shape', 'youtube', 'pdf']);
+const LAYOUT_SUPPORTED = new Set(['canvas', 'gallery', 'case']);
 const LAYER_FITS = new Set(['cover', 'contain', 'fill']);
 const MAX_LAYERS = 200;
 const MAX_SECTIONS_PER_PAGE = 40;
@@ -252,6 +252,15 @@ function safeUrl(url) {
   if (!v) return '';
   if (/^(javascript|data|vbscript):/i.test(v)) return '';
   return v;
+}
+
+// A pasted watch URL, a short link, or a bare 11-character id.
+function youtubeId(value) {
+  const v = String(value || '').trim();
+  const fromUrl = v.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+  if (fromUrl) return fromUrl[1];
+  if (/^[A-Za-z0-9_-]{11}$/.test(v)) return v;
+  return '';
 }
 
 const SHAPE_KINDS = new Set(['rect', 'circle', 'triangle', 'star', 'custom']);
@@ -534,6 +543,15 @@ function normLayer(rawLayer, index) {
   if (type === 'gallery') {
     out.images = Array.isArray(rawLayer?.images) ? rawLayer.images.map(normCell) : [];
   }
+  if (type === 'youtube') {
+    out.src = String(rawLayer?.src || '').trim().slice(0, 300);
+    const id = youtubeId(out.src);
+    if (id) out.youtubeId = id;
+    else delete out.youtubeId;
+  }
+  if (type === 'pdf') {
+    out.src = safeUrl(rawLayer?.src).slice(0, 500);
+  }
   if (type === 'group') {
     out.children = Array.isArray(rawLayer?.children)
       ? rawLayer.children.filter((child) => child && typeof child === 'object').slice(0, 40).map((child, i) => normLayer(child, i))
@@ -578,6 +596,16 @@ function normSection(rawSection, index) {
   // Legacy values from removed layouts (showcase, cards) all render as gallery now.
   if (section.layout === 'showcase' || section.layout === 'cards') section.layout = 'gallery';
   if (!LAYOUT_SUPPORTED.has(section.layout)) section.layout = 'canvas';
+  if (section.layout === 'case') {
+    const clip = (key, max) => {
+      section[key] = typeof rawSection?.[key] === 'string' ? rawSection[key].slice(0, max) : '';
+    };
+    clip('role', 200);
+    clip('brief', 8000);
+    clip('process', 8000);
+    clip('outcome', 8000);
+    section.layers = [];
+  }
   // The plain image layout (gallery) keeps its pictures in
   // `items`; the board keeps them inside gallery layers. Both are normalised,
   // because switching a section between the two layouts carries the list over.
@@ -659,7 +687,7 @@ function validateSection(section, label, errors) {
   }
   const layout = section.layout || 'gallery';
   const canvas = layout === 'canvas';
-  const known = canvas || layout === 'gallery';
+  const known = canvas || layout === 'gallery' || layout === 'case';
   if (!known) {
     errors.push(`"${label}": the layout "${layout}" is not supported`);
   }
@@ -714,6 +742,7 @@ app.use((req, res, next) => {
   next();
 });
 app.locals.safeUrl = safeUrl;
+app.locals.youtubeId = youtubeId;
 app.locals.ANIMATIONS = ANIMATIONS;
 app.locals.LAYER_FITS = LAYER_FITS;
 app.locals.LAYER_ALIGN = LAYER_ALIGN;
@@ -1009,7 +1038,7 @@ app.delete('/api/layouts/:id', requireAuth, (req, res) => {
 // Media uploads
 // ---------------------------------------------------------------------------
 
-const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.mp4', '.webm', '.woff', '.woff2', '.ttf', '.otf']);
+const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.mp4', '.webm', '.pdf', '.woff', '.woff2', '.ttf', '.otf']);
 const FONT_EXT = new Set(['.woff', '.woff2', '.ttf', '.otf']);
 
 function fontFormat(ext) {
@@ -1206,13 +1235,26 @@ function navFor(content, currentSlug) {
   return items;
 }
 
+app.post('/api/preview-draft', requireAuth, (req, res) => {
+  const data = normContent(req.body);
+  const errors = validateContent(data);
+  if (errors.length) return res.status(400).json({ error: errors[0], errors });
+  req.session.previewDraft = data;
+  res.json({ ok: true });
+});
+
+function contentFor(req) {
+  if (req.query.preview === '1' && req.session?.admin && req.session.previewDraft) return req.session.previewDraft;
+  return getContent();
+}
+
 app.get('/', (req, res) => {
-  const content = getContent();
+  const content = contentFor(req);
   res.render('home', { site: content.site, home: content.home, nav: navFor(content, ''), pageTitle: content.home.seoTitle || 'Home' });
 });
 
 app.get('/:slug', (req, res, next) => {
-  const content = getContent();
+  const content = contentFor(req);
   const page = content.pages.find((p) => p.slug === req.params.slug);
   if (!page) return next();
   res.render('page', { site: content.site, page, nav: navFor(content, page.slug), pageTitle: page.navLabel || page.title });
