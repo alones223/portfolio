@@ -172,6 +172,7 @@
   let unread = 0;
   const openPanels = new WeakSet(); // which section panels are expanded
   const openPanelIds = new Set();   // same set, by id, so undo can reopen them
+  const editorMode = new Map();     // section id -> 'form' | 'canvas' (admin only)
   function setPanelOpen(s, open) {
     if (!s) return;
     if (open) {
@@ -586,6 +587,7 @@
   function tilesEditor(arr, opts = {}) {
     const captionKey = opts.captionKey || 'caption';
     const wrap = h('div', { class: 'list' });
+    const touch = (arg) => { changed(arg); if (opts.onEdit) opts.onEdit(); };
 
     const addUrls = (urls, at = arr.length) => {
       const items = urls.map((url) => {
@@ -594,7 +596,7 @@
         return item;
       });
       arr.splice(at, 0, ...items);
-      changed();
+      touch();
       draw();
     };
 
@@ -604,22 +606,22 @@
         h('span', { class: 'num' }, pad2(i + 1)));
       img.addEventListener('click', async () => {
         const url = await pickImage();
-        if (url) { item.image = url; changed(); draw(); }
+        if (url) { item.image = url; touch(); draw(); }
       });
       addFileDrop(img, async (files) => {
         const [url] = await uploadFiles(files.slice(0, 1));
-        if (url) { item.image = url; changed(); draw(); }
+        if (url) { item.image = url; touch(); draw(); }
       });
 
       const caption = h('textarea', { rows: 2, placeholder: opts.captionLabel || 'Caption (optional)', 'aria-label': 'Caption' });
       caption.value = item[captionKey] || '';
-      caption.addEventListener('input', () => { item[captionKey] = caption.value; changed({ coalesce: true }); });
+      caption.addEventListener('input', () => { item[captionKey] = caption.value; touch({ coalesce: true }); });
 
       let link = null;
       if (opts.showLink !== false) {
         link = h('input', { type: 'text', placeholder: opts.linkPlaceholder || 'Link (optional)', 'aria-label': 'Link', list: 'page-links' });
         link.value = item.link || '';
-        link.addEventListener('input', () => { item.link = link.value.trim(); changed({ coalesce: true }); });
+        link.addEventListener('input', () => { item.link = link.value.trim(); touch({ coalesce: true }); });
       }
 
       let wide = null;
@@ -636,10 +638,10 @@
         h('div', { class: 'tile-bar' },
           h('span', { class: 'group-btns' },
             handle,
-            iconBtn('←', 'Move earlier', () => { move(arr, i, i - 1); changed(); draw(); }, { disabled: i === 0 }),
-            iconBtn('→', 'Move later', () => { move(arr, i, i + 1); changed(); draw(); }, { disabled: i === arr.length - 1 })),
+            iconBtn('←', 'Move earlier', () => { move(arr, i, i - 1); touch(); draw(); }, { disabled: i === 0 }),
+            iconBtn('→', 'Move later', () => { move(arr, i, i + 1); touch(); draw(); }, { disabled: i === arr.length - 1 })),
           h('span', { class: 'group-btns' },
-            iconBtn('✕', 'Remove from page', () => { arr.splice(i, 1); changed(); draw(); }, { danger: true }))));
+            iconBtn('✕', 'Remove from page', () => { arr.splice(i, 1); touch(); draw(); }, { danger: true }))));
 
       // Only the handle starts a drag, so text in the caption can still be selected.
       handle.addEventListener('mousedown', () => { el.draggable = true; });
@@ -660,7 +662,7 @@
           e.preventDefault();
           move(arr, drag.from, i);
           drag = null;
-          changed();
+          touch();
           draw();
         }
       });
@@ -1055,19 +1057,20 @@
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, true)); drawSections(); } }, 'Expand all'),
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, false)); drawSections(); } }, 'Collapse all'))),
         h('p', { class: 'hint', style: 'margin-bottom:12px' },
-          'Everything under the hero, including Works. Each section is its own board: put text, images and image groups anywhere on it. Drag a section to change the order. Use ⧉ to copy a section as a new one — the original is left untouched.'),
+          'About、Works 和一般文字用表單編輯。Hero 和自由排版用畫布。兩種編輯寫進同一份內容。'),
         sectionsWrap),
-      card('Contact section',
+      card('聯絡 Contact',
+        h('p', { class: 'hint', style: 'margin-bottom:12px' }, '表單編輯。這段文字和欄位名稱直接出現在首頁聯絡區。'),
         fields(
-          textField(home.contact, 'heading', 'Heading', { span: 2 }),
-          textField(home.contact, 'emailLine', 'Email line', { span: 2 }),
-          textField(home.contact, 'text', 'Text', { multiline: true, rows: 3 }),
-          textField(home.contact, 'labelName', 'Form label: name', { span: 1 }),
-          textField(home.contact, 'labelEmail', 'Form label: email', { span: 1 }),
-          textField(home.contact, 'labelSubject', 'Form label: subject', { span: 1 }),
-          textField(home.contact, 'labelMessage', 'Form label: message', { span: 1 }),
-          textField(home.contact, 'labelSubmit', 'Submit button text', { span: 1 }),
-          textField(home.contact, 'successMessage', 'Message shown after sending', { span: 3 }))),
+          textField(home.contact, 'heading', '標題', { span: 2 }),
+          textField(home.contact, 'emailLine', '電郵行', { span: 2 }),
+          textField(home.contact, 'text', '內文', { multiline: true, rows: 3 }),
+          textField(home.contact, 'labelName', '欄位：姓名', { span: 1 }),
+          textField(home.contact, 'labelEmail', '欄位：電郵', { span: 1 }),
+          textField(home.contact, 'labelSubject', '欄位：主旨', { span: 1 }),
+          textField(home.contact, 'labelMessage', '欄位：訊息', { span: 1 }),
+          textField(home.contact, 'labelSubmit', '送出按鈕', { span: 1 }),
+          textField(home.contact, 'successMessage', '送出後的提示', { span: 3 }))),
       card('Scrolling text band',
         fields(textField(home, 'marquee', 'Text', { hint: 'Repeats endlessly across the screen.' }))),
     ];
@@ -1394,6 +1397,45 @@
     return `${name} · ${count}`;
   };
 
+  function isGhostLayer(l) {
+    return /ghost/i.test(l.name || '') || (l.type === 'heading' && Number(l.size) >= 100);
+  }
+
+  function defaultEditorMode(s) {
+    if (!s) return 'canvas';
+    if (s.layout === 'case' || s.layout === 'gallery' || s.layout === 'form' || s.layout === 'works') return 'form';
+    if (Array.isArray(s.cards)) return 'form';
+    if (s.layout === 'canvas') {
+      const layers = s.layers || [];
+      const textCount = layers.filter((l) => (l.type === 'text' || l.type === 'heading') && !isGhostLayer(l)).length;
+      const pictureCount = layers.filter((l) => l.type === 'image' || l.type === 'gallery').length;
+      if (textCount && pictureCount <= 1) return 'form';
+    }
+    return 'canvas';
+  }
+
+  function sectionEditorMode(s) {
+    if (s.layout === 'case') return 'form';
+    if (s.id && editorMode.has(s.id)) return editorMode.get(s.id);
+    return defaultEditorMode(s);
+  }
+
+  // Works cards and the canvas gallery are the same list. Form edits write both.
+  function syncWorksLayers(works) {
+    (works.layers || []).forEach((l) => {
+      if (l.type === 'heading' && l.name === 'Heading') l.text = works.heading || '';
+      if (l.name === 'Description') l.text = works.description || '';
+      if (/ghost/i.test(l.name || '')) l.text = works.decorText || '';
+      if (l.type === 'gallery') {
+        l.images = (works.cards || []).map((c) => ({
+          image: c.image || '',
+          caption: c.label || '',
+          link: c.link || '',
+        }));
+      }
+    });
+  }
+
   function sectionPanel(page, s, i, redraw, pageLabel) {
     const sections = page.sections;
     const titleEl = h('span', { class: 'panel-title', title: 'Double-click to rename' }, (s.heading || '').replace(/\n/g, ' ') || '(untitled section)');
@@ -1482,30 +1524,111 @@
       const body = h('div', { class: 'panel-body' });
       const isWorks = page.works && s === page.works;
       const draw = () => {
-        if (s.layout === 'case') {
-          mount(body,
-            fields(
-              textField(s, 'heading', 'Title', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } }),
-              textField(s, 'role', 'Role', { placeholder: 'Optional, for example Animator' }),
-              textField(s, 'brief', 'Brief', { multiline: true, rows: 6 }),
-              textField(s, 'process', 'Process', { multiline: true, rows: 6 }),
-              textField(s, 'outcome', 'Outcome', { multiline: true, rows: 6 })),
-            h('p', { class: 'hint' }, 'Visitors see these three parts on the page. Leave a part blank to hide it.'));
+        const mode = sectionEditorMode(s);
+        const switcher = s.layout === 'case' ? null : h('div', { class: 'list-tools', style: 'margin-bottom:12px' },
+          h('button', {
+            class: mode === 'form' ? 'btn small primary' : 'btn small', type: 'button',
+            onclick: () => { if (s.id) editorMode.set(s.id, 'form'); redraw(); },
+          }, '表單編輯'),
+          h('button', {
+            class: mode === 'canvas' ? 'btn small primary' : 'btn small', type: 'button',
+            onclick: () => {
+              if (s.layout !== 'canvas') {
+                s.layout = 'canvas';
+                s.layers = s.layers || [];
+                if (!s.layers.length) {
+                  if (isWorks) seedWorksCanvas(s);
+                  else seedCanvasFromClassic(s);
+                }
+              }
+              if (s.id) editorMode.set(s.id, 'canvas');
+              changed();
+              redraw();
+            },
+          }, '畫布編輯'));
+
+        if (mode === 'form') {
+          if (s.layout === 'case') {
+            mount(body,
+              fields(
+                textField(s, 'heading', '標題', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } }),
+                textField(s, 'role', '角色（可留空）', { placeholder: '例如 Animator' }),
+                textField(s, 'brief', 'Brief', { multiline: true, rows: 6 }),
+                textField(s, 'process', 'Process', { multiline: true, rows: 6 }),
+                textField(s, 'outcome', 'Outcome', { multiline: true, rows: 6 })),
+              h('p', { class: 'hint' }, '訪客只會看到有填寫的部分。'));
+            refreshMeta();
+            return;
+          }
+          if (isWorks) {
+            s.cards = Array.isArray(s.cards) ? s.cards : [];
+            if (!s.cards.length) {
+              const gal = (s.layers || []).find((l) => l.type === 'gallery');
+              if (gal && Array.isArray(gal.images)) {
+                s.cards = gal.images.map((item) => ({ label: item.caption || '', image: item.image || '', link: item.link || '' }));
+              }
+            }
+            const sync = () => syncWorksLayers(s);
+            mount(body,
+              switcher,
+              fields(
+                textField(s, 'heading', '標題', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; sync(); } }),
+                textField(s, 'decorText', '裝飾字', { multiline: true, rows: 2, onInput: sync }),
+                textField(s, 'description', '簡介', { multiline: true, rows: 4, onInput: sync })),
+              tilesEditor(s.cards, {
+                label: '分類卡',
+                captionKey: 'label',
+                captionLabel: '分類名稱',
+                linkPlaceholder: '/artworks',
+                onEdit: sync,
+              }),
+              h('p', { class: 'hint' }, '名稱、圖片和連結寫進 Works 分類卡。畫布上的同一組卡片會一起更新。'));
+            refreshMeta();
+            return;
+          }
+          const textLayers = (s.layers || []).filter((l) => (l.type === 'text' || l.type === 'heading') && !isGhostLayer(l));
+          const galleries = (s.layers || []).filter((l) => l.type === 'gallery');
+          const blocks = [switcher];
+          if (s.layout !== 'canvas' || !textLayers.length) {
+            blocks.push(fields(
+              textField(s, 'heading', '標題', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } }),
+              textField(s, 'text', '內文', { multiline: true, rows: 6 }),
+              textField(s, 'textAfter', '後段文字', { multiline: true, rows: 4 })));
+          } else {
+            blocks.push(fields(
+              ...textLayers.map((l) => textField(l, 'text', l.name || (l.type === 'heading' ? '標題' : '內文'), {
+                multiline: true,
+                rows: l.type === 'heading' ? 2 : 6,
+                onInput: l.type === 'heading' ? (v) => { s.heading = v; titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } : undefined,
+              }))));
+          }
+          if (galleries.length) {
+            galleries.forEach((l) => {
+              l.images = l.images || [];
+              blocks.push(tilesEditor(l.images, { label: l.name || '圖片', captionLabel: '說明', linkPlaceholder: '連結（可留空）' }));
+            });
+          } else if (s.layout !== 'canvas') {
+            s.items = s.items || [];
+            blocks.push(tilesEditor(s.items, { label: '圖片', captionLabel: '說明', showWide: true }));
+          }
+          blocks.push(h('p', { class: 'hint' }, '表單改的是這一節的文字和圖片。Hero 和自由排版才需要畫布。'));
+          mount(body, ...blocks);
           refreshMeta();
           return;
         }
-        if ((s.layout || 'gallery') !== 'canvas') {
-          if (isWorks) seedWorksCanvas(s);
-          else {
-            s.layout = 'canvas';
-            if (!s.layers.length && ((s.heading || '') || (s.text || '') || (s.items || []).length || (s.textAfter || '') || (s.buttons || []).length)) {
-              seedCanvasFromClassic(s);
-            }
+
+        if (s.layout !== 'canvas') {
+          s.layout = 'canvas';
+          s.layers = s.layers || [];
+          if (!s.layers.length) {
+            if (isWorks) seedWorksCanvas(s);
+            else seedCanvasFromClassic(s);
           }
         }
         s.canvasHeight = Number(s.canvasHeight) || 640;
         mountCanvas();
-        mount(body, 
+        mount(body,
+            switcher,
             fields(
               textField(s, 'heading', 'Section name (for your reference)', {
                 multiline: true, rows: 1, span: 4,
