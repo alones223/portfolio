@@ -20,6 +20,9 @@ const MAX_BACKUPS = 30;
 // shelf of starting points.
 const LAYOUT_LIBRARY_FILE = path.join(DATA_DIR, 'layouts.json');
 const MAX_LIBRARY = 200;
+// Optional albums you create in Media library. Page folders stay virtual
+// (derived from content); these are real labels you assign to files.
+const MEDIA_LIBRARY_FILE = path.join(DATA_DIR, 'media-library.json');
 
 const PORT = Number(process.env.PORT) || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
@@ -478,7 +481,9 @@ function layerBox(layer, canvasHeight) {
   const w = num(layer.w, 10, 8000, 300);
   const h = num(layer.h, 2, 6000, 100);
   const z = num(layer.z, 0, 9999, 0);
-  const fixedHeight = layer.hugging && (layer.type === 'text' || layer.type === 'heading' || layer.type === 'paragraph') ? '' : `;height:${h}px`;
+  const hugs = Boolean(layer.hugging || layer.autoFit)
+    && (layer.type === 'text' || layer.type === 'heading' || layer.type === 'paragraph' || layer.type === 'button');
+  const fixedHeight = hugs ? '' : `;height:${h}px`;
   return `left:${x}px;top:${y}px;width:${w}px${fixedHeight};z-index:${Math.round(z)}`;
 }
 
@@ -656,6 +661,8 @@ function normSection(rawSection, index) {
     const width = Number(section.canvasWidth);
     if (Number.isFinite(width) && width > 0) section.canvasWidth = Math.min(4000, Math.max(480, Math.round(width)));
     else delete section.canvasWidth;
+    if (rawSection?.canvasWidthMode === 'screen') section.canvasWidthMode = 'screen';
+    else delete section.canvasWidthMode;
   }
   section.buttons = Array.isArray(rawSection?.buttons)
     ? rawSection.buttons.filter((b) => b && typeof b === 'object')
@@ -679,6 +686,8 @@ function normSection(rawSection, index) {
     if (section.canvasImage && Number.isFinite(n)) section[key] = Math.min(100, Math.max(0, Math.round(n)));
     else delete section[key];
   });
+  if (rawSection?.backgroundLocked) section.backgroundLocked = true;
+  else delete section.backgroundLocked;
   if (!section.heading && !section.layers?.length && !section.items.length) {
     section.heading = `Section ${index + 1}`;
   }
@@ -796,7 +805,15 @@ app.use(
   })
 );
 
-app.use(express.static(path.join(ROOT, 'public'), { maxAge: '1h' }));
+app.use(express.static(path.join(ROOT, 'public'), {
+  maxAge: '1h',
+  setHeaders(res, filePath) {
+    // CSS/JS: rely on ?v= query bust; don't sticky-cache for an hour during local edits
+    if (/\.(css|js)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    }
+  },
+}));
 app.use('/admin', express.static(path.join(ROOT, 'admin')));
 
 // ---------------------------------------------------------------------------
@@ -1077,6 +1094,17 @@ app.delete('/api/layouts/:id', requireAuth, (req, res) => {
 
 const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.mp4', '.webm', '.pdf', '.woff', '.woff2', '.ttf', '.otf']);
 const FONT_EXT = new Set(['.woff', '.woff2', '.ttf', '.otf']);
+const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg']);
+const VIDEO_EXT = new Set(['.mp4', '.webm']);
+
+function mediaKind(name) {
+  const ext = path.extname(name).toLowerCase();
+  if (FONT_EXT.has(ext)) return 'font';
+  if (VIDEO_EXT.has(ext)) return 'video';
+  if (ext === '.pdf') return 'pdf';
+  if (IMAGE_EXT.has(ext)) return 'image';
+  return 'other';
+}
 
 function fontFormat(ext) {
   if (ext === '.woff2') return 'woff2';
@@ -1110,6 +1138,72 @@ function listFontFiles() {
 
 function customFontCss() {
   return listFontFiles().map((font) => font.face).join('\n');
+}
+
+function emptyMediaLibrary() {
+  return { folders: [], assignments: {} };
+}
+
+function getMediaLibrary() {
+  const raw = readJson(MEDIA_LIBRARY_FILE, emptyMediaLibrary());
+  if (!raw || typeof raw !== 'object') return emptyMediaLibrary();
+  const folders = Array.isArray(raw.folders)
+    ? raw.folders
+        .filter((f) => f && typeof f === 'object' && f.id && f.label)
+        .map((f) => ({ id: String(f.id), label: String(f.label).trim().slice(0, 80) || 'Folder' }))
+    : [];
+  const assignments = {};
+  if (raw.assignments && typeof raw.assignments === 'object') {
+    for (const [name, folderId] of Object.entries(raw.assignments)) {
+      if (typeof name === 'string' && typeof folderId === 'string' && folders.some((f) => f.id === folderId)) {
+        assignments[path.basename(name)] = folderId;
+      }
+    }
+  }
+  return { folders, assignments };
+}
+
+function saveMediaLibrary(lib) {
+  writeJsonAtomic(MEDIA_LIBRARY_FILE, {
+    folders: lib.folders || [],
+    assignments: lib.assignments || {},
+  });
+}
+
+function rewriteUploadStrings(node, fromUrl, toUrl) {
+  if (typeof node === 'string') return node === fromUrl ? toUrl : node;
+  if (Array.isArray(node)) {
+    for (let i = 0; i < node.length; i++) node[i] = rewriteUploadStrings(node[i], fromUrl, toUrl);
+    return node;
+  }
+  if (node && typeof node === 'object') {
+    for (const key of Object.keys(node)) node[key] = rewriteUploadStrings(node[key], fromUrl, toUrl);
+  }
+  return node;
+}
+
+function rewriteUploadInSavedContent(fromUrl, toUrl) {
+  const content = getContent();
+  rewriteUploadStrings(content, fromUrl, toUrl);
+  writeJsonAtomic(CONTENT_FILE, content);
+  contentCache = content;
+  // Layout shelf may also reference the same upload URLs.
+  if (fs.existsSync(LAYOUT_LIBRARY_FILE)) {
+    const layouts = readJson(LAYOUT_LIBRARY_FILE, []);
+    rewriteUploadStrings(layouts, fromUrl, toUrl);
+    writeJsonAtomic(LAYOUT_LIBRARY_FILE, layouts);
+  }
+  return content;
+}
+
+function sanitizeUploadBase(name) {
+  const cleaned = String(name || '')
+    .normalize('NFKD')
+    .replace(/[^\w.\-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+  return cleaned || 'file';
 }
 
 const upload = multer({
@@ -1152,19 +1246,34 @@ function collectStrings(node, out) {
 
 // Media folders are virtual: a file belongs to every page whose saved content
 // mentions it. Nothing moves on disk, so /uploads/... links never change.
-function mediaFolders(content) {
+// Library albums (from media-library.json) are extra labels you assign yourself.
+function mediaFolders(content, lib) {
   const site = (content && content.site) || {};
-  const folders = [{ id: 'home', label: site.homeNavLabel || 'Home', node: content && content.home }];
+  const folders = [{ id: 'home', label: site.homeNavLabel || 'Home', kind: 'page', node: content && content.home }];
   for (const page of (content && content.pages) || []) {
     folders.push({
       id: page.id || page.slug,
       label: page.navLabel || page.title || page.slug || 'Untitled page',
+      kind: 'page',
       node: page,
     });
   }
-  folders.push({ id: 'site', label: 'Site-wide (logo, socials)', node: site });
-  folders.push({ id: 'fonts', label: 'Fonts', urls: new Set(listFontFiles().map((font) => font.url)) });
-  return folders.map((f) => ({ id: f.id, label: f.label, urls: f.urls || collectStrings(f.node, new Set()) }));
+  folders.push({ id: 'site', label: 'Site-wide (logo, socials)', kind: 'page', node: site });
+  folders.push({ id: 'fonts', label: 'Fonts', kind: 'page', urls: new Set(listFontFiles().map((font) => font.url)) });
+  const pageFolders = folders.map((f) => ({ id: f.id, label: f.label, kind: f.kind || 'page', urls: f.urls || collectStrings(f.node, new Set()) }));
+  const library = (lib && lib.folders) || [];
+  const libraryFolders = library.map((f) => ({
+    id: `lib:${f.id}`,
+    label: f.label,
+    kind: 'library',
+    libraryId: f.id,
+    urls: new Set(
+      Object.entries((lib && lib.assignments) || {})
+        .filter(([, folderId]) => folderId === f.id)
+        .map(([name]) => `/uploads/${name}`)
+    ),
+  }));
+  return [...pageFolders, ...libraryFolders];
 }
 
 app.get('/api/fonts', requireAuth, (req, res) => {
@@ -1172,13 +1281,54 @@ app.get('/api/fonts', requireAuth, (req, res) => {
 });
 
 app.get('/api/media/folders', requireAuth, (req, res) => {
-  res.json(mediaFolders(getContent()).map(({ id, label }) => ({ id, label })));
+  const lib = getMediaLibrary();
+  res.json(mediaFolders(getContent(), lib).map(({ id, label, kind, libraryId }) => ({
+    id, label, kind: kind || 'page', ...(libraryId ? { libraryId } : {}),
+  })));
+});
+
+app.post('/api/media/folders', requireAuth, (req, res) => {
+  const label = String(req.body?.label || '').trim().slice(0, 80);
+  if (!label) return res.status(400).json({ error: 'Folder name is required' });
+  const lib = getMediaLibrary();
+  if (lib.folders.length >= 40) return res.status(400).json({ error: 'Too many library folders (max 40)' });
+  const folder = { id: crypto.randomBytes(4).toString('hex'), label };
+  lib.folders.push(folder);
+  saveMediaLibrary(lib);
+  res.json({ id: `lib:${folder.id}`, libraryId: folder.id, label: folder.label, kind: 'library' });
+});
+
+app.patch('/api/media/folders/:id', requireAuth, (req, res) => {
+  const libraryId = String(req.params.id || '').replace(/^lib:/, '');
+  const label = String(req.body?.label || '').trim().slice(0, 80);
+  if (!label) return res.status(400).json({ error: 'Folder name is required' });
+  const lib = getMediaLibrary();
+  const folder = lib.folders.find((f) => f.id === libraryId);
+  if (!folder) return res.status(404).json({ error: 'Library folder not found' });
+  folder.label = label;
+  saveMediaLibrary(lib);
+  res.json({ id: `lib:${folder.id}`, libraryId: folder.id, label: folder.label, kind: 'library' });
+});
+
+app.delete('/api/media/folders/:id', requireAuth, (req, res) => {
+  const libraryId = String(req.params.id || '').replace(/^lib:/, '');
+  const lib = getMediaLibrary();
+  if (!lib.folders.some((f) => f.id === libraryId)) {
+    return res.status(404).json({ error: 'Library folder not found' });
+  }
+  lib.folders = lib.folders.filter((f) => f.id !== libraryId);
+  for (const [name, folderId] of Object.entries(lib.assignments)) {
+    if (folderId === libraryId) delete lib.assignments[name];
+  }
+  saveMediaLibrary(lib);
+  res.json({ ok: true });
 });
 
 app.get('/api/media', requireAuth, (req, res) => {
   const content = getContent();
+  const lib = getMediaLibrary();
   const used = collectStrings(content, new Set());
-  const folders = mediaFolders(content);
+  const folders = mediaFolders(content, lib);
   const fontsByUrl = new Map(listFontFiles().map((item) => [item.url, item]));
   const files = fs
     .readdirSync(UPLOAD_DIR)
@@ -1187,18 +1337,113 @@ app.get('/api/media', requireAuth, (req, res) => {
       const stat = fs.statSync(path.join(UPLOAD_DIR, name));
       const url = `/uploads/${name}`;
       const font = fontsByUrl.get(url);
+      const libraryId = lib.assignments[name] || null;
       return {
         name,
         url,
         size: stat.size,
         modified: stat.mtimeMs,
         used: used.has(url),
+        kind: mediaKind(name),
+        libraryId,
         folders: folders.filter((f) => f.urls.has(url)).map((f) => f.id),
         ...(font ? { fontFamily: font.css } : {}),
       };
     })
     .sort((a, b) => b.modified - a.modified);
   res.json(files);
+});
+
+app.patch('/api/media/:name', requireAuth, (req, res) => {
+  const name = path.basename(req.params.name);
+  const file = path.join(UPLOAD_DIR, name);
+  if (!fs.existsSync(file)) return res.status(404).json({ error: 'File not found' });
+
+  const lib = getMediaLibrary();
+  let nextName = name;
+  let content = null;
+  const body = req.body || {};
+
+  if (typeof body.newName === 'string' && body.newName.trim()) {
+    const ext = path.extname(name).toLowerCase();
+    let base = path.basename(body.newName.trim(), path.extname(body.newName.trim()));
+    base = sanitizeUploadBase(base);
+    if (!base) return res.status(400).json({ error: 'Invalid file name' });
+    nextName = `${base}${ext}`;
+    if (nextName !== name) {
+      const dest = path.join(UPLOAD_DIR, nextName);
+      if (fs.existsSync(dest)) {
+        return res.status(409).json({ error: `A file named "${nextName}" already exists` });
+      }
+      fs.renameSync(file, dest);
+      const fromUrl = `/uploads/${name}`;
+      const toUrl = `/uploads/${nextName}`;
+      content = rewriteUploadInSavedContent(fromUrl, toUrl);
+      if (lib.assignments[name]) {
+        lib.assignments[nextName] = lib.assignments[name];
+        delete lib.assignments[name];
+      }
+    }
+  }
+
+  if ('folderId' in body) {
+    let folderId = body.folderId;
+    if (folderId == null || folderId === '' || folderId === 'none') {
+      delete lib.assignments[nextName];
+    } else {
+      folderId = String(folderId).replace(/^lib:/, '');
+      if (!lib.folders.some((f) => f.id === folderId)) {
+        return res.status(400).json({ error: 'Unknown library folder' });
+      }
+      lib.assignments[nextName] = folderId;
+    }
+  }
+
+  saveMediaLibrary(lib);
+  const stat = fs.statSync(path.join(UPLOAD_DIR, nextName));
+  const url = `/uploads/${nextName}`;
+  const used = collectStrings(content || getContent(), new Set());
+  res.json({
+    ok: true,
+    name: nextName,
+    url,
+    size: stat.size,
+    modified: stat.mtimeMs,
+    used: used.has(url),
+    kind: mediaKind(nextName),
+    libraryId: lib.assignments[nextName] || null,
+    rewritten: Boolean(content),
+    content: content || undefined,
+  });
+});
+
+app.post('/api/media/delete', requireAuth, (req, res) => {
+  const names = Array.isArray(req.body?.names) ? req.body.names.map((n) => path.basename(String(n || ''))) : [];
+  const force = Boolean(req.body?.force);
+  if (!names.length) return res.status(400).json({ error: 'No files selected' });
+  const used = collectStrings(getContent(), new Set());
+  const lib = getMediaLibrary();
+  const blocked = [];
+  const deleted = [];
+  for (const name of names) {
+    const file = path.join(UPLOAD_DIR, name);
+    if (!name || !fs.existsSync(file)) continue;
+    if (used.has(`/uploads/${name}`) && !force) {
+      blocked.push(name);
+      continue;
+    }
+    fs.unlinkSync(file);
+    delete lib.assignments[name];
+    deleted.push(name);
+  }
+  saveMediaLibrary(lib);
+  if (!deleted.length && blocked.length) {
+    return res.status(409).json({
+      error: `${blocked.length} file(s) are still used on the site. Remove them from pages first, or force delete.`,
+      blocked,
+    });
+  }
+  res.json({ ok: true, deleted, blocked });
 });
 
 app.delete('/api/media/:name', requireAuth, (req, res) => {
@@ -1210,6 +1455,11 @@ app.delete('/api/media/:name', requireAuth, (req, res) => {
     return res.status(409).json({ error: 'This file is still used on the site. Remove it from the page first.' });
   }
   fs.unlinkSync(file);
+  const lib = getMediaLibrary();
+  if (lib.assignments[name]) {
+    delete lib.assignments[name];
+    saveMediaLibrary(lib);
+  }
   res.json({ ok: true });
 });
 
@@ -1264,24 +1514,34 @@ app.delete('/api/messages/:id', requireAuth, (req, res) => {
 // Public pages
 // ---------------------------------------------------------------------------
 
+function publicPages(content) {
+  return (content.pages || []).filter((p) => p && p.showInNav !== false && p.slug);
+}
+
 function navFor(content, currentSlug) {
-  const items = [{ label: content.site.homeNavLabel || 'Home', href: '/', active: currentSlug === '' }];
-  content.pages
-    .filter((p) => p.showInNav !== false)
-    .forEach((p) => items.push({ label: p.navLabel || p.title, href: `/${p.slug}`, active: p.slug === currentSlug }));
+  const items = [{ label: content.site.homeNavLabel || 'Home', href: '/#home', active: !currentSlug || currentSlug === 'home' }];
+  publicPages(content).forEach((p) => {
+    items.push({ label: p.navLabel || p.title, href: `/#${p.slug}`, active: p.slug === currentSlug });
+  });
   return items;
 }
 
 app.get('/', (req, res) => {
   const content = getContent();
-  res.render('home', { site: content.site, home: content.home, nav: navFor(content, ''), pageTitle: content.home.seoTitle || 'Home' });
+  res.render('home', {
+    site: content.site,
+    home: content.home,
+    pages: publicPages(content),
+    nav: navFor(content, ''),
+    pageTitle: content.home.seoTitle || 'Home',
+  });
 });
 
 app.get('/:slug', (req, res, next) => {
   const content = getContent();
   const page = content.pages.find((p) => p.slug === req.params.slug);
   if (!page) return next();
-  res.render('page', { site: content.site, page, nav: navFor(content, page.slug), pageTitle: page.navLabel || page.title });
+  res.redirect(302, `/#${page.slug}`);
 });
 
 app.use((req, res) => {

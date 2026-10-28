@@ -3,6 +3,7 @@
 <%- include('partials/header', { site, nav }) %>
 
 <main id="main">
+  <div id="home" class="page-anchor">
   <!-- Hero: a layout canvas when Home → Hero is in canvas edit, otherwise the
        original name / tagline / big word. -->
   <% if (home.hero && home.hero.layout === 'canvas') { %>
@@ -110,6 +111,13 @@
       <% for (let i = 0; i < 8; i++) { %><span><%= home.marquee %> • </span><% } %>
     </div>
   </section>
+  </div>
+
+  <% (pages || []).forEach(function (page) { %>
+  <div id="<%= page.slug %>" class="page-anchor">
+    <%- include('partials/page-block', { page }) %>
+  </div>
+  <% }) %>
 </main>
 
 <%- include('partials/footer', { site }) %>

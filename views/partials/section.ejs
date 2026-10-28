@@ -37,6 +37,7 @@
   </section>
 <% } else if (__canvas) { %>
   <section class="content-section layout-canvas<%= __s.canvasLock ? ' canvas-lock' : '' %>"
+    data-canvas-width="<%= (__s.canvasWidthMode === 'screen') ? 'screen' : 'fixed' %>"
     style="--canvas-h: <%= __h %>; --canvas-w: <%= __w %>; --canvas-bg: <%= __bgColor %>; --canvas-bg-alpha: <%= __bgAlpha %><% if (__img) { %>; --canvas-image: url('<%= __img %>'); --canvas-image-x: <%= __place(__s.canvasImageX) %>%; --canvas-image-y: <%= __place(__s.canvasImageY) %>%<% } %>"
     <% if (__s.heading) { %>aria-label="<%= __s.heading %>"<% } %>>
     <div class="canvas-board">
@@ -48,8 +49,10 @@
              : '';
            const box = layerBox(l, __h);
            const style = styleToCss(l);
+           const hug = Boolean(l.hugging || l.autoFit)
+             && (l.type === 'heading' || l.type === 'text' || l.type === 'paragraph' || l.type === 'button');
       %>
-        <div class="layer layer-<%= l.type %><%= animate ? ' is-animated' : '' %>"
+        <div class="layer layer-<%= l.type %><%= animate ? ' is-animated' : '' %><%= hug ? ' is-hug' : '' %>"
              style="<%= box %>"
              data-layer="<%= name ? esc(name) : '' %>"
              <%- anim %>>

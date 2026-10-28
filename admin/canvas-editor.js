@@ -340,7 +340,13 @@ window.CanvasEditorUI = (function () {
     }
     if (l.type === 'pdf') {
       if (!l.src) return [h('div', { class: 'cv-placeholder' }, 'Add a PDF')];
-      return [h('div', { class: 'cv-placeholder' }, 'PDF')];
+      return [h('iframe', {
+        class: 'cv-pdf-frame',
+        src: safeUrl(l.src),
+        title: l.name || 'PDF',
+        loading: 'lazy',
+        tabindex: '-1',
+      })];
     }
     if (l.type === 'image') {
       if (!l.src) return [h('div', { class: 'cv-placeholder' }, 'No image yet')];
@@ -421,7 +427,9 @@ window.CanvasEditorUI = (function () {
       style: `left:${l.x}px;top:${l.y}px;width:${l.w}px;z-index:${Number(l.z) || 0}${(isTextual(l) && l.hugging && !isParagraph(l)) || (naturalGallery(l) && !l.freeform) ? '' : `;height:${l.h}`}${layerTurn(l)}`,
     });
     if (isParagraph(l)) el.classList.add('is-paragraph');
-    if (isTextual(l) && l.hugging && !isParagraph(l)) el.classList.add('cv-hug');
+    const hugBox = (isTextual(l) && l.hugging && !isParagraph(l))
+      || (l.type === 'button' && (l.hugging === true || l.autoFit === true));
+    if (hugBox) el.classList.add('cv-hug');
     if (l.type === 'gallery' && l.freeform) el.classList.add('cv-freeform');
     const box = h('div', { class: 'cv-layer-box', style: layerStyle(l) }, ...drawLayerContent(l));
     el.append(box);
@@ -478,6 +486,10 @@ window.CanvasEditorUI = (function () {
 
   // =========================================================================
 
+  // Zoom and pan survive undo/redo remounts (admin rebuilds the editor on
+  // every content snapshot). Keyed by section id so new object identity is fine.
+  const viewStateBySectionId = new Map();
+
   function createLayoutEditor(opts) {
     const section = opts.section;
     const onChange = opts.onChange;
@@ -485,19 +497,104 @@ window.CanvasEditorUI = (function () {
     const onRequestFiles = opts.onRequestFiles; // async (files) => [urls]
 
     let selectedIds = new Set();
+    let selectionAnchorId = null;
     let dragging = null;      // { layer, el, mode, ... } while a drag is running
     // Zoom: null means "as wide as the panel allows", otherwise a fixed factor.
-    let fixedScale = null;
+    const sectionKey = () => String(section && section.id != null ? section.id : '');
+    const savedView = viewStateBySectionId.get(sectionKey());
+    let fixedScale = savedView && Object.prototype.hasOwnProperty.call(savedView, 'fixedScale')
+      ? savedView.fixedScale
+      : null;
 
     const layers = () => (section.layers = section.layers || []);
     const boardHeight = () => Number(section.canvasHeight) || M.CANVAS_H;
     const WIDTH_MIN = 480;
     const WIDTH_MAX = 4000;
+    // Section canvases lock to the screen width so the board matches what
+    // visitors see edge-to-edge. opts.lockWidthToScreen defaults to true.
+    const lockWidthToScreen = opts.lockWidthToScreen !== false;
+    const screenBoardWidth = () => {
+      const raw = Number(window.screen && window.screen.width) || Number(window.innerWidth) || M.CANVAS_W;
+      return clamp(Math.round(raw), WIDTH_MIN, WIDTH_MAX);
+    };
     const boardWidth = () => {
+      if (lockWidthToScreen) return screenBoardWidth();
       const n = Number(section.canvasWidth);
       if (!Number.isFinite(n) || n <= 0) return M.CANVAS_W;
       return clamp(Math.round(n), WIDTH_MIN, WIDTH_MAX);
     };
+    // Keep layer layout when the board width changes: SHIFT (recenter), never
+    // scale. Scaling x/w without scaling font-size tears title highlights off
+    // the glyphs (peach bar wider / skewed vs the heading).
+    function remapLayersX(list, oldW, newW) {
+      if (!Array.isArray(list) || !(oldW > 0) || !(newW > 0) || oldW === newW) return false;
+      const dx = Math.round((newW - oldW) / 2);
+      if (!dx) return false;
+      const shift = (n) => (Number(n) || 0) + dx;
+      list.forEach((l) => {
+        if (!l) return;
+        if (l.x != null) l.x = shift(l.x);
+        // widths stay put — shapes/text keep their designed hug
+        (l.children || []).forEach((c) => {
+          if (!c) return;
+          if (c.x != null) c.x = shift(c.x);
+        });
+        (l.images || []).forEach((item) => {
+          if (!item || item.x == null) return;
+          item.x = shift(item.x);
+        });
+      });
+      return true;
+    }
+
+    function layerSpanX(list) {
+      let max = 0;
+      (list || []).forEach((l) => {
+        if (!l) return;
+        const lx = Number(l.x) || 0;
+        max = Math.max(max, lx + (Number(l.w) || 0));
+        (l.children || []).forEach((c) => {
+          if (!c) return;
+          max = Math.max(max, lx + (Number(c.x) || 0) + (Number(c.w) || 0));
+        });
+        (l.images || []).forEach((item) => {
+          if (!item || (item.x == null && item.w == null)) return;
+          max = Math.max(max, lx + (Number(item.x) || 0) + (Number(item.w) || 0));
+        });
+      });
+      return max;
+    }
+    // Classic page-header / hero seeds were authored on the 1425 board.
+    function looksStuckOnClassicWidth(list, boardW) {
+      if (!Array.isArray(list) || !list.length || !(boardW > M.CANVAS_W + 40)) return false;
+      const span = layerSpanX(list);
+      if (!(span > 0) || span > boardW * 0.72) return false;
+      const title = list.find((l) => l && l.type === 'heading' && /title/i.test(String(l.name || '')))
+        || list.find((l) => l && l.type === 'heading');
+      if (title) {
+        const mid = (Number(title.x) || 0) + (Number(title.w) || 0) / 2;
+        if (Math.abs(mid - M.CANVAS_W / 2) <= 80) return true;
+      }
+      return span <= M.CANVAS_W + 80;
+    }
+    let screenWidthDirty = false;
+    if (lockWidthToScreen) {
+      const w = screenBoardWidth();
+      section.canvasWidthMode = 'screen';
+      const prevRaw = Number(section.canvasWidth);
+      const prevW = Number.isFinite(prevRaw) && prevRaw > 0
+        ? clamp(Math.round(prevRaw), WIDTH_MIN, WIDTH_MAX)
+        : M.CANVAS_W;
+      if (prevW !== w) {
+        remapLayersX(layers(), prevW, w);
+        section.canvasWidth = w;
+        screenWidthDirty = true;
+      } else if (looksStuckOnClassicWidth(layers(), w)) {
+        // Width was saved as screen px earlier without moving layers.
+        remapLayersX(layers(), M.CANVAS_W, w);
+        screenWidthDirty = true;
+      }
+    }
     const ordered = () => [...layers()].sort((a, b) => (Number(a.z) || 0) - (Number(b.z) || 0));
     const byId = (id) => layers().find((l) => l.id === id) || null;
     const selectedLayers = () => layers().filter((l) => selectedIds.has(l.id));
@@ -727,7 +824,15 @@ window.CanvasEditorUI = (function () {
     const viewport = h('div', { class: 'cv-viewport' }, centerWrap);
     const fnBar = h('div', { class: 'cv-fnbar' });
     const fnPops = h('div', { class: 'cv-fnpops' });
-    const stageFrame = h('div', { class: 'cv-frame' }, viewport, fnBar, fnPops);
+    const shortcutsBtn = h('button', {
+      class: 'cv-shortcuts-btn', type: 'button',
+      title: 'Canvas shortcuts',
+      'aria-label': 'Canvas shortcuts',
+      'aria-expanded': 'false',
+    }, '?');
+    const shortcutsPanel = h('div', { class: 'cv-shortcuts-panel', hidden: true, role: 'dialog', 'aria-label': 'Canvas shortcuts' });
+    const shortcutsWrap = h('div', { class: 'cv-shortcuts' }, shortcutsBtn, shortcutsPanel);
+    const stageFrame = h('div', { class: 'cv-frame' }, viewport, fnBar, fnPops, shortcutsWrap);
     const menuNav = h('nav', { class: 'cv-menu-nav' });
     const menuBody = h('div', { class: 'cv-menu-body' });
     const menuPanel = h('div', { class: 'cv-menu-panel' },
@@ -747,6 +852,120 @@ window.CanvasEditorUI = (function () {
       paneRight.classList.toggle('is-open', open);
     }
     const zoomLabel = h('span', { class: 'cv-hint cv-zoomlabel' });
+
+    // In-session layer clipboard for Ctrl/Cmd+C / Ctrl/Cmd+V (also tries system clipboard).
+    let layerClipboard = [];
+
+    function newLayerId() {
+      return `l-${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    function refreshCloneIds(node) {
+      if (!node || typeof node !== 'object') return node;
+      if (Array.isArray(node)) {
+        node.forEach(refreshCloneIds);
+        return node;
+      }
+      if (typeof node.id === 'string') node.id = newLayerId();
+      (node.children || []).forEach(refreshCloneIds);
+      return node;
+    }
+
+    function copySelectedLayers() {
+      const picks = ordered().filter((l) => selectedIds.has(l.id));
+      if (!picks.length) return false;
+      layerClipboard = picks.map((l) => JSON.parse(JSON.stringify(l)));
+      try {
+        navigator.clipboard?.writeText(JSON.stringify({
+          kind: 'portfolio-canvas-layers',
+          v: 1,
+          layers: layerClipboard,
+        }));
+      } catch { /* system clipboard may be blocked; in-session clipboard still works */ }
+      return true;
+    }
+
+    function pasteClipboardLayers() {
+      if (!layerClipboard.length) return false;
+      record();
+      const list = layers();
+      const made = [];
+      layerClipboard.forEach((src) => {
+        const copy = refreshCloneIds(JSON.parse(JSON.stringify(src)));
+        const baseName = String(src.name || M.layerTypeLabel(src.type) || 'Layer').replace(/\s+copy$/i, '');
+        copy.name = `${baseName} copy`;
+        copy.x = round((Number(src.x) || 0) + 24);
+        copy.y = round((Number(src.y) || 0) + 24);
+        copy.z = nextZ();
+        list.push(copy);
+        made.push(copy);
+        // Next paste offsets from this paste so copies stay visible.
+        src.x = copy.x;
+        src.y = copy.y;
+      });
+      selectedIds = new Set(made.map((m) => m.id));
+      onChange();
+      render();
+      return true;
+    }
+
+    function shortcutModLabel() {
+      const ua = navigator.userAgent || '';
+      const plat = navigator.platform || '';
+      const mac = /Mac|iPhone|iPad|iPod/i.test(plat) || /Mac OS X/i.test(ua);
+      return mac ? '\u2318' : 'Ctrl';
+    }
+
+    function setShortcutsOpen(open) {
+      shortcutsPanel.hidden = !open;
+      shortcutsBtn.classList.toggle('is-open', open);
+      shortcutsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    function paintShortcutsPanel() {
+      const mod = shortcutModLabel();
+      const rows = [
+        ['Undo', `${mod}+Z`],
+        ['Redo', `${mod}+Y / ${mod}+Shift+Z`],
+        ['Save', `${mod}+S`],
+        ['Select all', `${mod}+A`],
+        ['Copy layers', `${mod}+C`],
+        ['Paste layers', `${mod}+V`],
+        ['Duplicate', `${mod}+D`],
+        ['Delete', 'Delete / Backspace'],
+        ['Clear selection', 'Esc'],
+        ['Nudge', 'Arrow keys'],
+        ['Nudge further', 'Shift+Arrow'],
+        ['Zoom', `${mod}+scroll`],
+        ['Pan sideways', 'Shift+scroll'],
+        ['Pan board', 'Space+drag / middle-drag'],
+        ['Multi-select', 'Shift / Ctrl / \u2318+click (canvas & Layers)'],
+        ['Move background', 'Drag empty (unlocked)'],
+        ['Marquee select', 'Alt+drag (unlocked)'],
+        ['Marquee select', 'Drag empty (locked)'],
+        ['Edit text', 'Double-click text'],
+      ];
+      shortcutsPanel.replaceChildren(
+        h('h4', null, 'Canvas shortcuts'),
+        ...rows.map(([label, keys]) => h('div', { class: 'cv-shortcuts-row' },
+          h('span', null, label),
+          h('span', { class: 'cv-shortcuts-keys' }, keys))));
+    }
+
+    paintShortcutsPanel();
+    setShortcutsOpen(false);
+    shortcutsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setShortcutsOpen(shortcutsPanel.hidden);
+    });
+    // Click outside closes the sheet; clicks inside the panel stay put.
+    document.addEventListener('pointerdown', (e) => {
+      if (shortcutsPanel.hidden) return;
+      if (shortcutsWrap.contains(e.target)) return;
+      setShortcutsOpen(false);
+    });
+
     const root = h('div', { class: 'cv', tabindex: '0' },
       toolbar,
       h('div', { class: 'cv-panes' },
@@ -776,6 +995,11 @@ window.CanvasEditorUI = (function () {
       const px = prev > 0 && before.width > 0 ? (ax - before.left) / prev : boardWidth() / 2;
       const py = prev > 0 && before.height > 0 ? (ay - before.top) / prev : boardHeight() / 2;
       fixedScale = refit ? null : clamp(Number(Number(next).toFixed(3)), 0.1, 4);
+      const key = sectionKey();
+      if (key) {
+        const stored = viewStateBySectionId.get(key) || {};
+        viewStateBySectionId.set(key, { ...stored, fixedScale });
+      }
       paintBoard();
       paintToolbar();
       if (!(view.width > 0) || !(before.width > 0)) return;
@@ -984,6 +1208,7 @@ window.CanvasEditorUI = (function () {
 
     function selectOnly(id) {
       selectedIds = new Set(id ? [id] : []);
+      selectionAnchorId = id || null;
       paintBoard();
       paintList();
       paintInspector();
@@ -991,6 +1216,26 @@ window.CanvasEditorUI = (function () {
 
     function toggleSelect(id) {
       if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+      selectionAnchorId = id || null;
+      paintBoard();
+      paintList();
+      paintInspector();
+    }
+
+    /** Layers list order (top = front). Shift+click range from anchor. */
+    function selectRangeInList(id) {
+      const ids = ordered().slice().reverse().map((l) => l.id);
+      if (!ids.includes(id)) {
+        selectOnly(id);
+        return;
+      }
+      let a = selectionAnchorId;
+      if (!a || !ids.includes(a)) a = id;
+      const i0 = ids.indexOf(a);
+      const i1 = ids.indexOf(id);
+      const lo = Math.min(i0, i1);
+      const hi = Math.max(i0, i1);
+      selectedIds = new Set(ids.slice(lo, hi + 1));
       paintBoard();
       paintList();
       paintInspector();
@@ -1010,7 +1255,7 @@ window.CanvasEditorUI = (function () {
     // ---------------------------------------------------------- add / remove
 
     // Shrink a text box to its words. Used while Auto-fit stays on.
-    function applyAutoFit(l) {
+    function applyAutoFit(l, opts = {}) {
       if (!l || l.autoFit !== true) return;
       if (isParagraph(l)) {
         l.hugging = true;
@@ -1020,29 +1265,129 @@ window.CanvasEditorUI = (function () {
         paintBoard();
         return;
       }
-      if (isTextual(l) || l.type === 'button') fitTextBox(l);
+      if (isTextual(l) || l.type === 'button') fitTextBox(l, opts);
       if (l.type === 'image') {
         l.fit = 'contain';
         syncContainImage(l);
       }
     }
 
-    function fitTextBox(l) {
+    function fitTextBox(l, opts = {}) {
       if (!l || l.autoFit !== true || isParagraph(l) || !(isTextual(l) || l.type === 'button')) return;
       const el = elFor(l.id);
       const box = el && el.querySelector('.cv-layer-box');
-      if (!box) return;
-      const prev = box.style.cssText;
-      box.style.width = 'max-content';
+      if (!el || !box) return;
+      const prevBox = box.style.cssText;
+      const prevEl = el.style.cssText;
+      const fontSize = Math.max(8, Number(l.size) || 16);
+      const lineHeight = Math.max(0.8, Number(l.lineHeight) || 1);
+      // Large display fonts draw outside the em-box; pad so glyphs are not clipped.
+      const padX = Math.max(6, Math.ceil(fontSize * 0.12));
+      const padY = Math.max(8, Math.ceil(fontSize * 0.28));
+      // shrinkWidth: hug both axes (checkbox / new layer / text edit).
+      // Otherwise keep the current width and only refit height (side resize / sync).
+      const shrinkWidth = opts.shrinkWidth === true;
+      const rawText = String(l.text ?? '');
+      const lineCount = Math.max(1, rawText.split('\n').length);
+      // Board is CSS-transformed; offset* is board px, getClientRects are screen px.
+      const s = Math.max(0.001, scale());
+      // Drop min-height from the last fit or the box can never shrink again.
+      el.style.minHeight = '0';
+      box.style.minHeight = '0';
+      if (shrinkWidth) {
+        el.style.width = 'max-content';
+        box.style.width = 'max-content';
+        // Single-line titles must not wrap while measuring or height explodes.
+        if (lineCount === 1) box.style.whiteSpace = 'nowrap';
+      } else {
+        el.style.width = `${Math.max(20, Number(l.w) || 20)}px`;
+        box.style.width = '100%';
+      }
+      el.style.height = 'auto';
       box.style.height = 'auto';
-      const measuredW = Math.min(Math.max(box.scrollWidth + 4, 20), 6000);
-      const measuredH = Math.max(box.scrollHeight + 4, 20);
-      box.style.cssText = prev;
+      box.style.overflow = 'visible';
+      let measuredW = Math.max(box.scrollWidth, box.offsetWidth);
+      let measuredH = Math.max(box.scrollHeight, box.offsetHeight);
+      try {
+        const range = document.createRange();
+        range.selectNodeContents(box);
+        const rect = range.getBoundingClientRect();
+        if (rect.width > 0) measuredW = Math.max(measuredW, rect.width / s);
+        if (rect.height > 0) measuredH = Math.max(measuredH, rect.height / s);
+      } catch (err) { /* ignore */ }
+      measuredW = Math.min(Math.max(Math.ceil(measuredW + padX * 2), 20), 6000);
+      measuredH = Math.max(Math.ceil(measuredH + padY * 2), 20);
+      // Hard cap: autofit height should track lines, not a stuck min-height / wrap blow-up.
+      const heightCap = Math.ceil(fontSize * lineHeight * lineCount + padY * 2 + fontSize * 0.5);
+      measuredH = Math.min(measuredH, Math.max(heightCap, fontSize + padY * 2));
+      box.style.cssText = prevBox;
+      el.style.cssText = prevEl;
       l.hugging = true;
-      if (l.w === measuredW && l.h === measuredH) return;
-      l.w = measuredW;
+      const nextW = shrinkWidth ? measuredW : Math.max(20, Number(l.w) || measuredW);
+      if (Math.abs((Number(l.w) || 0) - nextW) < 1 && Math.abs((Number(l.h) || 0) - measuredH) < 1) return;
+      l.w = nextW;
       l.h = measuredH;
       paintBoard();
+    }
+
+    // Layers can already have autoFit on from saved data, but sizes are only
+    // measured when the checkbox is toggled. Re-measure after paint / fonts.
+    let autoFitting = false;
+    let autoFitTimer = null;
+    let autoFitRetryTimers = [];
+    function layerFontSpec(l) {
+      const size = Math.max(8, Number(l.size) || 16);
+      const family = String(l.font || '').trim() || 'sans-serif';
+      return `${size}px ${family}`;
+    }
+    async function ensureLayerFonts(list) {
+      if (!(document.fonts && document.fonts.load)) return;
+      const specs = [...new Set(list.filter((l) => l && l.autoFit === true && (isTextual(l) || l.type === 'button')).map(layerFontSpec))];
+      await Promise.all(specs.map((spec) => document.fonts.load(spec).catch(() => {})));
+    }
+    function syncAutoFits(persist, opts = {}) {
+      if (autoFitting) return false;
+      if (gestureOpen && !opts.force) return false;
+      autoFitting = true;
+      let changed = false;
+      try {
+        for (const l of layers()) {
+          if (l.autoFit !== true) continue;
+          const beforeW = Number(l.w) || 0;
+          const beforeH = Number(l.h) || 0;
+          // On a forced load/font pass, single-line text hugs width too so
+          // glyphs are not left clipped after a bad earlier measure.
+          const oneLine = !isParagraph(l) && !String(l.text ?? '').includes('\n');
+          const fitOpts = (opts.shrinkWidth || (opts.force && oneLine)) ? { shrinkWidth: true } : opts;
+          applyAutoFit(l, fitOpts);
+          if ((Number(l.w) || 0) !== beforeW || (Number(l.h) || 0) !== beforeH) changed = true;
+        }
+      } finally {
+        autoFitting = false;
+      }
+      if (persist && changed) onChange();
+      return changed;
+    }
+
+    function scheduleAutoFits(persist, opts = {}) {
+      if (autoFitTimer) cancelAnimationFrame(autoFitTimer);
+      autoFitTimer = requestAnimationFrame(() => {
+        autoFitTimer = requestAnimationFrame(async () => {
+          autoFitTimer = null;
+          await ensureLayerFonts(layers());
+          syncAutoFits(persist, opts);
+        });
+      });
+    }
+
+    function refitAutoFits() {
+      autoFitRetryTimers.forEach((id) => clearTimeout(id));
+      autoFitRetryTimers = [];
+      scheduleAutoFits(true, { force: true });
+      // Custom fonts often finish after the first paint; retry a few times.
+      [120, 400, 1000].forEach((ms) => {
+        autoFitRetryTimers.push(setTimeout(() => scheduleAutoFits(true, { force: true }), ms));
+      });
     }
 
     function addLayer(type) {
@@ -1092,9 +1437,11 @@ window.CanvasEditorUI = (function () {
     }
 
     function copyLayerToClipboard(l) {
-      try {
-        navigator.clipboard?.writeText(JSON.stringify(l));
-      } catch { /* clipboard may be blocked; the offset copy still works */ }
+      if (!l) return;
+      const prev = new Set(selectedIds);
+      selectedIds = new Set([l.id]);
+      copySelectedLayers();
+      selectedIds = prev;
     }
 
     // ------------------------------------------------------------ ordering
@@ -1621,30 +1968,37 @@ window.CanvasEditorUI = (function () {
         true);
     }
 
-    function imageField(l, key, label) {
+    function imageField(l, key, label, opts = {}) {
+      const locked = Boolean(opts.locked);
       const thumb = h('button', {
         class: 'cv-thumb', type: 'button',
-        title: 'Click to choose an image, or drop a file here',
+        title: locked ? 'Background is locked' : 'Click to choose an image, or drop a file here',
+        disabled: locked ? 'disabled' : undefined,
       }, l[key] ? h('img', { src: safeUrl(l[key]), alt: '' }) : h('span', null, 'None'));
-      thumb.addEventListener('click', async () => {
-        const url = await onRequestImage();
-        if (url) { l[key] = url; onChange(); render(); }
-      });
+      if (!locked) {
+        thumb.addEventListener('click', async () => {
+          const url = await onRequestImage();
+          if (url) { l[key] = url; onChange(); render(); }
+        });
+      }
 
-      const choose = h('button', { class: 'btn small', type: 'button' }, l[key] ? 'Replace image' : 'Choose image');
-      choose.addEventListener('click', async () => {
-        const url = await onRequestImage();
-        if (url) { l[key] = url; onChange(); render(); }
-      });
+      const choose = h('button', { class: 'btn small', type: 'button', disabled: locked ? 'disabled' : undefined }, l[key] ? 'Replace image' : 'Choose image');
+      if (!locked) {
+        choose.addEventListener('click', async () => {
+          const url = await onRequestImage();
+          if (url) { l[key] = url; onChange(); render(); }
+        });
+      }
       const upload = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm', hidden: true });
       upload.addEventListener('change', async () => {
+        if (locked) return;
         const urls = await onRequestFiles([...upload.files]);
         upload.value = '';
         if (urls.length) { l[key] = urls[0]; onChange(); render(); }
       });
-      const uploadBtn = h('button', { class: 'btn small', type: 'button', onclick: () => upload.click() }, 'Upload new');
-      const clear = h('button', { class: 'btn small danger', type: 'button' }, 'Remove');
-      clear.addEventListener('click', () => { l[key] = ''; onChange(); render(); });
+      const uploadBtn = h('button', { class: 'btn small', type: 'button', disabled: locked ? 'disabled' : undefined, onclick: locked ? undefined : () => upload.click() }, 'Upload new');
+      const clear = h('button', { class: 'btn small danger', type: 'button', disabled: locked ? 'disabled' : undefined }, 'Remove');
+      if (!locked) clear.addEventListener('click', () => { l[key] = ''; onChange(); render(); });
 
       return field(label,
         h('div', { class: 'cv-imgrow' },
@@ -1737,6 +2091,7 @@ window.CanvasEditorUI = (function () {
       const place = imagePlace();
       boardBg.style.backgroundPosition = `${place.x}% ${place.y}%`;
       board.classList.toggle('has-photo', hasImage);
+      board.classList.toggle('bg-locked', Boolean(section.backgroundLocked));
       if (hasImage) rememberPhotoSize(bgUrl);
       board.style.transform = `scale(${s})`;
       board.style.transformOrigin = 'top left';
@@ -1953,7 +2308,9 @@ window.CanvasEditorUI = (function () {
             class: `cv-layer-row${selectedIds.has(l.id) ? ' selected' : ''}${l.hidden ? ' is-hidden' : ''}`,
             'data-id': l.id,
             onclick: (e) => {
-              if (e.shiftKey || e.ctrlKey || e.metaKey) toggleSelect(l.id); else selectOnly(l.id);
+              if (e.shiftKey) selectRangeInList(l.id);
+              else if (e.ctrlKey || e.metaKey) toggleSelect(l.id);
+              else selectOnly(l.id);
             },
           });
           const handle = h('span', { class: 'cv-drag', title: 'Drag to reorder' }, '⋮⋮');
@@ -2015,8 +2372,6 @@ window.CanvasEditorUI = (function () {
             return nameEl;
           })(),
           h('span', { class: 'cv-layer-tools' },
-            h('button', { class: 'icon-btn', type: 'button', title: 'Move forward', onclick: (e) => { e.stopPropagation(); bringForward(l.id); } }, '↑'),
-            h('button', { class: 'icon-btn', type: 'button', title: 'Move backward', onclick: (e) => { e.stopPropagation(); sendBackward(l.id); } }, '↓'),
             h('button', { class: 'icon-btn', type: 'button', title: l.hidden ? 'Show on the website' : 'Hide from the website', onclick: (e) => { e.stopPropagation(); l.hidden = !l.hidden; onChange(); render(); } }, l.hidden ? '◌' : '●'),
             h('button', { class: 'icon-btn', type: 'button', title: l.locked ? 'Unlock so it can be moved' : 'Lock in place', onclick: (e) => { e.stopPropagation(); l.locked = !l.locked; onChange(); render(); } }, l.locked ? '🔒' : '🔓'),
             h('button', { class: 'icon-btn', type: 'button', title: 'Duplicate this layer', onclick: (e) => { e.stopPropagation(); duplicateLayer(l.id); } }, '⧉'),
@@ -2035,26 +2390,56 @@ window.CanvasEditorUI = (function () {
       };
       bindSpinnerRelease(height, writeHeight);
       bindWheel(height, (dir) => { beginGesture(); writeHeight(boardHeight() + dir * 10); onChange(); });
-      const width = h('input', { type: 'number', value: boardWidth(), min: WIDTH_MIN, max: WIDTH_MAX, step: 10 });
-      const writeWidth = (value) => {
-        section.canvasWidth = clamp(roundToStep(value, 10), WIDTH_MIN, WIDTH_MAX);
-        width.value = String(section.canvasWidth);
-        paintBoard();
-      };
-      bindSpinnerRelease(width, writeWidth);
-      bindWheel(width, (dir) => { beginGesture(); writeWidth(boardWidth() + dir * 10); onChange(); });
+      const widthField = lockWidthToScreen
+        ? field('Board width', h('span', { class: 'cv-hint' }, 'Screen (' + boardWidth() + 'px) — locked'))
+        : (() => {
+          const width = h('input', { type: 'number', value: boardWidth(), min: WIDTH_MIN, max: WIDTH_MAX, step: 10 });
+          const writeWidth = (value) => {
+            section.canvasWidth = clamp(roundToStep(value, 10), WIDTH_MIN, WIDTH_MAX);
+            width.value = String(section.canvasWidth);
+            paintBoard();
+          };
+          bindSpinnerRelease(width, writeWidth);
+          bindWheel(width, (dir) => { beginGesture(); writeWidth(boardWidth() + dir * 10); onChange(); });
+          return field('Board width', width);
+        })();
+      const bgLocked = Boolean(section.backgroundLocked);
+      const lockBgBtn = h('button', {
+        class: 'btn small',
+        type: 'button',
+        title: bgLocked
+          ? 'Unlock to move, replace, or remove the background'
+          : 'Lock so the background cannot be moved, replaced, or removed',
+      }, bgLocked ? 'Unlock' : 'Lock');
+      lockBgBtn.addEventListener('click', () => {
+        section.backgroundLocked = !bgLocked;
+        onChange();
+        render();
+      });
+      const bgLockField = field(
+        'Background lock',
+        bgLocked
+          ? h('span', { class: 'cv-lockrow' }, h('span', { class: 'cv-hint' }, 'Locked'), lockBgBtn)
+          : lockBgBtn,
+      );
+      const canPlace = Boolean(section.canvasImage) && !bgLocked;
       return h('div', { class: 'cv-board-block' },
         h('h4', null, 'Board'),
         field('Board height', height),
         colorField(section, 'canvasBg', 'Board background'),
-        imageField(section, 'canvasImage', 'Background image'),
-        field('Board width', width),
-        section.canvasImage ? h('p', { class: 'cv-align-label' }, 'Picture place') : null,
-        section.canvasImage ? placeField('x', 'Across') : null,
-        section.canvasImage ? placeField('y', 'Down') : null,
+        imageField(section, 'canvasImage', 'Background image', { locked: bgLocked }),
+        bgLockField,
+        widthField,
+        canPlace ? h('p', { class: 'cv-align-label' }, 'Picture place') : null,
+        canPlace ? placeField('x', 'Across') : null,
+        canPlace ? placeField('y', 'Down') : null,
         h('p', { class: 'cv-hint' }, section.canvasImage
-          ? 'Drag an empty part of the board to slide the photo. Across and Down run from the start of the picture (0) to the end (100). Drag the bottom edge of the board to change its height.'
-          : 'Drag the bottom edge of the board up or down to change its height. The width stays in the number above. On the website the board scales down to fit the screen.'));
+          ? (bgLocked
+            ? 'Background is locked - cannot move, replace, or remove. Drag empty board to rubber-band select layers. Unlock to slide or change the photo. Drag the bottom edge to change height.'
+            : 'Drag empty board to slide the photo. Hold Alt and drag to rubber-band select layers. Across and Down also move it. Drag the bottom edge to change height.')
+          : (lockWidthToScreen
+            ? 'Drag empty board to rubber-band select layers. Drag the bottom edge up or down to change height. Width stays locked to your screen so the site fills edge to edge.'
+            : 'Drag empty board to rubber-band select layers. Drag the bottom edge up or down to change height. The width stays in the number above. On the website the board scales down to fit the screen.')));
     }
 
     // 50, 50 keeps the middle of the photo in the middle of the board.
@@ -2098,9 +2483,11 @@ window.CanvasEditorUI = (function () {
       const input = h('input', {
         type: 'range', min: 0, max: 100, step: 1, value: current,
         'data-bg-focus': axis, 'aria-label': label,
+        disabled: section.backgroundLocked ? 'disabled' : undefined,
       });
       const read = h('span', { class: 'cv-alpha-read' }, `${current}%`);
       const write = (value) => {
+        if (section.backgroundLocked) return;
         section[key] = clamp(Math.round(Number(value) || 0), 0, 100);
         input.value = String(section[key]);
         read.textContent = `${section[key]}%`;
@@ -2142,6 +2529,7 @@ window.CanvasEditorUI = (function () {
 
     // Slide the background photo. A click that does not move still just clears the selection.
     function beginPhotoPan(e) {
+      if (section.backgroundLocked || !section.canvasImage) return;
       const startX = e.clientX;
       const startY = e.clientY;
       const start = imagePlace();
@@ -2644,13 +3032,115 @@ window.CanvasEditorUI = (function () {
 
     // -------------------------------------------------------------- dragging
 
+    function clientToBoard(clientX, clientY) {
+      const rect = board.getBoundingClientRect();
+      const s = scale() || 1;
+      return {
+        x: (clientX - rect.left) / s,
+        y: (clientY - rect.top) / s,
+      };
+    }
+
+    function layerHitsMarquee(l, x1, y1, x2, y2) {
+      if (!l || l.hidden) return false;
+      const lx = Number(l.x) || 0;
+      const ly = Number(l.y) || 0;
+      const lw = Number(l.w) || 0;
+      const lh = boxHeight(l);
+      return lx < x2 && lx + lw > x1 && ly < y2 && ly + lh > y1;
+    }
+
+    // Rubber-band select: drag on empty board to select layers that intersect the box.
+    // Shift / Ctrl / Cmd keeps the current selection and adds hits.
+    function beginMarquee(e) {
+      if (spaceDown) return;
+      const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+      const originClient = { x: e.clientX, y: e.clientY };
+      const start = clientToBoard(e.clientX, e.clientY);
+      let box = null;
+      let moved = false;
+      const baseIds = additive ? new Set(selectedIds) : new Set();
+      if (!additive) {
+        selectedIds = new Set();
+        paintBoard();
+        paintList();
+        paintInspector();
+      }
+      const move = (ev) => {
+        const dx = ev.clientX - originClient.x;
+        const dy = ev.clientY - originClient.y;
+        if (!moved && Math.hypot(dx, dy) < 4) return;
+        moved = true;
+        const cur = clientToBoard(ev.clientX, ev.clientY);
+        const x1 = Math.min(start.x, cur.x);
+        const y1 = Math.min(start.y, cur.y);
+        const x2 = Math.max(start.x, cur.x);
+        const y2 = Math.max(start.y, cur.y);
+        if (!box) {
+          box = h('div', { class: 'cv-marquee' });
+          stage.append(box);
+        }
+        const s = scale() || 1;
+        box.style.left = `${x1 * s}px`;
+        box.style.top = `${y1 * s}px`;
+        box.style.width = `${Math.max(0, x2 - x1) * s}px`;
+        box.style.height = `${Math.max(0, y2 - y1) * s}px`;
+        const hits = layers().filter((l) => layerHitsMarquee(l, x1, y1, x2, y2)).map((l) => l.id);
+        const next = new Set(baseIds);
+        hits.forEach((id) => next.add(id));
+        selectedIds = next;
+        paintBoard();
+        paintList();
+      };
+      const up = (ev) => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', up);
+        if (box) box.remove();
+        if (!moved) {
+          if (!additive) {
+            selectedIds = new Set();
+            paintBoard();
+            paintList();
+            paintInspector();
+          }
+          return;
+        }
+        const cur = clientToBoard(ev.clientX, ev.clientY);
+        const x1 = Math.min(start.x, cur.x);
+        const y1 = Math.min(start.y, cur.y);
+        const x2 = Math.max(start.x, cur.x);
+        const y2 = Math.max(start.y, cur.y);
+        const hits = layers().filter((l) => layerHitsMarquee(l, x1, y1, x2, y2)).map((l) => l.id);
+        const next = new Set(baseIds);
+        hits.forEach((id) => next.add(id));
+        selectedIds = next;
+        paintBoard();
+        paintList();
+        paintInspector();
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', up);
+    }
+
     function onPointerDown(e) {
       if (e.button !== 0) return;
+      if (spaceDown) return;
+      if (e.target.closest('.cv-height-handle')) return;
       const layerEl = e.target.closest('.cv-layer');
       if (!layerEl) {
         if (e.target.closest('.cv-board') || e.target.closest('.cv-stage')) {
-          selectOnly(null);
-          if (section.canvasImage && e.target.closest('.cv-board')) beginPhotoPan(e);
+          const onBoard = e.target.closest('.cv-board');
+          // Unlocked + photo: plain drag slides the photo (pre-lock behavior).
+          // Alt+drag (or locked / no photo) rubber-band selects layers.
+          const canPanBg = Boolean(onBoard && section.canvasImage && !section.backgroundLocked);
+          if (canPanBg && !e.altKey) {
+            selectOnly(null);
+            beginPhotoPan(e);
+          } else {
+            beginMarquee(e);
+          }
         }
         return;
       }
@@ -3025,12 +3515,24 @@ window.CanvasEditorUI = (function () {
       // Ctrl+Z and Ctrl+Y are handled for the whole admin, so a canvas edit and
       // a text edit share one undo stack.
       if (mod && e.key.toLowerCase() === 'a') { e.preventDefault(); selectAllLayers(); return; }
+      if (mod && e.key.toLowerCase() === 'c') {
+        if (copySelectedLayers()) e.preventDefault();
+        return;
+      }
+      if (mod && e.key.toLowerCase() === 'v') {
+        if (pasteClipboardLayers()) e.preventDefault();
+        return;
+      }
       if (mod && e.key.toLowerCase() === 'd') {
         const l = primary();
         if (l) { e.preventDefault(); duplicateLayer(l.id); }
         return;
       }
-      if (e.key === 'Escape') { selectOnly(null); return; }
+      if (e.key === 'Escape') {
+        if (!shortcutsPanel.hidden) { setShortcutsOpen(false); return; }
+        selectOnly(null);
+        return;
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const l = primary();
         if (!l) return;
@@ -3220,12 +3722,29 @@ window.CanvasEditorUI = (function () {
     // undoing the very first change, not just changes after it.
     record();
 
+    if (screenWidthDirty) {
+      try { onChange(); } catch (err) { /* ignore */ }
+    }
     render();
+    refitAutoFits();
+    if (savedView && (savedView.scrollLeft != null || savedView.scrollTop != null)) {
+      requestAnimationFrame(() => {
+        if (savedView.scrollLeft != null) viewport.scrollLeft = savedView.scrollLeft;
+        if (savedView.scrollTop != null) viewport.scrollTop = savedView.scrollTop;
+      });
+    }
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        if (!root.isConnected) return;
+        refitAutoFits();
+      }).catch(() => {});
+    }
     resizeObserver.observe(viewport);
 
     return {
       element: root,
       render,
+      refitAutoFits,
       selectLayer: (id) => selectOnly(id),
       isGesturing: () => gestureOpen,
       undo,
@@ -3239,6 +3758,16 @@ window.CanvasEditorUI = (function () {
         window.removeEventListener('pointermove', onPanMove);
         window.removeEventListener('pointerup', endPan);
         clearTimeout(zoomTimer);
+        const key = sectionKey();
+        if (key) {
+          const prev = viewStateBySectionId.get(key) || {};
+          viewStateBySectionId.set(key, {
+            ...prev,
+            fixedScale,
+            scrollLeft: viewport.scrollLeft,
+            scrollTop: viewport.scrollTop,
+          });
+        }
         // Undo history belongs to this mounted editor only.
         clearTimeout(typingTimer);
         history = [];
