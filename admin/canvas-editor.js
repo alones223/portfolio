@@ -2079,7 +2079,7 @@ window.CanvasEditorUI = (function () {
       // so the slider still changes the background when an image is covering it.
       board.style.backgroundColor = hasImage
         ? (hasColour ? parsedBg.hex : 'transparent')
-        : (section.canvasBg || '');
+        : (hasColour ? (section.canvasBg || '') : 'transparent');
       board.style.backgroundImage = 'none';
       let boardBg = board.querySelector(':scope > .cv-board-bg');
       if (!boardBg) {

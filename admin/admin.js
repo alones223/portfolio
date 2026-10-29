@@ -569,7 +569,7 @@
       thumb.replaceChildren(mediaPreview(obj[key]));
       url.value = obj[key] || '';
     };
-    const set = (v) => { obj[key] = v; paint(); changed(); };
+    const set = (v) => { obj[key] = v; paint(); changed(); if (opts.onChange) opts.onChange(v); };
     const choose = async () => { const v = await pickImage(); if (v) set(v); };
     thumb.addEventListener('click', choose);
     addFileDrop(thumb, async (files) => { const [v] = await uploadFiles(files.slice(0, 1)); if (v) set(v); });
@@ -919,12 +919,11 @@
     hero.layers = Array.isArray(hero.layers) ? hero.layers : [];
     if (hero.layers.length) {
       hero.canvasHeight = Number(hero.canvasHeight) || 774;
-      hero.canvasBg = hero.canvasBg || '#617092';
       hero.canvasImage = hero.canvasImage || HERO_WATER;
       return;
     }
     hero.canvasHeight = 774;
-    hero.canvasBg = '#617092';
+    hero.canvasBg = '';
     hero.canvasImage = HERO_WATER;
     const add = (type, patch) => hero.layers.push(window.CanvasEditor.defaultLayer(type, patch));
     add('shape', {
@@ -958,11 +957,10 @@
     works.layers = Array.isArray(works.layers) ? works.layers : [];
     if (works.layers.length) {
       works.canvasHeight = Number(works.canvasHeight) || 1600;
-      works.canvasBg = works.canvasBg || '#FDFDFD';
       return;
     }
     works.canvasHeight = 1600;
-    works.canvasBg = '#FDFDFD';
+    works.canvasBg = '';
     const add = (type, patch) => works.layers.push(window.CanvasEditor.defaultLayer(type, patch));
     const decor = works.decorText || 'WO\nRKS';
     add('heading', {
@@ -1480,6 +1478,365 @@
     });
   }
 
+  const WORK_KINDS = [
+    ['work', 'Work'],
+    ['image', 'Image'],
+    ['text', 'Text'],
+    ['youtube', 'YouTube'],
+    ['pdf', 'PDF'],
+  ];
+  function parseWorkSize(size) {
+    const match = /^([1-3])x([1-3])$/.exec(size || '');
+    return match ? { w: Number(match[1]), h: Number(match[2]) } : { w: 1, h: 1 };
+  }
+
+  function blankWorkBlock(kind) {
+    return {
+      blockType: kind || 'work',
+      size: '1x1',
+      image: '',
+      label: '',
+      title: '',
+      category: '',
+      year: '',
+      intro: '',
+      text: '',
+      youtube: '',
+      pdf: '',
+      link: '',
+      featured: false,
+      tags: [],
+    };
+  }
+
+  let openWorkCard = null;
+  let workDragMoved = false;
+
+  function workSpan(card) {
+    return parseWorkSize(card.size);
+  }
+
+  // Same packing as the public wall: a block that does not fit moves to the next row.
+  function packWorkBlocks(cards) {
+    const cols = 3;
+    const occ = [];
+    const taken = (r, c) => occ[r] && occ[r][c];
+    const fits = (r, c, w, h) => {
+      if (c + w > cols) return false;
+      for (let rr = r; rr < r + h; rr++) {
+        for (let cc = c; cc < c + w; cc++) if (taken(rr, cc)) return false;
+      }
+      return true;
+    };
+    const mark = (r, c, w, h) => {
+      for (let rr = r; rr < r + h; rr++) {
+        occ[rr] = occ[rr] || [];
+        for (let cc = c; cc < c + w; cc++) occ[rr][cc] = 1;
+      }
+    };
+    let row = 0;
+    let col = 0;
+    const placed = cards.map((card) => {
+      const span = workSpan(card);
+      let guard = 0;
+      while (guard < 400) {
+        while (taken(row, col)) {
+          col += 1;
+          if (col >= cols) { col = 0; row += 1; }
+        }
+        if (fits(row, col, span.w, span.h)) break;
+        row += 1;
+        col = 0;
+        guard += 1;
+      }
+      const item = { card, row, col, ...span };
+      mark(row, col, span.w, span.h);
+      col += span.w;
+      if (col >= cols) { col = 0; row += 1; }
+      return item;
+    });
+    const reading = [...placed].sort((a, b) => a.row - b.row || a.col - b.col);
+    reading.forEach((item, i) => { item.num = pad2(i + 1); });
+    return placed;
+  }
+
+  // The board matches the public grid. A block stays closed until it is clicked.
+  function worksBlocksEditor(arr) {
+    const wrap = h('div', { class: 'list' });
+    const touch = () => changed();
+    if (openWorkCard && !arr.includes(openWorkCard)) openWorkCard = null;
+
+    function draw() {
+      arr.forEach((card) => {
+        card.blockType = WORK_KINDS.some(([kind]) => kind === card.blockType) ? card.blockType : 'work';
+        card.size = /^[1-3]x[1-3]$/.test(card.size) ? card.size : '1x1';
+        if (card.blockType === 'work' && !card.title && card.label) card.title = card.label;
+        if (card.blockType !== 'work') card.featured = false;
+      });
+      let featuredLeft = 3;
+      arr.forEach((card) => {
+        if (card.featured !== true) return;
+        if (featuredLeft > 0) featuredLeft -= 1;
+        else card.featured = false;
+      });
+      const placed = packWorkBlocks(arr);
+      let editorRow = null;
+      if (openWorkCard) {
+        const open = placed.find((item) => item.card === openWorkCard);
+        if (open) {
+          editorRow = open.row + open.h;
+          placed.forEach((item) => { if (item.row >= editorRow) item.row += 1; });
+        }
+      }
+      const board = h('div', { class: 'work-board' });
+      placed.forEach((item) => board.append(face(item)));
+      if (openWorkCard && editorRow != null) {
+        const editor = editPanel(openWorkCard);
+        editor.style.gridColumn = '1 / -1';
+        editor.style.gridRow = String(editorRow + 1);
+        board.append(editor);
+      }
+      mount(wrap,
+        h('div', { class: 'list-head' },
+          h('span', { class: 'field-label' }, `Blocks (${arr.length})`),
+          h('span', { class: 'group-btns' },
+            ...WORK_KINDS.map(([kind, label]) => h('button', {
+              class: 'btn small', type: 'button',
+              onclick: () => {
+                const card = blankWorkBlock(kind);
+                arr.push(card);
+                openWorkCard = card;
+                touch();
+                draw();
+              },
+            }, `+ ${label}`)))),
+        h('div', { class: 'work-board-wrap' }, board));
+    }
+
+    function face(item) {
+      const card = item.card;
+      const kind = card.blockType;
+      const title = card.title || card.label || '';
+      const meta = [card.category, card.year].filter(Boolean).join(' · ');
+      const showImage = (kind === 'work' || kind === 'image') && card.image;
+      const copy = kind === 'text'
+        ? (card.text || 'Text')
+        : kind === 'youtube'
+          ? (card.youtube || 'YouTube')
+          : kind === 'pdf'
+            ? (card.pdf || 'PDF')
+            : title;
+      const el = h('div', {
+        class: `work-face${openWorkCard === card ? ' is-open' : ''}`,
+        'data-size': card.size,
+        'data-kind': kind,
+        role: 'button',
+        tabindex: '0',
+        title: 'Drag to reorder. Click to edit.',
+        style: `grid-column: ${item.col + 1} / span ${item.w}; grid-row: ${item.row + 1} / span ${item.h};`,
+      },
+        showImage ? h('img', { src: card.image, alt: '' }) : null,
+        card.featured ? h('span', { class: 'work-face-feature' }, 'Feature Work') : null,
+        h('span', { class: 'work-face-num' }, item.num),
+        h('span', { class: 'work-face-copy' },
+          kind === 'work' && meta ? h('span', { class: 'work-face-meta' }, meta) : null,
+          h('span', { class: 'work-face-title' }, copy || WORK_KINDS.find(([k]) => k === kind)[1]),
+          kind === 'work' && card.intro ? h('span', { class: 'work-face-intro' }, card.intro) : null,
+          kind === 'work' ? h('span', { class: 'work-face-view' }, 'View Project') : null));
+
+      const index = () => arr.indexOf(card);
+      const toggle = () => {
+        openWorkCard = openWorkCard === card ? null : card;
+        draw();
+      };
+      el.addEventListener('click', () => { if (!workDragMoved) toggle(); });
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+      el.addEventListener('dragstart', (e) => {
+        workDragMoved = true;
+        drag = { arr, from: index() };
+        el.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(index()));
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        drag = null;
+        setTimeout(() => { workDragMoved = false; }, 0);
+      });
+      el.addEventListener('dragover', (e) => {
+        if (drag && drag.arr === arr) { e.preventDefault(); el.classList.add('drag-over'); }
+      });
+      el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+      el.addEventListener('drop', (e) => {
+        el.classList.remove('drag-over');
+        if (drag && drag.arr === arr) {
+          e.preventDefault();
+          e.stopPropagation();
+          move(arr, drag.from, index());
+          drag = null;
+          touch();
+          draw();
+        }
+      });
+      el.draggable = true;
+      const img = el.querySelector('img');
+      if (img) img.draggable = false;
+      return el;
+    }
+
+    function spanPicker(card) {
+      const current = parseWorkSize(card.size);
+      const cells = [];
+      let hover = null;
+      const grid = h('div', { class: 'span-picker', role: 'grid', 'aria-label': 'Cell size, up to 3 by 3' });
+      const paint = () => {
+        const w = hover ? hover.w : current.w;
+        const h = hover ? hover.h : current.h;
+        cells.forEach((btn, i) => {
+          const on = (i % 3) < w && Math.floor(i / 3) < h;
+          btn.classList.toggle('is-on', on);
+          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+      };
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const btn = h('button', {
+            type: 'button',
+            class: 'span-picker-cell',
+            'aria-label': `${c + 1} by ${r + 1}`,
+          });
+          btn.addEventListener('mouseenter', () => { hover = { w: c + 1, h: r + 1 }; paint(); });
+          btn.addEventListener('focus', () => { hover = { w: c + 1, h: r + 1 }; paint(); });
+          btn.addEventListener('click', () => {
+            card.size = `${c + 1}x${r + 1}`;
+            changed();
+            draw();
+          });
+          cells.push(btn);
+          grid.append(btn);
+        }
+      }
+      grid.addEventListener('mouseleave', () => { hover = null; paint(); });
+      paint();
+      return wrapField('Cell size', grid, { span: 2 });
+    }
+
+    function featureField(card) {
+      const othersOn = arr.filter((item) => item !== card && item.blockType === 'work' && item.featured === true).length;
+      const blocked = othersOn >= 3 && card.featured !== true;
+      const input = h('input', { type: 'checkbox', checked: card.featured === true, disabled: blocked });
+      input.addEventListener('change', () => {
+        const stillOn = arr.filter((item) => item !== card && item.blockType === 'work' && item.featured === true).length;
+        if (input.checked && stillOn >= 3) {
+          input.checked = false;
+          return;
+        }
+        card.featured = input.checked;
+        changed();
+        draw();
+      });
+      return h('div', { class: 'field span-4' },
+        h('label', { class: 'field check' }, input, 'Feature'),
+        blocked ? h('p', { class: 'hint' }, 'Three features are already on. Turn one off before choosing another.') : null);
+    }
+
+    function tagsField(card) {
+      if (!Array.isArray(card.tags)) card.tags = [];
+      const known = [];
+      arr.forEach((item) => {
+        (Array.isArray(item.tags) ? item.tags : []).forEach((tag) => {
+          const name = String(tag || '').trim();
+          if (name && !known.includes(name)) known.push(name);
+        });
+      });
+      const chips = h('div', { class: 'tag-editor' });
+      known.forEach((tag) => {
+        const on = card.tags.includes(tag);
+        const btn = h('button', {
+          type: 'button',
+          class: on ? 'tag-chip is-on' : 'tag-chip',
+          'aria-pressed': on ? 'true' : 'false',
+        }, tag);
+        btn.addEventListener('click', () => {
+          if (card.tags.includes(tag)) card.tags = card.tags.filter((item) => item !== tag);
+          else card.tags.push(tag);
+          changed();
+          draw();
+        });
+        chips.append(btn);
+      });
+      const input = h('input', { type: 'text', placeholder: 'New tag' });
+      input.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const name = input.value.trim();
+        if (!name) return;
+        if (!card.tags.includes(name)) card.tags.push(name);
+        changed();
+        draw();
+      });
+      return h('div', { class: 'field span-4' },
+        h('span', { class: 'field-label' }, 'Tags'),
+        chips,
+        input,
+        h('p', { class: 'hint' }, 'A work can carry more than one. Press Enter to add a tag. Visitors filter with these same names.'));
+    }
+
+    function editPanel(card) {
+      const i = arr.indexOf(card);
+      const kind = card.blockType;
+      const fieldsForKind = [];
+      const paintFace = () => {
+        const node = wrap.querySelector('.work-face.is-open .work-face-title');
+        if (!node) return;
+        if (kind === 'text') node.textContent = card.text || 'Text';
+        else if (kind === 'youtube') node.textContent = card.youtube || 'YouTube';
+        else if (kind === 'pdf') node.textContent = card.pdf || 'PDF';
+        else node.textContent = card.title || card.label || 'Work';
+      };
+      if (kind === 'work') {
+        fieldsForKind.push(
+          imageField(card, 'image', 'Cover', { span: 4, onChange: () => draw() }),
+          textField(card, 'title', 'Title', { span: 2, onInput: paintFace }),
+          textField(card, 'category', 'Category', { span: 1 }),
+          textField(card, 'year', 'Year', { span: 1 }),
+          textField(card, 'intro', 'Short introduction', { span: 4, multiline: true, rows: 3 }),
+          tagsField(card));
+      } else if (kind === 'image') {
+        fieldsForKind.push(imageField(card, 'image', 'Image', { span: 4, onChange: () => draw() }));
+      } else if (kind === 'text') {
+        fieldsForKind.push(textField(card, 'text', 'Text', { span: 4, multiline: true, rows: 4, onInput: paintFace }));
+      } else if (kind === 'youtube') {
+        fieldsForKind.push(textField(card, 'youtube', 'YouTube link', { span: 4, placeholder: 'https://www.youtube.com/watch?v=…', onInput: paintFace }));
+      } else {
+        fieldsForKind.push(textField(card, 'pdf', 'PDF file address', { span: 4, placeholder: '/uploads/….pdf', onInput: paintFace }));
+      }
+      return h('div', { class: 'work-editor' },
+        h('div', { class: 'work-editor-bar' },
+          h('span', { class: 'field-label' }, 'Edit block'),
+          h('span', { class: 'group-btns' },
+            iconBtn('↑', 'Move earlier', () => { move(arr, i, i - 1); touch(); draw(); }, { disabled: i <= 0 }),
+            iconBtn('↓', 'Move later', () => { move(arr, i, i + 1); touch(); draw(); }, { disabled: i < 0 || i >= arr.length - 1 }),
+            iconBtn('✕', 'Remove from the grid', () => {
+              arr.splice(i, 1);
+              openWorkCard = null;
+              touch();
+              draw();
+            }, { danger: true }),
+            h('button', { class: 'btn small', type: 'button', onclick: () => { openWorkCard = null; draw(); } }, 'Done'))),
+        fields(
+          selectField(card, 'blockType', 'Block', WORK_KINDS, { span: 2, onChange: () => draw() }),
+          spanPicker(card),
+          kind === 'work' ? featureField(card) : null),
+        fields(...fieldsForKind));
+    }
+
+    draw();
+    return wrap;
+  }
+
   function sectionPanel(page, s, i, redraw, pageLabel) {
     const sections = page.sections;
     const titleEl = h('span', { class: 'panel-title', title: 'Double-click to rename' }, (s.heading || '').replace(/\n/g, ' ') || '(untitled section)');
@@ -1612,21 +1969,11 @@
                 s.cards = gal.images.map((item) => ({ label: item.caption || '', image: item.image || '', link: item.link || '' }));
               }
             }
-            const sync = () => syncWorksLayers(s);
             mount(body,
-              switcher,
               fields(
-                textField(s, 'heading', 'Heading', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; sync(); } }),
-                textField(s, 'decorText', 'Decorative word', { multiline: true, rows: 2, onInput: sync }),
-                textField(s, 'description', 'Introduction', { multiline: true, rows: 4, onInput: sync })),
-              tilesEditor(s.cards, {
-                label: 'Category cards',
-                captionKey: 'label',
-                captionLabel: 'Category name',
-                linkPlaceholder: '/artworks',
-                onEdit: sync,
-              }),
-              h('p', { class: 'hint' }, 'The name, image, and link are saved on the Works category cards. The same cards on the canvas update with them.'));
+                textField(s, 'heading', 'Heading', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } })),
+              worksBlocksEditor(s.cards),
+              h('p', { class: 'hint' }, 'The grid matches the site. Drag a block onto another to change the order. Click a block to edit it. Up to three works can be Feature. They stay in this grid as well.'));
             refreshMeta();
             return;
           }
@@ -1727,7 +2074,7 @@
     board.canvasLock = true;
     board.layers = Array.isArray(board.layers) ? board.layers : [];
     board.canvasHeight = Number(board.canvasHeight) || 774;
-    board.canvasBg = board.canvasBg || '#617092';
+    if (typeof board.canvasBg !== 'string') board.canvasBg = '';
     if (!board.canvasImage && page.heroImage) board.canvasImage = page.heroImage;
     if (board.layers.length) return;
     const add = (type, patch) => board.layers.push(window.CanvasEditor.defaultLayer(type, patch));
@@ -2409,7 +2756,7 @@
       textAfter: '',
       layout: 'canvas',
       canvasHeight: kind === 'section' ? 640 : 774,
-      canvasBg: kind === 'section' ? '#FDFDFD' : '#617092',
+      canvasBg: '',
       canvasLock: true,
       layers: [
         window.CanvasEditor.defaultLayer('heading', {

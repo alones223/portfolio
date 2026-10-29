@@ -1519,7 +1519,14 @@ function publicPages(content) {
 }
 
 function navFor(content, currentSlug) {
-  const items = [{ label: content.site.homeNavLabel || 'Home', href: '/#home', active: !currentSlug || currentSlug === 'home' }];
+  const items = [
+    { label: content.site.homeNavLabel || 'Home', href: '/#home', active: !currentSlug || currentSlug === 'home' },
+    { label: 'Works', href: '/#works', active: currentSlug === 'works' },
+    { label: 'About', href: '/#about', active: currentSlug === 'about' },
+    { label: 'Contact', href: '/#contact', active: currentSlug === 'contact' },
+  ];
+  // Extra pages stay available for a cloned site. This portfolio hides its old
+  // pages with showInNav, so the public menu is Home, Works, About, Contact.
   publicPages(content).forEach((p) => {
     items.push({ label: p.navLabel || p.title, href: `/#${p.slug}`, active: p.slug === currentSlug });
   });
@@ -1541,6 +1548,8 @@ app.get('/:slug', (req, res, next) => {
   const content = getContent();
   const page = content.pages.find((p) => p.slug === req.params.slug);
   if (!page) return next();
+  // Hidden pages are off the long page. Send the old address to Works.
+  if (page.showInNav === false) return res.redirect(302, '/#works');
   res.redirect(302, `/#${page.slug}`);
 });
 
