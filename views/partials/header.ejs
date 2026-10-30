@@ -10,7 +10,7 @@
     <nav id="site-nav" class="site-nav" aria-label="Site">
       <ul>
         <% nav.forEach(item => { %>
-          <li><a href="<%= item.href %>"<% if (item.active) { %> class="active" aria-current="page"<% } %>><%= item.label %></a></li>
+          <li><a href="<%= item.href %>"<% if (item.active) { %> class="active" aria-current="location"<% } %>><%= item.label %></a></li>
         <% }) %>
       </ul>
     </nav>

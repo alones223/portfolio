@@ -80,6 +80,22 @@
   height: 100%;
 }
 
+/* Match admin hug/autofit: do not clip glyph ink outside the em-box.
+   Fixed boxes, galleries, and shapes keep their own overflow rules. */
+.layer.is-hug {
+  overflow: visible;
+}
+.layer.is-hug .layer-turn {
+  height: auto;
+  overflow: visible;
+}
+.layer.is-hug .layer-heading,
+.layer.is-hug .layer-text,
+.layer.is-hug .layer-button-slot {
+  overflow: visible;
+  height: auto;
+}
+
 .layer-heading,
 .layer-text {
   margin: 0;
@@ -106,6 +122,14 @@
 }
 .layer-text.is-paragraph p + p {
   margin-top: 0.85em;
+}
+
+.layer-embed {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #111;
 }
 
 .layer-media {
@@ -266,10 +290,9 @@
 
 /* Below this width the board would shrink to the point where the text is too
    small to read. Instead, the layers stack in the order they are listed, each
-   one full width, and the board becomes as tall as the content needs. */
+   one full width, and the board becomes as tall as the content needs.
+   Locked boards keep scaling here; below 768px they stack as well. */
 @media (max-width: 900px) {
-  /* Locked boards (the home hero and works canvas) keep their positions and
-     scale with the screen instead of stacking into a single column. */
   .content-section.layout-canvas:not(.canvas-lock),
   .content-section.layout-canvas:not(.canvas-lock).is-scaled {
     height: auto;
@@ -315,4 +338,123 @@
   /* Wide image groups become two columns so the pictures stay visible. */
   .content-section.layout-canvas:not(.canvas-lock) .layer-gallery.cols-3,
   .content-section.layout-canvas:not(.canvas-lock) .layer-gallery.cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* Locked boards (home hero, about, works, page headers) stop scaling here.
+   Decorative words drop out; titles, copy, and galleries stack in one column
+   so body text stays at 16px instead of shrinking with the canvas. */
+@media (max-width: 768px) {
+  .content-section.layout-canvas.canvas-lock,
+  .content-section.layout-canvas.canvas-lock.is-scaled {
+    height: auto !important;
+    padding: 32px 16px 40px;
+  }
+
+  .content-section.layout-canvas.canvas-lock[style*="--canvas-image"] {
+    padding-top: 28vh;
+  }
+
+  .content-section.layout-canvas.canvas-lock .canvas-board,
+  .content-section.layout-canvas.canvas-lock.is-scaled .canvas-board {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    width: 100% !important;
+    height: auto !important;
+    transform: none !important;
+  }
+
+  .content-section.layout-canvas.canvas-lock[style*="--canvas-image"] .canvas-board {
+    background: rgba(253, 253, 253, 0.94);
+    padding: 24px 20px 28px;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer {
+    position: static;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer-turn {
+    height: auto;
+    transform: none !important;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Big word"],
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Ghost word"],
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Ghost word (top)"],
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Ghost word (bottom)"] {
+    display: none !important;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer-heading {
+    color: var(--navy) !important;
+    font-size: clamp(32px, 8vw, 48px) !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0 !important;
+    text-align: left !important;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer-text {
+    color: var(--slate) !important;
+    font-size: 16px !important;
+    line-height: 1.55 !important;
+    letter-spacing: 0 !important;
+    text-align: left !important;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Tagline"] .layer-text {
+    font-size: 18px !important;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Heading"] { order: 1; }
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Heading highlight"] { order: 2; }
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Description"] { order: 3; }
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Category cards"] { order: 4; }
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Title"] { order: 1; }
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Title highlight"] { order: 2; }
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Rule"] { order: 3; }
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Subtitle"] { order: 4; }
+
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Heading highlight"],
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Title highlight"] {
+    display: flex;
+    margin-top: -8px;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Heading highlight"] .layer-shape,
+  .content-section.layout-canvas.canvas-lock .layer[data-layer="Title highlight"] .layer-shape {
+    width: 8em;
+    height: 12px !important;
+    min-height: 0 !important;
+    aspect-ratio: auto !important;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer:has(.layer-divider) {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer-divider {
+    width: 54px !important;
+    height: 2px !important;
+    background: var(--navy) !important;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer-gallery {
+    height: auto !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer-gallery .gallery-tile {
+    height: auto;
+  }
+
+  .content-section.layout-canvas.canvas-lock .layer-gallery img,
+  .content-section.layout-canvas.canvas-lock .layer-media {
+    width: 100%;
+    height: 100%;
+  }
 }

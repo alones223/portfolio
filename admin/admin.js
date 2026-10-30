@@ -13,6 +13,13 @@
   const pad2 = (n) => String(n).padStart(2, '0');
   const isVideo = (url) => /\.(mp4|webm)(\?|$)/i.test(url || '');
   const isFontFile = (url) => /\.(woff2?|ttf|otf)(\?|$)/i.test(url || '');
+  const isPdf = (url) => /\.pdf(\?|$)/i.test(url || '');
+  const mediaKindOf = (url) => {
+    if (isFontFile(url)) return 'font';
+    if (isVideo(url)) return 'video';
+    if (isPdf(url)) return 'pdf';
+    return 'image';
+  };
 
   // Tiny DOM builder: h('div', { class: 'x', onclick: fn }, child, 'text', ...)
   function h(tag, attrs, ...children) {
@@ -108,11 +115,39 @@
   function mediaPreview(url) {
     if (!url) return document.createTextNode('No image');
     if (isVideo(url)) return h('video', { src: url, muted: true, preload: 'metadata' });
+    if (isPdf(url)) {
+      return h('div', { class: 'pdf-thumb' },
+        h('iframe', { src: url, title: 'PDF', loading: 'lazy', tabindex: '-1' }),
+        h('span', { class: 'pdf-badge' }, 'PDF'));
+    }
     if (isFontFile(url)) {
       const hit = (window.CanvasFonts || []).find((font) => font.url === url);
       return h('span', { class: 'font-sample', style: hit ? `font-family:${hit.css}` : '' }, 'Ag');
     }
     return h('img', { src: url, alt: '', loading: 'lazy' });
+  }
+
+  function rewriteUploadUrls(node, fromUrl, toUrl) {
+    if (typeof node === 'string') return node === fromUrl ? toUrl : node;
+    if (Array.isArray(node)) {
+      for (let i = 0; i < node.length; i++) node[i] = rewriteUploadUrls(node[i], fromUrl, toUrl);
+      return node;
+    }
+    if (node && typeof node === 'object') {
+      for (const key of Object.keys(node)) node[key] = rewriteUploadUrls(node[key], fromUrl, toUrl);
+    }
+    return node;
+  }
+
+  function applyMediaRenameLocally(fromUrl, toUrl) {
+    if (!content || !fromUrl || !toUrl || fromUrl === toUrl) return;
+    rewriteUploadUrls(content, fromUrl, toUrl);
+    try {
+      const saved = JSON.parse(savedJson);
+      rewriteUploadUrls(saved, fromUrl, toUrl);
+      savedJson = JSON.stringify(saved);
+    } catch { /* ignore */ }
+    changed();
   }
 
   async function loadCustomFonts() {
@@ -136,6 +171,17 @@
       const format = ext === 'woff2' ? 'woff2' : ext === 'woff' ? 'woff' : ext === 'otf' ? 'opentype' : 'truetype';
       return `@font-face{font-family:"${family}";src:url("${url}") format("${format}");font-display:swap;}`;
     }).join('\n');
+
+    if (document.fonts && document.fonts.load) {
+      await Promise.all((window.CanvasFonts || []).map((font) => {
+        const family = String(font.family || '').replace(/[^A-Za-z0-9 ._-]/g, '').trim();
+        if (!family) return null;
+        return document.fonts.load('16px "' + family + '"').catch(() => {});
+      }).filter(Boolean));
+    }
+    liveEditors.forEach((editor) => {
+      try { if (editor && typeof editor.refitAutoFits === 'function') editor.refitAutoFits(); } catch (err) { /* ignore */ }
+    });
   }
 
   const hasFiles = (e) => [...((e.dataTransfer && e.dataTransfer.types) || [])].includes('Files');
@@ -172,6 +218,7 @@
   let unread = 0;
   const openPanels = new WeakSet(); // which section panels are expanded
   const openPanelIds = new Set();   // same set, by id, so undo can reopen them
+  const editorMode = new Map();     // section id -> 'form' | 'canvas' (admin only)
   function setPanelOpen(s, open) {
     if (!s) return;
     if (open) {
@@ -252,10 +299,9 @@
     restoringEdit = true;
     editCoalesce = false;
     clearTimeout(editTimer);
-    const y = window.scrollY;
     content = JSON.parse(snap);
     changed();
-    render({ keepScroll: true, scrollY: y });
+    render({ keepScroll: true });
     restoringEdit = false;
   }
 
@@ -523,7 +569,7 @@
       thumb.replaceChildren(mediaPreview(obj[key]));
       url.value = obj[key] || '';
     };
-    const set = (v) => { obj[key] = v; paint(); changed(); };
+    const set = (v) => { obj[key] = v; paint(); changed(); if (opts.onChange) opts.onChange(v); };
     const choose = async () => { const v = await pickImage(); if (v) set(v); };
     thumb.addEventListener('click', choose);
     addFileDrop(thumb, async (files) => { const [v] = await uploadFiles(files.slice(0, 1)); if (v) set(v); });
@@ -584,6 +630,7 @@
   function tilesEditor(arr, opts = {}) {
     const captionKey = opts.captionKey || 'caption';
     const wrap = h('div', { class: 'list' });
+    const touch = (arg) => { changed(arg); if (opts.onEdit) opts.onEdit(); };
 
     const addUrls = (urls, at = arr.length) => {
       const items = urls.map((url) => {
@@ -592,7 +639,7 @@
         return item;
       });
       arr.splice(at, 0, ...items);
-      changed();
+      touch();
       draw();
     };
 
@@ -602,22 +649,22 @@
         h('span', { class: 'num' }, pad2(i + 1)));
       img.addEventListener('click', async () => {
         const url = await pickImage();
-        if (url) { item.image = url; changed(); draw(); }
+        if (url) { item.image = url; touch(); draw(); }
       });
       addFileDrop(img, async (files) => {
         const [url] = await uploadFiles(files.slice(0, 1));
-        if (url) { item.image = url; changed(); draw(); }
+        if (url) { item.image = url; touch(); draw(); }
       });
 
       const caption = h('textarea', { rows: 2, placeholder: opts.captionLabel || 'Caption (optional)', 'aria-label': 'Caption' });
       caption.value = item[captionKey] || '';
-      caption.addEventListener('input', () => { item[captionKey] = caption.value; changed({ coalesce: true }); });
+      caption.addEventListener('input', () => { item[captionKey] = caption.value; touch({ coalesce: true }); });
 
       let link = null;
       if (opts.showLink !== false) {
         link = h('input', { type: 'text', placeholder: opts.linkPlaceholder || 'Link (optional)', 'aria-label': 'Link', list: 'page-links' });
         link.value = item.link || '';
-        link.addEventListener('input', () => { item.link = link.value.trim(); changed({ coalesce: true }); });
+        link.addEventListener('input', () => { item.link = link.value.trim(); touch({ coalesce: true }); });
       }
 
       let wide = null;
@@ -634,10 +681,10 @@
         h('div', { class: 'tile-bar' },
           h('span', { class: 'group-btns' },
             handle,
-            iconBtn('←', 'Move earlier', () => { move(arr, i, i - 1); changed(); draw(); }, { disabled: i === 0 }),
-            iconBtn('→', 'Move later', () => { move(arr, i, i + 1); changed(); draw(); }, { disabled: i === arr.length - 1 })),
+            iconBtn('←', 'Move earlier', () => { move(arr, i, i - 1); touch(); draw(); }, { disabled: i === 0 }),
+            iconBtn('→', 'Move later', () => { move(arr, i, i + 1); touch(); draw(); }, { disabled: i === arr.length - 1 })),
           h('span', { class: 'group-btns' },
-            iconBtn('✕', 'Remove from page', () => { arr.splice(i, 1); changed(); draw(); }, { danger: true }))));
+            iconBtn('✕', 'Remove from page', () => { arr.splice(i, 1); touch(); draw(); }, { danger: true }))));
 
       // Only the handle starts a drag, so text in the caption can still be selected.
       handle.addEventListener('mousedown', () => { el.draggable = true; });
@@ -658,7 +705,7 @@
           e.preventDefault();
           move(arr, drag.from, i);
           drag = null;
-          changed();
+          touch();
           draw();
         }
       });
@@ -763,6 +810,8 @@
   const LAYOUTS = [
     ['canvas', 'Layout canvas: freely placed text, images and image groups on a board'],
     ['gallery', 'Gallery: tiles, number and caption on hover, click to enlarge'],
+    ['case', 'Case study: brief, process and outcome'],
+    ['works', 'Cell grid'],
   ];
   const ASPECTS = [
     ['square', 'Square crop'],
@@ -830,7 +879,8 @@
   // The same layout board used by page sections, mounted on the home Hero and
   // Works cards. One editor instance per section object, dropped on the next
   // full redraw so it is never saved with the content.
-  function attachCanvasEditor(section, host, onEdit) {
+  function attachCanvasEditor(section, host, onEdit, editorOpts = {}) {
+    if (section && section.id) host.dataset.canvasKey = section.id;
     const existing = editors.get(section);
     if (existing && !existing.destroyed) {
       if (existing.element.parentNode !== host) host.replaceChildren(existing.element);
@@ -839,6 +889,8 @@
     if (existing) editors.delete(section);
     const editor = window.CanvasEditorUI.createLayoutEditor({
       section,
+      lockWidthToScreen: editorOpts.lockWidthToScreen,
+      fixedBoard: editorOpts.fixedBoard === true,
       onChange: () => {
         const current = editors.get(section);
         changed({ coalesce: Boolean(current && current.isGesturing()) });
@@ -870,12 +922,11 @@
     hero.layers = Array.isArray(hero.layers) ? hero.layers : [];
     if (hero.layers.length) {
       hero.canvasHeight = Number(hero.canvasHeight) || 774;
-      hero.canvasBg = hero.canvasBg || '#617092';
       hero.canvasImage = hero.canvasImage || HERO_WATER;
       return;
     }
     hero.canvasHeight = 774;
-    hero.canvasBg = '#617092';
+    hero.canvasBg = '';
     hero.canvasImage = HERO_WATER;
     const add = (type, patch) => hero.layers.push(window.CanvasEditor.defaultLayer(type, patch));
     add('shape', {
@@ -909,11 +960,10 @@
     works.layers = Array.isArray(works.layers) ? works.layers : [];
     if (works.layers.length) {
       works.canvasHeight = Number(works.canvasHeight) || 1600;
-      works.canvasBg = works.canvasBg || '#FDFDFD';
       return;
     }
     works.canvasHeight = 1600;
-    works.canvasBg = '#FDFDFD';
+    works.canvasBg = '';
     const add = (type, patch) => works.layers.push(window.CanvasEditor.defaultLayer(type, patch));
     const decor = works.decorText || 'WO\nRKS';
     add('heading', {
@@ -1001,6 +1051,66 @@
       extra || null);
   }
 
+  // This card belongs to this portfolio only. It is not a canvas section and
+  // it is not offered in the section template library.
+  function aboutCardFields(home) {
+    const data = home.aboutCard && typeof home.aboutCard === 'object' ? home.aboutCard : { intro: '', video: '' };
+    home.aboutCard = data;
+    const board = data.board && typeof data.board === 'object' ? data.board : {};
+    data.board = board;
+    board.id = board.id || 'about-card-front';
+    board.layout = 'canvas';
+    board.heading = board.heading || 'About card';
+    // Same size as the public card (.namecard max-width 640, 640x400 board).
+    board.canvasWidth = 640;
+    board.canvasHeight = 400;
+    delete board.canvasWidthMode;
+    if (typeof board.canvasBg !== 'string') board.canvasBg = '';
+    board.layers = Array.isArray(board.layers) ? board.layers : [];
+    board.layers = board.layers.filter((l) => !(l && l.type === 'gallery'
+      && !(l.images || []).some((i) => i && i.image)));
+    if (!board.layers.length) {
+      const add = (type, patch) => board.layers.push(window.CanvasEditor.defaultLayer(type, patch));
+      add('text', {
+        name: 'Intro', text: data.intro || '', x: 28, y: 28, w: 584, h: 260,
+        size: 14, weight: 400, lineHeight: 1.5, align: 'left', hugging: false, z: 1, animated: false, anim: 'none',
+      });
+      add('text', {
+        name: 'Email', x: 28, y: 310, w: 400, h: 30,
+        size: 16, weight: 600, align: 'left', hugging: false, z: 2, animated: false, anim: 'none',
+      });
+      add('text', {
+        name: 'Socials', x: 28, y: 348, w: 300, h: 32,
+        size: 16, weight: 400, align: 'left', hugging: false, z: 3, animated: false, anim: 'none',
+      });
+    }
+    const host = h('div', { class: 'canvas-host about-card-host' });
+    attachCanvasEditor(board, host, null, { fixedBoard: true });
+    const url = h('input', { type: 'text', placeholder: 'https://… or /uploads/….mp4', 'aria-label': 'Motion graphic address' });
+    url.value = data.video || '';
+    url.addEventListener('input', () => {
+      data.video = url.value.trim();
+      changed({ coalesce: true });
+    });
+    const fileIn = h('input', { type: 'file', accept: 'video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov', hidden: true });
+    fileIn.addEventListener('change', async () => {
+      const [next] = await uploadFiles(fileIn.files);
+      fileIn.value = '';
+      if (!next) return;
+      data.video = next;
+      url.value = next;
+      changed();
+    });
+    return [
+      h('p', { class: 'hint' }, 'Drag the introduction, the Email layer, and the Socials layer. Font size, alignment, and position are on each layer. On the site, Email shows the address from Site settings, and Socials shows those icons. Keep those two layer names. This board is only for this card. It is not in the shared template library.'),
+      host,
+      fields(wrapField('Motion graphic', h('div', { class: 'img-buttons' },
+        url,
+        h('button', { type: 'button', class: 'btn small', onclick: () => fileIn.click() }, 'Upload video'),
+        fileIn), { span: 4, hint: 'About 15 seconds. Visitors hover the card to see this side, then press play. It plays on the card.' })),
+    ];
+  }
+
   function viewHome() {
     const home = content.home;
     home.sections = home.sections || [];
@@ -1045,6 +1155,7 @@
         layoutKind: 'hero',
         layoutName: 'Hero',
       }),
+      card('About card', aboutCardFields(home)),
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
           h('h3', null, `Sections (${home.sections.length})`),
@@ -1052,19 +1163,20 @@
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, true)); drawSections(); } }, 'Expand all'),
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, false)); drawSections(); } }, 'Collapse all'))),
         h('p', { class: 'hint', style: 'margin-bottom:12px' },
-          'Everything under the hero, including Works. Each section is its own board: put text, images and image groups anywhere on it. Drag a section to change the order. Use ⧉ to copy a section as a new one — the original is left untouched.'),
+          'The About card is edited above this list. Works is the cell grid. Other sections are a canvas or a cell grid, one at a time.'),
         sectionsWrap),
-      card('Contact section',
+      card('Contact',
+        h('p', { class: 'hint', style: 'margin-bottom:12px' }, 'Form edit. This text and these field names appear in the contact section on the home page.'),
         fields(
           textField(home.contact, 'heading', 'Heading', { span: 2 }),
           textField(home.contact, 'emailLine', 'Email line', { span: 2 }),
           textField(home.contact, 'text', 'Text', { multiline: true, rows: 3 }),
-          textField(home.contact, 'labelName', 'Form label: name', { span: 1 }),
-          textField(home.contact, 'labelEmail', 'Form label: email', { span: 1 }),
-          textField(home.contact, 'labelSubject', 'Form label: subject', { span: 1 }),
-          textField(home.contact, 'labelMessage', 'Form label: message', { span: 1 }),
-          textField(home.contact, 'labelSubmit', 'Submit button text', { span: 1 }),
-          textField(home.contact, 'successMessage', 'Message shown after sending', { span: 3 }))),
+          textField(home.contact, 'labelName', 'Field: name', { span: 1 }),
+          textField(home.contact, 'labelEmail', 'Field: email', { span: 1 }),
+          textField(home.contact, 'labelSubject', 'Field: subject', { span: 1 }),
+          textField(home.contact, 'labelMessage', 'Field: message', { span: 1 }),
+          textField(home.contact, 'labelSubmit', 'Submit button', { span: 1 }),
+          textField(home.contact, 'successMessage', 'Message after sending', { span: 3 }))),
       card('Scrolling text band',
         fields(textField(home, 'marquee', 'Text', { hint: 'Repeats endlessly across the screen.' }))),
     ];
@@ -1391,6 +1503,729 @@
     return `${name} · ${count}`;
   };
 
+  function isGhostLayer(l) {
+    return /ghost/i.test(l.name || '') || (l.type === 'heading' && Number(l.size) >= 100);
+  }
+
+  function defaultEditorMode(s) {
+    if (!s) return 'canvas';
+    if (s.layout === 'case' || s.layout === 'gallery' || s.layout === 'form' || s.layout === 'works') return 'form';
+    if (Array.isArray(s.cards)) return 'form';
+    if (s.layout === 'canvas') {
+      const layers = s.layers || [];
+      const textCount = layers.filter((l) => (l.type === 'text' || l.type === 'heading') && !isGhostLayer(l)).length;
+      const pictureCount = layers.filter((l) => l.type === 'image' || l.type === 'gallery').length;
+      if (textCount && pictureCount <= 1) return 'form';
+    }
+    return 'canvas';
+  }
+
+  function sectionEditorMode(s) {
+    if (s.layout === 'case') return 'form';
+    if (s.id && editorMode.has(s.id)) return editorMode.get(s.id);
+    return defaultEditorMode(s);
+  }
+
+  // Works cards and the canvas gallery are the same list. Form edits write both.
+  function syncWorksLayers(works) {
+    (works.layers || []).forEach((l) => {
+      if (l.type === 'heading' && l.name === 'Heading') l.text = works.heading || '';
+      if (l.name === 'Description') l.text = works.description || '';
+      if (/ghost/i.test(l.name || '')) l.text = works.decorText || '';
+      if (l.type === 'gallery') {
+        l.images = (works.cards || []).map((c) => ({
+          image: c.image || '',
+          caption: c.label || '',
+          link: c.link || '',
+        }));
+      }
+    });
+  }
+
+  const WORK_KINDS = [
+    ['work', 'Work'],
+    ['image', 'Image'],
+    ['text', 'Text'],
+    ['youtube', 'YouTube'],
+    ['pdf', 'PDF'],
+  ];
+  function parseWorkSize(size) {
+    const match = /^([1-3])x([1-3])$/.exec(size || '');
+    return match ? { w: Number(match[1]), h: Number(match[2]) } : { w: 1, h: 1 };
+  }
+
+  function blankWorkBlock(kind) {
+    return {
+      blockType: kind || 'work',
+      size: '1x1',
+      image: '',
+      label: '',
+      title: '',
+      category: '',
+      year: '',
+      role: '',
+      output: '',
+      intro: '',
+      text: '',
+      youtube: '',
+      pdf: '',
+      link: '',
+      featured: false,
+      tags: [],
+      sections: [
+        { title: '', text: '' },
+        { title: '', text: '' },
+        { title: '', text: '' },
+      ],
+      pieces: [],
+    };
+  }
+
+  let openWorkCard = null;
+  let workDragMoved = false;
+
+  function workSpan(card) {
+    return parseWorkSize(card.size);
+  }
+
+  // Same packing as the public wall: a block that does not fit moves to the next row.
+  function packWorkBlocks(cards) {
+    const cols = 3;
+    const occ = [];
+    const taken = (r, c) => occ[r] && occ[r][c];
+    const fits = (r, c, w, h) => {
+      if (c + w > cols) return false;
+      for (let rr = r; rr < r + h; rr++) {
+        for (let cc = c; cc < c + w; cc++) if (taken(rr, cc)) return false;
+      }
+      return true;
+    };
+    const mark = (r, c, w, h) => {
+      for (let rr = r; rr < r + h; rr++) {
+        occ[rr] = occ[rr] || [];
+        for (let cc = c; cc < c + w; cc++) occ[rr][cc] = 1;
+      }
+    };
+    let row = 0;
+    let col = 0;
+    const placed = cards.map((card) => {
+      const span = workSpan(card);
+      let guard = 0;
+      while (guard < 400) {
+        while (taken(row, col)) {
+          col += 1;
+          if (col >= cols) { col = 0; row += 1; }
+        }
+        if (fits(row, col, span.w, span.h)) break;
+        row += 1;
+        col = 0;
+        guard += 1;
+      }
+      const item = { card, row, col, ...span };
+      mark(row, col, span.w, span.h);
+      col += span.w;
+      if (col >= cols) { col = 0; row += 1; }
+      return item;
+    });
+    const reading = [...placed].sort((a, b) => a.row - b.row || a.col - b.col);
+    reading.forEach((item, i) => { item.num = pad2(i + 1); });
+    return placed;
+  }
+
+  // The board matches the public grid. A block stays closed until it is clicked.
+  function workTagName(card) {
+    return card.title || card.label || 'Work';
+  }
+
+  function worksTagEditor(section) {
+    const cards = () => (Array.isArray(section.cards) ? section.cards : []).filter((card) => card.blockType !== 'image' && card.blockType !== 'text' && card.blockType !== 'youtube' && card.blockType !== 'pdf');
+    const host = h('div', { class: 'work-tags-panel' });
+    const catalogBox = h('div', { class: 'tag-editor' });
+    const rows = h('div', { class: 'work-tag-rows' });
+    const input = h('input', { type: 'text', placeholder: 'New tag' });
+
+    function catalog() {
+      const names = [];
+      const push = (tag) => {
+        const name = String(tag || '').trim();
+        if (name && !names.includes(name)) names.push(name);
+      };
+      (Array.isArray(section.tags) ? section.tags : []).forEach(push);
+      (section.cards || []).forEach((card) => (Array.isArray(card.tags) ? card.tags : []).forEach(push));
+      return names;
+    }
+
+    function keepCatalog() {
+      section.tags = catalog();
+      return section.tags;
+    }
+
+    function paint() {
+      const names = catalog();
+      catalogBox.replaceChildren(...names.map((tag) => {
+        const remove = h('button', { type: 'button', class: 'tag-remove', 'aria-label': `Remove ${tag}` }, '×');
+        remove.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          section.tags = keepCatalog().filter((item) => item !== tag);
+          (section.cards || []).forEach((card) => {
+            if (Array.isArray(card.tags)) card.tags = card.tags.filter((item) => item !== tag);
+          });
+          changed();
+          paint();
+        });
+        return h('span', { class: 'tag-chip is-on' }, tag, remove);
+      }));
+      rows.replaceChildren(...cards().map((card) => {
+        const chips = h('div', { class: 'tag-editor' });
+        names.forEach((tag) => {
+          const on = Array.isArray(card.tags) && card.tags.includes(tag);
+          const btn = h('button', {
+            type: 'button',
+            class: on ? 'tag-chip is-on' : 'tag-chip',
+            'aria-pressed': on ? 'true' : 'false',
+          }, tag);
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            keepCatalog();
+            const list = Array.isArray(card.tags) ? card.tags.slice() : [];
+            const next = list.includes(tag) ? list.filter((item) => item !== tag) : list.concat(tag);
+            card.tags = next;
+            const pressed = next.includes(tag);
+            btn.classList.toggle('is-on', pressed);
+            btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+            changed();
+          });
+          chips.append(btn);
+        });
+        return h('div', { class: 'work-tag-row' },
+          h('span', { class: 'work-tag-name' }, workTagName(card)),
+          chips);
+      }));
+    }
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const name = input.value.trim();
+      if (!name) return;
+      const names = keepCatalog();
+      if (!names.includes(name)) names.push(name);
+      section.tags = names;
+      input.value = '';
+      changed();
+      paint();
+    });
+
+    host.append(
+      h('div', { class: 'list-head' }, h('span', { class: 'field-label' }, 'Tags')),
+      h('p', { class: 'hint' }, 'These are the filters on the site. Add a tag here, then turn it on for each work. Turning it off a work keeps the tag in this list.'),
+      catalogBox,
+      input,
+      rows);
+    paint();
+    return {
+      el: host,
+      refresh() {
+        const typed = input.value;
+        const focused = document.activeElement === input;
+        paint();
+        input.value = typed;
+        if (focused) input.focus();
+      },
+    };
+  }
+
+  function worksBlocksEditor(arr, hooks = {}) {
+    const wrap = h('div', { class: 'list' });
+    const touch = () => changed();
+    if (openWorkCard && !arr.includes(openWorkCard)) openWorkCard = null;
+
+    function draw() {
+      arr.forEach((card) => {
+        card.blockType = WORK_KINDS.some(([kind]) => kind === card.blockType) ? card.blockType : 'work';
+        card.size = /^[1-3]x[1-3]$/.test(card.size) ? card.size : '1x1';
+        if (card.blockType === 'work' && !card.title && card.label) card.title = card.label;
+        if (card.blockType !== 'work') card.featured = false;
+      });
+      let featuredLeft = 3;
+      arr.forEach((card) => {
+        if (card.featured !== true) return;
+        if (featuredLeft > 0) featuredLeft -= 1;
+        else card.featured = false;
+      });
+      const placed = packWorkBlocks(arr);
+      let editorRow = null;
+      if (openWorkCard) {
+        const open = placed.find((item) => item.card === openWorkCard);
+        if (open) {
+          editorRow = open.row + open.h;
+          placed.forEach((item) => { if (item.row >= editorRow) item.row += 1; });
+        }
+      }
+      const board = h('div', { class: 'work-board' });
+      placed.forEach((item) => board.append(face(item)));
+      if (openWorkCard && editorRow != null) {
+        const editor = editPanel(openWorkCard);
+        editor.style.gridColumn = '1 / -1';
+        editor.style.gridRow = String(editorRow + 1);
+        board.append(editor);
+      }
+      mount(wrap,
+        h('div', { class: 'list-head' },
+          h('span', { class: 'field-label' }, `Blocks (${arr.length})`),
+          h('span', { class: 'group-btns' },
+            ...WORK_KINDS.map(([kind, label]) => h('button', {
+              class: 'btn small', type: 'button',
+              onclick: () => {
+                const card = blankWorkBlock(kind);
+                arr.push(card);
+                openWorkCard = card;
+                touch();
+                draw();
+              },
+            }, `+ ${label}`)))),
+        h('div', { class: 'work-board-wrap' }, board));
+      if (hooks.onStructure) hooks.onStructure();
+    }
+
+    function face(item) {
+      const card = item.card;
+      const kind = card.blockType;
+      const title = card.title || card.label || '';
+      const meta = [card.category, card.year].filter(Boolean).join(' · ');
+      const showImage = (kind === 'work' || kind === 'image') && card.image;
+      const copy = kind === 'text'
+        ? (card.text || 'Text')
+        : kind === 'youtube'
+          ? (card.youtube || 'YouTube')
+          : kind === 'pdf'
+            ? (card.pdf || 'PDF')
+            : title;
+      const el = h('div', {
+        class: `work-face${openWorkCard === card ? ' is-open' : ''}`,
+        'data-size': card.size,
+        'data-kind': kind,
+        role: 'button',
+        tabindex: '0',
+        title: 'Drag to reorder. Click to edit.',
+        style: `grid-column: ${item.col + 1} / span ${item.w}; grid-row: ${item.row + 1} / span ${item.h};`,
+      },
+        showImage ? h('img', { src: card.image, alt: '' }) : null,
+        card.featured ? h('span', { class: 'work-face-feature' }, 'Feature Work') : null,
+        h('span', { class: 'work-face-num' }, item.num),
+        h('span', { class: 'work-face-copy' },
+          kind === 'work' && meta ? h('span', { class: 'work-face-meta' }, meta) : null,
+          h('span', { class: 'work-face-title' }, copy || WORK_KINDS.find(([k]) => k === kind)[1]),
+          kind === 'work' && card.intro ? h('span', { class: 'work-face-intro' }, card.intro) : null,
+          kind === 'work' ? h('span', { class: 'work-face-view' }, 'View Project') : null));
+
+      const index = () => arr.indexOf(card);
+      const toggle = () => {
+        openWorkCard = openWorkCard === card ? null : card;
+        draw();
+      };
+      el.addEventListener('click', () => { if (!workDragMoved) toggle(); });
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+      el.addEventListener('dragstart', (e) => {
+        workDragMoved = true;
+        drag = { arr, from: index() };
+        el.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(index()));
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        drag = null;
+        setTimeout(() => { workDragMoved = false; }, 0);
+      });
+      el.addEventListener('dragover', (e) => {
+        if (drag && drag.arr === arr) { e.preventDefault(); el.classList.add('drag-over'); }
+      });
+      el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+      el.addEventListener('drop', (e) => {
+        el.classList.remove('drag-over');
+        if (drag && drag.arr === arr) {
+          e.preventDefault();
+          e.stopPropagation();
+          move(arr, drag.from, index());
+          drag = null;
+          touch();
+          draw();
+        }
+      });
+      el.draggable = true;
+      const img = el.querySelector('img');
+      if (img) img.draggable = false;
+      return el;
+    }
+
+    function spanPicker(card) {
+      const current = parseWorkSize(card.size);
+      const cells = [];
+      let hover = null;
+      const grid = h('div', { class: 'span-picker', role: 'grid', 'aria-label': 'Cell size, up to 3 by 3' });
+      const paint = () => {
+        const w = hover ? hover.w : current.w;
+        const h = hover ? hover.h : current.h;
+        cells.forEach((btn, i) => {
+          const on = (i % 3) < w && Math.floor(i / 3) < h;
+          btn.classList.toggle('is-on', on);
+          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+      };
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const btn = h('button', {
+            type: 'button',
+            class: 'span-picker-cell',
+            'aria-label': `${c + 1} by ${r + 1}`,
+          });
+          btn.addEventListener('mouseenter', () => { hover = { w: c + 1, h: r + 1 }; paint(); });
+          btn.addEventListener('focus', () => { hover = { w: c + 1, h: r + 1 }; paint(); });
+          btn.addEventListener('click', () => {
+            card.size = `${c + 1}x${r + 1}`;
+            changed();
+            draw();
+          });
+          cells.push(btn);
+          grid.append(btn);
+        }
+      }
+      grid.addEventListener('mouseleave', () => { hover = null; paint(); });
+      paint();
+      return wrapField('Cell size', grid, { span: 2 });
+    }
+
+    function featureField(card) {
+      const othersOn = arr.filter((item) => item !== card && item.blockType === 'work' && item.featured === true).length;
+      const blocked = othersOn >= 3 && card.featured !== true;
+      const input = h('input', { type: 'checkbox', checked: card.featured === true, disabled: blocked });
+      input.addEventListener('change', () => {
+        const stillOn = arr.filter((item) => item !== card && item.blockType === 'work' && item.featured === true).length;
+        if (input.checked && stillOn >= 3) {
+          input.checked = false;
+          return;
+        }
+        card.featured = input.checked;
+        changed();
+        draw();
+      });
+      return h('div', { class: 'field span-4' },
+        h('label', { class: 'field check' }, input, 'Feature'),
+        blocked ? h('p', { class: 'hint' }, 'Three features are already on. Turn one off before choosing another.') : null);
+    }
+
+    function youtubeIdOf(value) {
+      const v = String(value || '').trim();
+      const fromUrl = v.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+      if (fromUrl) return fromUrl[1];
+      if (/^[A-Za-z0-9_-]{11}$/.test(v)) return v;
+      return '';
+    }
+
+    // The main visual is the wall cover. A video uses its thumbnail. A PDF has no still.
+    function syncWorkCover(card) {
+      if (!Array.isArray(card.pieces)) return;
+      const ready = card.pieces.filter((piece) => {
+        const src = String(piece.src || '').trim();
+        if (!src) return false;
+        if (piece.kind === 'youtube') return !!youtubeIdOf(src);
+        return true;
+      });
+      const hero = ready.find((piece) => piece.hero) || ready[0];
+      if (!hero) {
+        card.image = '';
+        return;
+      }
+      const pieceKind = hero.kind === 'youtube' || hero.kind === 'pdf' ? hero.kind : 'image';
+      if (pieceKind === 'image') card.image = String(hero.src).trim();
+      else if (pieceKind === 'youtube') {
+        const id = youtubeIdOf(hero.src);
+        card.image = id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
+      } else card.image = '';
+    }
+
+    function sectionsEditor(card) {
+      const list = Array.isArray(card.sections)
+        ? card.sections
+        : [{ title: '', text: '' }, { title: '', text: '' }, { title: '', text: '' }];
+      const host = h('div', { class: 'case-edit' });
+      const commit = () => { card.sections = list; };
+      const drawSections = () => {
+        const rows = list.map((section, i) => {
+          const title = h('input', { type: 'text', placeholder: 'Section title', 'aria-label': `Section ${i + 1} title` });
+          title.value = section.title || '';
+          title.addEventListener('input', () => {
+            commit();
+            section.title = title.value;
+            changed({ coalesce: true });
+          });
+          const text = h('textarea', { rows: 4, placeholder: 'Section text', 'aria-label': `Section ${i + 1} text` });
+          text.value = section.text || '';
+          text.addEventListener('input', () => {
+            commit();
+            section.text = text.value;
+            changed({ coalesce: true });
+          });
+          return h('div', { class: 'case-edit-block' },
+            h('div', { class: 'case-edit-bar' },
+              h('span', { class: 'field-label' }, `Section ${i + 1}`),
+              h('span', { class: 'group-btns' },
+                h('button', {
+                  type: 'button', class: 'btn small',
+                  onclick: () => {
+                    commit();
+                    list.splice(i, 0, { title: '', text: '' });
+                    changed();
+                    drawSections();
+                  },
+                }, 'Insert above'),
+                iconBtn('↑', 'Move section up', () => {
+                  commit();
+                  move(list, i, i - 1);
+                  changed();
+                  drawSections();
+                }, { disabled: i === 0 }),
+                iconBtn('↓', 'Move section down', () => {
+                  commit();
+                  move(list, i, i + 1);
+                  changed();
+                  drawSections();
+                }, { disabled: i === list.length - 1 }),
+                iconBtn('✕', 'Remove section', () => {
+                  commit();
+                  list.splice(i, 1);
+                  changed();
+                  drawSections();
+                }, { danger: true }))),
+            title,
+            text);
+        });
+        mount(host,
+          h('div', { class: 'list-head' }, h('span', { class: 'field-label' }, 'Sections')),
+          h('p', { class: 'hint' }, 'Each section is a line, a title, and a paragraph. Empty ones stay in this list and stay off the site. Insert above a section, or at the end, and move them up or down.'),
+          rows,
+          h('button', {
+            type: 'button', class: 'btn small',
+            onclick: () => {
+              commit();
+              list.push({ title: '', text: '' });
+              changed();
+              drawSections();
+            },
+          }, 'Insert section at the end'));
+      };
+      drawSections();
+      return host;
+    }
+
+    function piecesEditor(card, onCover) {
+      const list = Array.isArray(card.pieces)
+        ? card.pieces
+        : (card.image ? [{ kind: 'image', src: card.image, hero: true }] : []);
+      const host = h('div', { class: 'case-edit' });
+      const commit = () => { card.pieces = list; };
+      const pieceKindOf = (piece) => (piece.kind === 'youtube' || piece.kind === 'pdf' ? piece.kind : 'image');
+      const touchCover = () => { syncWorkCover(card); if (onCover) onCover(); };
+      const addPiece = (kind) => {
+        commit();
+        list.push({ kind, src: '', hero: list.length === 0 });
+        changed();
+        drawPieces();
+        touchCover();
+      };
+
+      function drawPieces() {
+        const rows = list.map((piece, i) => {
+          const kind = pieceKindOf(piece);
+          const kindSel = h('select', { 'aria-label': `Piece ${i + 1} type` },
+            [['image', 'Image'], ['youtube', 'YouTube'], ['pdf', 'PDF']].map(([value, text]) =>
+              h('option', { value, selected: kind === value }, text)));
+          kindSel.addEventListener('change', () => {
+            commit();
+            piece.kind = kindSel.value;
+            piece.src = '';
+            changed();
+            drawPieces();
+            touchCover();
+          });
+          let source = null;
+          if (kind === 'image') {
+            source = imageField(piece, 'src', 'Image', {
+              span: 4,
+              onChange: () => { commit(); touchCover(); changed(); },
+            });
+          } else if (kind === 'youtube') {
+            const input = h('input', {
+              type: 'text',
+              placeholder: 'https://www.youtube.com/watch?v=…',
+              'aria-label': `Piece ${i + 1} YouTube link`,
+            });
+            input.value = piece.src || '';
+            input.addEventListener('input', () => {
+              commit();
+              piece.src = input.value;
+              changed({ coalesce: true });
+              touchCover();
+            });
+            source = wrapField('YouTube link', input, { span: 4 });
+          } else {
+            const input = h('input', {
+              type: 'text',
+              placeholder: '/uploads/….pdf',
+              'aria-label': `Piece ${i + 1} PDF address`,
+            });
+            input.value = piece.src || '';
+            input.addEventListener('input', () => {
+              commit();
+              piece.src = input.value;
+              changed({ coalesce: true });
+              touchCover();
+            });
+            const fileIn = h('input', { type: 'file', accept: 'application/pdf,.pdf', hidden: true });
+            fileIn.addEventListener('change', async () => {
+              const [url] = await uploadFiles(fileIn.files);
+              fileIn.value = '';
+              if (!url) return;
+              commit();
+              piece.src = url;
+              changed();
+              drawPieces();
+              touchCover();
+            });
+            source = wrapField('PDF', h('div', { class: 'img-buttons' },
+              input,
+              h('button', { type: 'button', class: 'btn small', onclick: () => fileIn.click() }, 'Upload PDF'),
+              fileIn), { span: 4 });
+          }
+          const heroBtn = h('button', {
+            type: 'button',
+            class: piece.hero ? 'btn small primary' : 'btn small',
+            'aria-pressed': piece.hero ? 'true' : 'false',
+          }, 'Main visual');
+          heroBtn.addEventListener('click', () => {
+            if (piece.hero) return;
+            commit();
+            list.forEach((item) => { item.hero = item === piece; });
+            changed();
+            drawPieces();
+            touchCover();
+          });
+          return h('div', { class: 'case-edit-block' },
+            h('div', { class: 'case-edit-bar' },
+              h('span', { class: 'field-label' }, `Piece ${i + 1}`),
+              h('span', { class: 'group-btns' },
+                kindSel,
+                heroBtn,
+                iconBtn('↑', 'Move piece up', () => {
+                  commit();
+                  move(list, i, i - 1);
+                  changed();
+                  drawPieces();
+                }, { disabled: i === 0 }),
+                iconBtn('↓', 'Move piece down', () => {
+                  commit();
+                  move(list, i, i + 1);
+                  changed();
+                  drawPieces();
+                }, { disabled: i === list.length - 1 }),
+                iconBtn('✕', 'Remove piece', () => {
+                  commit();
+                  const wasHero = piece.hero;
+                  list.splice(i, 1);
+                  if (wasHero && list.length && !list.some((item) => item.hero)) list[0].hero = true;
+                  changed();
+                  drawPieces();
+                  touchCover();
+                }, { danger: true }))),
+            source);
+        });
+        mount(host,
+          h('div', { class: 'list-head' },
+            h('span', { class: 'field-label' }, 'Pieces'),
+            h('span', { class: 'group-btns' },
+              h('button', { type: 'button', class: 'btn small', onclick: () => addPiece('image') }, '+ Image'),
+              h('button', { type: 'button', class: 'btn small', onclick: () => addPiece('youtube') }, '+ YouTube'),
+              h('button', { type: 'button', class: 'btn small', onclick: () => addPiece('pdf') }, '+ PDF'))),
+          h('p', { class: 'hint' }, 'One piece is the main visual. On the site it is the wall cover and the first piece in the popup. The others follow this order.'),
+          rows.length ? rows : h('div', { class: 'list-empty' }, 'No pieces yet.'));
+      }
+      drawPieces();
+      return host;
+    }
+
+    function editPanel(card) {
+      const i = arr.indexOf(card);
+      const kind = card.blockType;
+      const fieldsForKind = [];
+      const paintFace = () => {
+        const node = wrap.querySelector('.work-face.is-open .work-face-title');
+        if (!node) return;
+        if (kind === 'text') node.textContent = card.text || 'Text';
+        else if (kind === 'youtube') node.textContent = card.youtube || 'YouTube';
+        else if (kind === 'pdf') node.textContent = card.pdf || 'PDF';
+        else node.textContent = card.title || card.label || 'Work';
+      };
+      const paintCover = () => {
+        const face = wrap.querySelector('.work-face.is-open');
+        if (!face) return;
+        let img = face.querySelector('img');
+        if (card.image) {
+          if (!img) {
+            img = h('img', { alt: '' });
+            face.prepend(img);
+          }
+          img.src = card.image;
+          img.draggable = false;
+        } else if (img) img.remove();
+      };
+      if (kind === 'work') {
+        fieldsForKind.push(
+          textField(card, 'title', 'Title', { span: 2, onInput: () => { paintFace(); if (hooks.onStructure) hooks.onStructure(); } }),
+          textField(card, 'category', 'Category', { span: 1 }),
+          textField(card, 'year', 'Year', { span: 1 }),
+          textField(card, 'role', 'Role', { span: 2, placeholder: 'Optional' }),
+          textField(card, 'output', 'Output', { span: 2, placeholder: 'Optional' }),
+          textField(card, 'intro', 'Short introduction', { span: 4, multiline: true, rows: 3 }));
+      } else if (kind === 'image') {
+        fieldsForKind.push(imageField(card, 'image', 'Image', { span: 4, onChange: () => draw() }));
+      } else if (kind === 'text') {
+        fieldsForKind.push(textField(card, 'text', 'Text', { span: 4, multiline: true, rows: 4, onInput: paintFace }));
+      } else if (kind === 'youtube') {
+        fieldsForKind.push(textField(card, 'youtube', 'YouTube link', { span: 4, placeholder: 'https://www.youtube.com/watch?v=…', onInput: paintFace }));
+      } else {
+        fieldsForKind.push(textField(card, 'pdf', 'PDF file address', { span: 4, placeholder: '/uploads/….pdf', onInput: paintFace }));
+      }
+      return h('div', { class: 'work-editor' },
+        h('div', { class: 'work-editor-bar' },
+          h('span', { class: 'field-label' }, 'Edit block'),
+          h('span', { class: 'group-btns' },
+            iconBtn('↑', 'Move earlier', () => { move(arr, i, i - 1); touch(); draw(); }, { disabled: i <= 0 }),
+            iconBtn('↓', 'Move later', () => { move(arr, i, i + 1); touch(); draw(); }, { disabled: i < 0 || i >= arr.length - 1 }),
+            iconBtn('✕', 'Remove from the grid', () => {
+              arr.splice(i, 1);
+              openWorkCard = null;
+              touch();
+              draw();
+            }, { danger: true }),
+            h('button', { class: 'btn small', type: 'button', onclick: () => { openWorkCard = null; draw(); } }, 'Done'))),
+        fields(
+          selectField(card, 'blockType', 'Block', WORK_KINDS, { span: 2, onChange: () => draw() }),
+          spanPicker(card),
+          kind === 'work' ? featureField(card) : null),
+        fields(...fieldsForKind),
+        kind === 'work' ? sectionsEditor(card) : null,
+        kind === 'work' ? piecesEditor(card, paintCover) : null);
+    }
+
+    draw();
+    return wrap;
+  }
+
   function sectionPanel(page, s, i, redraw, pageLabel) {
     const sections = page.sections;
     const titleEl = h('span', { class: 'panel-title', title: 'Double-click to rename' }, (s.heading || '').replace(/\n/g, ' ') || '(untitled section)');
@@ -1479,18 +2314,127 @@
       const body = h('div', { class: 'panel-body' });
       const isWorks = page.works && s === page.works;
       const draw = () => {
-        if ((s.layout || 'gallery') !== 'canvas') {
-          if (isWorks) seedWorksCanvas(s);
-          else {
-            s.layout = 'canvas';
-            if (!s.layers.length && ((s.heading || '') || (s.text || '') || (s.items || []).length || (s.textAfter || '') || (s.buttons || []).length)) {
-              seedCanvasFromClassic(s);
+        // A section is either the cell grid or a canvas. The other payload stays
+        // stored, and visitors only see the one that is selected.
+        if (isWorks || s.layout === 'works') {
+          s.cards = Array.isArray(s.cards) ? s.cards : [];
+          if (isWorks && !s.cards.length) {
+            const gal = (s.layers || []).find((l) => l.type === 'gallery');
+            if (gal && Array.isArray(gal.images)) {
+              s.cards = gal.images.map((item) => ({ label: item.caption || '', image: item.image || '', link: item.link || '' }));
             }
+          }
+          const tagsUi = worksTagEditor(s);
+          const useCanvas = isWorks ? null : h('button', {
+            class: 'btn small', type: 'button',
+            onclick: () => {
+              s.layout = 'canvas';
+              s.layers = Array.isArray(s.layers) ? s.layers : [];
+              if (!s.layers.length) seedCanvasFromClassic(s);
+              if (s.id) editorMode.set(s.id, 'canvas');
+              changed();
+              redraw();
+            },
+          }, 'Canvas');
+          mount(body,
+            useCanvas ? h('div', { class: 'list-tools', style: 'margin-bottom:12px' }, useCanvas) : null,
+            h('p', { class: 'hint' }, isWorks
+              ? 'This section is the cell grid. Its previous canvas stays stored and is not shown to visitors.'
+              : 'Visitors see this grid only. Canvas layers on this section stay stored until you switch this section to Canvas.'),
+            fields(
+              textField(s, 'heading', 'Heading', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } })),
+            tagsUi.el,
+            worksBlocksEditor(s.cards, { onStructure: () => tagsUi.refresh() }),
+            h('p', { class: 'hint' }, 'The grid matches the site. Drag a block onto another to change the order. Click a block to edit it. Up to three works can be Feature. They stay in this grid as well.'));
+          refreshMeta();
+          return;
+        }
+        const mode = sectionEditorMode(s);
+        const switcher = s.layout === 'case' ? null : h('div', { class: 'list-tools', style: 'margin-bottom:12px' },
+          h('button', {
+            class: mode === 'form' ? 'btn small primary' : 'btn small', type: 'button',
+            onclick: () => { if (s.id) editorMode.set(s.id, 'form'); redraw(); },
+          }, 'Form edit'),
+          h('button', {
+            class: mode === 'canvas' ? 'btn small primary' : 'btn small', type: 'button',
+            onclick: () => {
+              if (s.layout !== 'canvas') {
+                s.layout = 'canvas';
+                s.layers = s.layers || [];
+                if (!s.layers.length) seedCanvasFromClassic(s);
+              }
+              if (s.id) editorMode.set(s.id, 'canvas');
+              changed();
+              redraw();
+            },
+          }, 'Canvas'),
+          h('button', {
+            class: 'btn small', type: 'button',
+            onclick: () => {
+              s.layout = 'works';
+              if (!Array.isArray(s.cards)) s.cards = [];
+              if (s.id) editorMode.delete(s.id);
+              changed();
+              redraw();
+            },
+          }, 'Cell grid'));
+
+        if (mode === 'form') {
+          if (s.layout === 'case') {
+            mount(body,
+              fields(
+                textField(s, 'heading', 'Title', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } }),
+                textField(s, 'role', 'Role (optional)', { placeholder: 'For example, Animator' }),
+                textField(s, 'brief', 'Brief', { multiline: true, rows: 6 }),
+                textField(s, 'process', 'Process', { multiline: true, rows: 6 }),
+                textField(s, 'outcome', 'Outcome', { multiline: true, rows: 6 })),
+              h('p', { class: 'hint' }, 'Visitors only see the parts that are filled in.'));
+            refreshMeta();
+            return;
+          }
+          const textLayers = (s.layers || []).filter((l) => (l.type === 'text' || l.type === 'heading') && !isGhostLayer(l));
+          const galleries = (s.layers || []).filter((l) => l.type === 'gallery');
+          const blocks = [switcher];
+          if (s.layout !== 'canvas' || !textLayers.length) {
+            blocks.push(fields(
+              textField(s, 'heading', 'Heading', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } }),
+              textField(s, 'text', 'Text', { multiline: true, rows: 6 }),
+              textField(s, 'textAfter', 'Text after', { multiline: true, rows: 4 })));
+          } else {
+            blocks.push(fields(
+              ...textLayers.map((l) => textField(l, 'text', l.name || (l.type === 'heading' ? 'Heading' : 'Text'), {
+                multiline: true,
+                rows: l.type === 'heading' ? 2 : 6,
+                onInput: l.type === 'heading' ? (v) => { s.heading = v; titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } : undefined,
+              }))));
+          }
+          if (galleries.length) {
+            galleries.forEach((l) => {
+              l.images = l.images || [];
+              blocks.push(tilesEditor(l.images, { label: l.name || 'Images', captionLabel: 'Caption', linkPlaceholder: 'Link (optional)' }));
+            });
+          } else if (s.layout !== 'canvas') {
+            s.items = s.items || [];
+            blocks.push(tilesEditor(s.items, { label: 'Images', captionLabel: 'Caption', showWide: true }));
+          }
+          blocks.push(h('p', { class: 'hint' }, 'The form edits this section’s text and images. The hero and freeform layouts use the canvas.'));
+          mount(body, ...blocks);
+          refreshMeta();
+          return;
+        }
+
+        if (s.layout !== 'canvas') {
+          s.layout = 'canvas';
+          s.layers = s.layers || [];
+          if (!s.layers.length) {
+            if (isWorks) seedWorksCanvas(s);
+            else seedCanvasFromClassic(s);
           }
         }
         s.canvasHeight = Number(s.canvasHeight) || 640;
         mountCanvas();
-        mount(body, 
+        mount(body,
+            switcher,
             fields(
               textField(s, 'heading', 'Section name (for your reference)', {
                 multiline: true, rows: 1, span: 4,
@@ -1501,7 +2445,7 @@
               }),
               h('div', { class: 'span-4' }, editorHost)),
             h('p', { class: 'hint', style: 'margin-top:10px' },
-              'Each section is its own board. Drag a layer in any direction. Arrow keys nudge it. Drag a corner to resize, and drag the round handle above a layer to rotate it. Hold Shift while dragging to snap to the grid. A saved template stays as it is here — change the template itself on Section layouts.'),
+              'Each section is its own board. Image, YouTube and PDF are layers on this board. Drag a layer in any direction. Arrow keys nudge it. Drag a corner to resize, and drag the round handle above a layer to rotate it. Hold Shift while dragging to snap to the grid. Cell grid is a separate mode for this section. A saved template stays as it is here — change the template itself on Section layouts.'),
             h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
               h('button', {
                 class: 'btn small', type: 'button',
@@ -1545,7 +2489,7 @@
     board.canvasLock = true;
     board.layers = Array.isArray(board.layers) ? board.layers : [];
     board.canvasHeight = Number(board.canvasHeight) || 774;
-    board.canvasBg = board.canvasBg || '#617092';
+    if (typeof board.canvasBg !== 'string') board.canvasBg = '';
     if (!board.canvasImage && page.heroImage) board.canvasImage = page.heroImage;
     if (board.layers.length) return;
     const add = (type, patch) => board.layers.push(window.CanvasEditor.defaultLayer(type, patch));
@@ -1576,6 +2520,11 @@
     });
   }
 
+  function pageUsesCanvasHeader(page) {
+    const board = page && page.headerBoard;
+    return !!(board && typeof board === 'object' && board.layout === 'canvas');
+  }
+
   function viewPage(page) {
     const idx = content.pages.indexOf(page);
     const sectionsWrap = h('div', { style: 'display:flex;flex-direction:column;gap:10px' });
@@ -1599,9 +2548,70 @@
     };
     drawSections();
 
-    seedPageCanvas(page);
-    const headerHost = h('div', { class: 'canvas-host' });
-    attachCanvasEditor(page.headerBoard, headerHost);
+    const useCanvasHeader = pageUsesCanvasHeader(page);
+    let headerBlock;
+    if (useCanvasHeader) {
+      seedPageCanvas(page);
+      const headerHost = h('div', { class: 'canvas-host' });
+      attachCanvasEditor(page.headerBoard, headerHost);
+      headerBlock = [
+        h('p', { class: 'hint', style: 'margin:12px 0' },
+          'Title is on the canvas — edit layers there. The classic title, subtitle and hero image fields are hidden because they no longer show on the live site. Menu label and address stay above.'),
+        headerHost,
+        h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
+          h('button', {
+            class: 'btn small', type: 'button',
+            onclick: async () => {
+              try {
+                if (!page.headerBoard) return;
+                const id = await applySavedLayout(page.headerBoard);
+                if (!id) return;
+                page.headerBoard.layout = 'canvas';
+                changed();
+                render({ keepScroll: true, scrollY: window.scrollY });
+                toast('Applied a copy of that layout. The template itself is unchanged.');
+              } catch (err) { toast(err.message, true); }
+            },
+          }, 'Apply a saved layout'),
+          h('button', {
+            class: 'btn small', type: 'button',
+            onclick: () => saveSectionLayout(page.headerBoard, page.navLabel || page.title, {
+              suggested: page.navLabel || page.title || 'Page header',
+              kind: 'page',
+            }),
+          }, 'Save this layout'),
+          h('button', {
+            class: 'btn small', type: 'button',
+            onclick: async () => {
+              const copy = await copySectionOnServer(page.headerBoard);
+              page.sections.push(copy);
+              setPanelOpen(copy, true);
+              changed();
+              render({ keepScroll: true, scrollY: window.scrollY });
+              toast('Copied the header as a new section at the bottom of this page.');
+            },
+          }, 'Copy as a new section')),
+      ];
+    } else {
+      headerBlock = [
+        fields(
+          textField(page, 'title', 'Page title', { span: 2 }),
+          textField(page, 'subtitle', 'Subtitle', { span: 2 }),
+          imageField(page, 'heroImage', 'Hero image', { span: 4 })),
+        h('p', { class: 'hint', style: 'margin:12px 0' },
+          'This page still uses the classic header (title, subtitle, hero image). Those fields show on the live site until you switch the header to a canvas.'),
+        h('button', {
+          class: 'btn small', type: 'button', style: 'margin-bottom:8px',
+          onclick: () => {
+            seedPageCanvas(page);
+            page.headerBoard.layout = 'canvas';
+            changed();
+            render({ keepScroll: true, scrollY: window.scrollY });
+            toast('Header switched to canvas. Edit the title on the board below.');
+          },
+        }, 'Switch header to canvas'),
+      ];
+    }
 
     return [
       h('section', { class: 'card' },
@@ -1647,42 +2657,7 @@
             onInput: updateViewLink,
           }),
           checkField(page, 'showInNav', 'Show this page in the menu', { span: 2 })),
-        h('p', { class: 'hint', style: 'margin:12px 0' },
-          'The header is a canvas. Drag the light-blue highlight to change its length, and set its colour in the style panel. The menu label and address stay above.'),
-        headerHost,
-        h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
-          h('button', {
-            class: 'btn small', type: 'button',
-            onclick: async () => {
-              try {
-                if (!page.headerBoard) return;
-                const id = await applySavedLayout(page.headerBoard);
-                if (!id) return;
-                page.headerBoard.layout = 'canvas';
-                changed();
-                render({ keepScroll: true, scrollY: window.scrollY });
-                toast('Applied a copy of that layout. The template itself is unchanged.');
-              } catch (err) { toast(err.message, true); }
-            },
-          }, 'Apply a saved layout'),
-          h('button', {
-            class: 'btn small', type: 'button',
-            onclick: () => saveSectionLayout(page.headerBoard, page.navLabel || page.title, {
-              suggested: page.navLabel || page.title || 'Page header',
-              kind: 'page',
-            }),
-          }, 'Save this layout'),
-          h('button', {
-            class: 'btn small', type: 'button',
-            onclick: async () => {
-              const copy = await copySectionOnServer(page.headerBoard);
-              page.sections.push(copy);
-              setPanelOpen(copy, true);
-              changed();
-              render({ keepScroll: true, scrollY: window.scrollY });
-              toast('Copied the header as a new section at the bottom of this page.');
-            },
-          }, 'Copy as a new section'))),
+        ...headerBlock),
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
           h('h3', null, `Sections (${page.sections.length})`),
@@ -1750,19 +2725,45 @@
   }
 
   // Folders are virtual: the server tags each file with the pages that use it.
+  // Library albums (lib:*) are labels you create and assign yourself.
   const ALL_FOLDER = 'all';
   const UNUSED_FOLDER = 'unused';
   let mediaFolder = ALL_FOLDER;
+  let mediaTypeFilter = 'all';
+  let mediaSort = 'newest';
+  const mediaSelected = new Set();
 
-  // Every folder the media views can show: "All files", one per page, "Unused".
   function mediaFolderList(pageFolders) {
-    return [{ id: ALL_FOLDER, label: 'All files' }, ...pageFolders, { id: UNUSED_FOLDER, label: 'Unused' }];
+    const pages = (pageFolders || []).filter((f) => f.kind !== 'library');
+    const library = (pageFolders || []).filter((f) => f.kind === 'library');
+    return [
+      { id: ALL_FOLDER, label: 'All files', kind: 'system' },
+      ...pages,
+      ...library,
+      { id: UNUSED_FOLDER, label: 'Unused', kind: 'system' },
+    ];
   }
 
   function inMediaFolder(file, folderId) {
     if (folderId === ALL_FOLDER) return true;
     if (folderId === UNUSED_FOLDER) return !file.used;
     return (file.folders || []).includes(folderId);
+  }
+
+  function fileMatchesType(file, type) {
+    if (type === 'all') return true;
+    const kind = file.kind || mediaKindOf(file.url || file.name);
+    return kind === type;
+  }
+
+  function sortMediaFiles(list, sort) {
+    const out = list.slice();
+    if (sort === 'oldest') out.sort((a, b) => (a.modified || 0) - (b.modified || 0));
+    else if (sort === 'name-asc') out.sort((a, b) => a.name.localeCompare(b.name));
+    else if (sort === 'name-desc') out.sort((a, b) => b.name.localeCompare(a.name));
+    else if (sort === 'size') out.sort((a, b) => (b.size || 0) - (a.size || 0));
+    else out.sort((a, b) => (b.modified || 0) - (a.modified || 0));
+    return out;
   }
 
   async function viewMedia(container) {
@@ -1778,73 +2779,320 @@
       return;
     }
     if (!folders.some((f) => f.id === mediaFolder)) mediaFolder = ALL_FOLDER;
+    mediaSelected.clear();
     const folderLabels = new Map(folders.map((f) => [f.id, f.label]));
-    const usedOn = (file) => (file.folders || []).map((id) => folderLabels.get(id)).filter(Boolean).join(', ');
+    const usedOn = (file) => (file.folders || [])
+      .filter((id) => !String(id).startsWith('lib:'))
+      .map((id) => folderLabels.get(id))
+      .filter(Boolean)
+      .join(', ');
+    const libraryLabel = (file) => {
+      if (!file.libraryId) return '';
+      const hit = folders.find((f) => f.libraryId === file.libraryId || f.id === `lib:${file.libraryId}`);
+      return hit ? hit.label : '';
+    };
 
-    const search = h('input', { type: 'search', placeholder: 'Filter by file name…', style: 'max-width:320px' });
+    const search = h('input', { type: 'search', placeholder: 'Filter by file name…', style: 'max-width:260px' });
+    const typeSel = h('select', { 'aria-label': 'File type' },
+      h('option', { value: 'all' }, 'All types'),
+      h('option', { value: 'image' }, 'Images'),
+      h('option', { value: 'video' }, 'Videos'),
+      h('option', { value: 'pdf' }, 'PDFs'),
+      h('option', { value: 'font' }, 'Fonts'));
+    typeSel.value = mediaTypeFilter;
+    const sortSel = h('select', { 'aria-label': 'Sort' },
+      h('option', { value: 'newest' }, 'Newest first'),
+      h('option', { value: 'oldest' }, 'Oldest first'),
+      h('option', { value: 'name-asc' }, 'Name A–Z'),
+      h('option', { value: 'name-desc' }, 'Name Z–A'),
+      h('option', { value: 'size' }, 'Largest first'));
+    sortSel.value = mediaSort;
+
     const grid = h('div', { class: 'media-grid' });
     const folderNav = h('nav', { class: 'media-folders', 'aria-label': 'Folders' });
-    const fileIn = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm,.woff,.woff2,.ttf,.otf', multiple: true, hidden: true });
+    const bulkBar = h('div', { class: 'media-bulk', hidden: true });
+    const fileIn = h('input', {
+      type: 'file',
+      accept: 'image/*,video/mp4,video/webm,application/pdf,.pdf,.woff,.woff2,.ttf,.otf',
+      multiple: true,
+      hidden: true,
+    });
     fileIn.addEventListener('change', async () => {
       const urls = await uploadFiles(fileIn.files);
       fileIn.value = '';
       if (urls.length) viewMedia(container);
     });
 
+    const visibleList = () => {
+      const q = search.value.trim().toLowerCase();
+      return sortMediaFiles(
+        files.filter((x) =>
+          x.name.toLowerCase().includes(q)
+          && inMediaFolder(x, mediaFolder)
+          && fileMatchesType(x, mediaTypeFilter)),
+        mediaSort);
+    };
+
+    const syncBulk = () => {
+      const n = mediaSelected.size;
+      bulkBar.hidden = n === 0;
+      if (!n) return;
+      mount(bulkBar,
+        h('span', null, `${n} selected`),
+        h('button', {
+          class: 'btn small danger', type: 'button',
+          onclick: async () => {
+            const picked = files.filter((f) => mediaSelected.has(f.name));
+            if (!picked.length) return;
+            const usedCount = picked.filter((f) => f.used).length;
+            const msg = usedCount
+              ? `${picked.length} file(s) selected; ${usedCount} still used on the website. Delete anyway?`
+              : `Delete ${picked.length} file(s) permanently?`;
+            if (!confirm(msg)) return;
+            try {
+              const res = await api('POST', '/api/media/delete', {
+                names: picked.map((f) => f.name),
+                force: usedCount > 0,
+              });
+              const gone = new Set(res.deleted || []);
+              files = files.filter((f) => !gone.has(f.name));
+              mediaSelected.clear();
+              drawFolders();
+              draw();
+              syncBulk();
+              toast(gone.size ? `Deleted ${gone.size}.` : 'Nothing deleted.');
+            } catch (err) { toast(err.message, true); }
+          },
+        }, 'Delete selected'),
+        h('button', {
+          class: 'btn small', type: 'button',
+          onclick: () => { mediaSelected.clear(); draw(); syncBulk(); },
+        }, 'Clear'));
+    };
+
+    const libraryFolders = () => folders.filter((f) => f.kind === 'library');
+
+    const renameFile = async (file) => {
+      const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')) : '';
+      const base = file.name.slice(0, file.name.length - ext.length);
+      const next = prompt('Rename file (extension stays the same):', base);
+      if (next == null) return;
+      const cleaned = next.trim();
+      if (!cleaned || cleaned === base) return;
+      try {
+        const res = await api('PATCH', `/api/media/${encodeURIComponent(file.name)}`, { newName: cleaned + ext });
+        if (res.rewritten && res.url !== file.url) applyMediaRenameLocally(file.url, res.url);
+        Object.assign(file, {
+          name: res.name,
+          url: res.url,
+          size: res.size,
+          modified: res.modified,
+          used: res.used,
+          kind: res.kind,
+          libraryId: res.libraryId,
+        });
+        // Refresh folder tags from server for this file
+        const fresh = await api('GET', '/api/media');
+        const hit = fresh.find((f) => f.name === res.name);
+        if (hit) Object.assign(file, hit);
+        files = files.map((f) => (f.name === file.name || f.url === res.url ? { ...f, ...file } : f));
+        // Deduplicate after rename
+        const byName = new Map();
+        files.forEach((f) => byName.set(f.name, f));
+        files = [...byName.values()];
+        drawFolders();
+        draw();
+        toast(res.rewritten ? 'Renamed — website links updated. Save if you still have other unsaved edits.' : 'Renamed.');
+      } catch (err) { toast(err.message, true); }
+    };
+
+    const moveFile = async (file) => {
+      const libs = libraryFolders();
+      if (!libs.length) {
+        toast('Create a library folder first (New folder in the sidebar).', true);
+        return;
+      }
+      const choices = ['(none — remove from album)', ...libs.map((f) => f.label)];
+      const pick = prompt(
+        `Move to library folder:\n${choices.map((c, i) => `${i}: ${c}`).join('\n')}\n\nEnter number:`,
+        '0');
+      if (pick == null) return;
+      const idx = Number(pick);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= choices.length) {
+        toast('Invalid choice.', true);
+        return;
+      }
+      const folderId = idx === 0 ? null : (libs[idx - 1].libraryId || String(libs[idx - 1].id).replace(/^lib:/, ''));
+      try {
+        const res = await api('PATCH', `/api/media/${encodeURIComponent(file.name)}`, { folderId });
+        file.libraryId = res.libraryId;
+        const fresh = await api('GET', '/api/media');
+        const hit = fresh.find((f) => f.name === file.name);
+        if (hit) Object.assign(file, hit);
+        drawFolders();
+        draw();
+        toast(folderId ? 'Moved to folder.' : 'Removed from library folder.');
+      } catch (err) { toast(err.message, true); }
+    };
+
     const drawFolders = () => {
-      mount(folderNav, folders.map((folder) => h('button', {
-        class: `media-folder${folder.id === mediaFolder ? ' active' : ''}`,
-        type: 'button',
-        title: folder.label,
-        onclick: () => {
-          mediaFolder = folder.id;
-          drawFolders();
-          draw();
+      const pageOnes = folders.filter((f) => f.kind === 'page' || f.kind === 'system' || !f.kind);
+      const libOnes = folders.filter((f) => f.kind === 'library');
+      mount(folderNav,
+        pageOnes.map((folder) => h('button', {
+          class: `media-folder${folder.id === mediaFolder ? ' active' : ''}`,
+          type: 'button',
+          title: folder.label,
+          onclick: () => {
+            mediaFolder = folder.id;
+            drawFolders();
+            draw();
+          },
         },
-      },
-      h('span', { class: 'label' }, folder.label),
-      h('span', { class: 'count' }, files.filter((x) => inMediaFolder(x, folder.id)).length))));
+        h('span', { class: 'label' }, folder.label),
+        h('span', { class: 'count' }, files.filter((x) => inMediaFolder(x, folder.id)).length))),
+        h('div', { class: 'media-folder-sep' }, 'Library albums'),
+        libOnes.length ? null : h('p', { class: 'muted small', style: 'margin:4px 8px 8px' }, 'Create albums to group files (separate from pages).'),
+        libOnes.map((folder) => h('div', { class: 'media-folder-row' },
+          h('button', {
+            class: `media-folder${folder.id === mediaFolder ? ' active' : ''}`,
+            type: 'button',
+            title: folder.label,
+            onclick: () => {
+              mediaFolder = folder.id;
+              drawFolders();
+              draw();
+            },
+          },
+          h('span', { class: 'label' }, folder.label),
+          h('span', { class: 'count' }, files.filter((x) => inMediaFolder(x, folder.id)).length)),
+          h('button', {
+            class: 'btn tiny', type: 'button', title: 'Rename folder',
+            onclick: async (e) => {
+              e.stopPropagation();
+              const next = prompt('Rename folder:', folder.label);
+              if (next == null || !next.trim() || next.trim() === folder.label) return;
+              try {
+                const res = await api('PATCH', `/api/media/folders/${encodeURIComponent(folder.libraryId || folder.id)}`, { label: next.trim() });
+                folder.label = res.label;
+                folderLabels.set(folder.id, res.label);
+                drawFolders();
+                draw();
+              } catch (err) { toast(err.message, true); }
+            },
+          }, '✎'),
+          h('button', {
+            class: 'btn tiny danger', type: 'button', title: 'Delete folder',
+            onclick: async (e) => {
+              e.stopPropagation();
+              if (!confirm(`Delete album "${folder.label}"? Files stay; only the album is removed.`)) return;
+              try {
+                await api('DELETE', `/api/media/folders/${encodeURIComponent(folder.libraryId || folder.id)}`);
+                folders = folders.filter((f) => f.id !== folder.id);
+                if (mediaFolder === folder.id) mediaFolder = ALL_FOLDER;
+                files.forEach((f) => {
+                  if (f.libraryId && (`lib:${f.libraryId}` === folder.id || f.libraryId === folder.libraryId)) {
+                    f.libraryId = null;
+                    f.folders = (f.folders || []).filter((id) => id !== folder.id);
+                  }
+                });
+                drawFolders();
+                draw();
+              } catch (err) { toast(err.message, true); }
+            },
+          }, '×'))),
+        h('button', {
+          class: 'btn small', type: 'button', style: 'margin-top:8px',
+          onclick: async () => {
+            const label = prompt('New library album name:');
+            if (label == null || !label.trim()) return;
+            try {
+              const res = await api('POST', '/api/media/folders', { label: label.trim() });
+              const unusedAt = folders.findIndex((f) => f.id === UNUSED_FOLDER);
+              if (unusedAt >= 0) folders.splice(unusedAt, 0, res);
+              else folders.push(res);
+              folderLabels.set(res.id, res.label);
+              mediaFolder = res.id;
+              drawFolders();
+              draw();
+              toast('Album created.');
+            } catch (err) { toast(err.message, true); }
+          },
+        }, '+ New folder'));
+    };
+
+    const kindPill = (file) => {
+      const kind = file.kind || mediaKindOf(file.url);
+      return h('span', { class: `pill kind-${kind}` }, kind);
     };
 
     const draw = () => {
-      const q = search.value.trim().toLowerCase();
-      const list = files.filter((x) => x.name.toLowerCase().includes(q) && inMediaFolder(x, mediaFolder));
-      mount(grid, 
-        list.length ? null : h('p', { class: 'muted' }, q ? 'No files match.' : 'This folder is empty.'),
-        list.map((file) => h('div', { class: 'media-card' },
-          h('div', { class: 'tile-img' }, mediaPreview(file.url)),
-          h('div', { class: 'media-info' },
-            h('span', { class: 'name', title: file.name }, file.name),
-            h('div', { class: 'row' },
-              h('span', null, formatSize(file.size)),
-              h('span', { class: `pill${file.used ? '' : ' unused'}` }, file.used ? 'In use' : 'Unused')),
-            usedOn(file) ? h('span', { class: 'used-on', title: `Used on: ${usedOn(file)}` }, usedOn(file)) : null,
-            h('div', { class: 'row' },
-              h('button', {
-                class: 'btn small', type: 'button',
-                onclick: async () => {
-                  await navigator.clipboard.writeText(file.url).catch(() => {});
-                  toast(`Copied ${file.url}`);
+      const list = visibleList();
+      // Drop selections that are no longer visible/present
+      [...mediaSelected].forEach((name) => {
+        if (!files.some((f) => f.name === name)) mediaSelected.delete(name);
+      });
+      mount(grid,
+        list.length ? null : h('p', { class: 'muted' }, search.value.trim() ? 'No files match.' : 'This folder is empty.'),
+        list.map((file) => {
+          const selected = mediaSelected.has(file.name);
+          return h('div', { class: `media-card${selected ? ' selected' : ''}` },
+            h('label', { class: 'media-check', title: 'Select' },
+              h('input', {
+                type: 'checkbox',
+                checked: selected,
+                onchange: (e) => {
+                  if (e.target.checked) mediaSelected.add(file.name);
+                  else mediaSelected.delete(file.name);
+                  draw();
+                  syncBulk();
                 },
-              }, 'Copy link'),
-              h('button', {
-                class: 'btn small danger', type: 'button',
-                onclick: async () => {
-                  const msg = file.used
-                    ? `"${file.name}" is still used on your website. Deleting it will leave an empty spot. Delete anyway?`
-                    : `Delete "${file.name}" permanently?`;
-                  if (!confirm(msg)) return;
-                  try {
-                    await api('DELETE', `/api/media/${encodeURIComponent(file.name)}${file.used ? '?force=1' : ''}`);
-                    files = files.filter((x) => x !== file);
-                    drawFolders();
-                    draw();
-                    toast('Deleted.');
-                  } catch (err) { toast(err.message, true); }
-                },
-              }, 'Delete'))))));
+              })),
+            h('div', { class: 'tile-img' }, mediaPreview(file.url)),
+            h('div', { class: 'media-info' },
+              h('span', { class: 'name', title: file.name }, file.name),
+              h('div', { class: 'row' },
+                h('span', null, formatSize(file.size)),
+                kindPill(file)),
+              h('div', { class: 'row' },
+                h('span', { class: `pill${file.used ? '' : ' unused'}` }, file.used ? 'In use' : 'Unused'),
+                libraryLabel(file) ? h('span', { class: 'pill album' }, libraryLabel(file)) : null),
+              usedOn(file) ? h('span', { class: 'used-on', title: `Used on: ${usedOn(file)}` }, usedOn(file)) : null,
+              h('div', { class: 'row media-actions' },
+                h('button', {
+                  class: 'btn small', type: 'button',
+                  onclick: async () => {
+                    await navigator.clipboard.writeText(file.url).catch(() => {});
+                    toast(`Copied ${file.url}`);
+                  },
+                }, 'Copy'),
+                h('button', { class: 'btn small', type: 'button', onclick: () => renameFile(file) }, 'Rename'),
+                h('button', { class: 'btn small', type: 'button', onclick: () => moveFile(file) }, 'Move'),
+                h('button', {
+                  class: 'btn small danger', type: 'button',
+                  onclick: async () => {
+                    const msg = file.used
+                      ? `"${file.name}" is still used on your website. Deleting it will leave an empty spot. Delete anyway?`
+                      : `Delete "${file.name}" permanently?`;
+                    if (!confirm(msg)) return;
+                    try {
+                      await api('DELETE', `/api/media/${encodeURIComponent(file.name)}${file.used ? '?force=1' : ''}`);
+                      files = files.filter((x) => x.name !== file.name);
+                      mediaSelected.delete(file.name);
+                      drawFolders();
+                      draw();
+                      syncBulk();
+                      toast('Deleted.');
+                    } catch (err) { toast(err.message, true); }
+                  },
+                }, 'Delete'))));
+        }));
+      syncBulk();
     };
+
     search.addEventListener('input', draw);
+    typeSel.addEventListener('change', () => { mediaTypeFilter = typeSel.value; draw(); });
+    sortSel.addEventListener('change', () => { mediaSort = sortSel.value; draw(); });
 
     const zone = h('div', { class: 'dropzone', style: 'margin-bottom:16px' },
       h('span', null, 'Drop files here to upload, or'),
@@ -1856,13 +3104,17 @@
     });
 
     const total = files.reduce((n, x) => n + x.size, 0);
-    mount(container, 
-      h('p', { class: 'intro' }, `${files.length} files · ${formatSize(total)}. Folders follow the pages on your saved website. Fonts you upload sit in Fonts and show up in the style panel, each in its own typeface.`),
+    mount(container,
+      h('p', { class: 'intro' },
+        `${files.length} files · ${formatSize(total)}. Page folders follow what is saved on the website. `
+        + 'Library albums are yours to organize. Rename updates saved links; Save if you still have other unsaved edits.'),
       zone,
       h('div', { class: 'media-layout' },
         folderNav,
         h('div', { class: 'media-main' },
-          h('div', { class: 'list-tools', style: 'margin-bottom:14px' }, search),
+          h('div', { class: 'list-tools media-tools', style: 'margin-bottom:14px' },
+            search, typeSel, sortSel),
+          bulkBar,
           grid)));
     drawFolders();
     draw();
@@ -1919,8 +3171,8 @@
       textAfter: '',
       layout: 'canvas',
       canvasHeight: kind === 'section' ? 640 : 774,
-      canvasBg: kind === 'section' ? '#FDFDFD' : '#617092',
-      canvasLock: kind !== 'section',
+      canvasBg: '',
+      canvasLock: true,
       layers: [
         window.CanvasEditor.defaultLayer('heading', {
           name: 'Heading', text: 'our text here', x: 80, y: 80, w: 900, h: 80, anim: 'up',
@@ -2227,14 +3479,61 @@
     link.textContent = isDirty() ? 'View on website (save first to see changes) ↗' : 'View on website ↗';
   }
 
+  // Undo rebuilds the editor. The page and each board viewport must come back
+  // to the same place: a new canvas starts scrolled to the top, and Chrome
+  // also jumps the page when the focused field is removed.
+  function captureScrollState() {
+    return {
+      x: window.scrollX,
+      y: window.scrollY,
+      canvases: [...document.querySelectorAll('.canvas-host')].map((host, index) => {
+        const viewport = host.querySelector('.cv-viewport');
+        const inspector = host.querySelector('.cv-inspector');
+        const layers = host.querySelector('.cv-layers');
+        return {
+          key: host.dataset.canvasKey || '',
+          index,
+          left: viewport ? viewport.scrollLeft : 0,
+          top: viewport ? viewport.scrollTop : 0,
+          inspector: inspector ? inspector.scrollTop : 0,
+          layers: layers ? layers.scrollTop : 0,
+        };
+      }),
+    };
+  }
+
+  function restoreScrollState(state) {
+    if (!state) return;
+    window.scrollTo(state.x, state.y);
+    const hosts = [...document.querySelectorAll('.canvas-host')];
+    state.canvases.forEach((saved) => {
+      const host = (saved.key && hosts.find((el) => el.dataset.canvasKey === saved.key)) || hosts[saved.index];
+      if (!host) return;
+      const viewport = host.querySelector('.cv-viewport');
+      const inspector = host.querySelector('.cv-inspector');
+      const layers = host.querySelector('.cv-layers');
+      if (viewport) {
+        viewport.scrollLeft = saved.left;
+        viewport.scrollTop = saved.top;
+      }
+      if (inspector) inspector.scrollTop = saved.inspector;
+      if (layers) layers.scrollTop = saved.layers;
+    });
+  }
+
   function render(opts = {}) {
     const view = currentView();
     const editor = $('#editor');
     const title = $('#view-title');
-    const keepY = opts.keepScroll ? (opts.scrollY || 0) : 0;
+    const scroll = opts.keepScroll ? captureScrollState() : null;
+    if (scroll && opts.scrollY != null) scroll.y = opts.scrollY;
+    if (scroll) {
+      const active = document.activeElement;
+      if (active && active !== document.body && editor.contains(active)) active.blur();
+    }
     destroyLiveEditors();
     renderSidebar();
-    window.scrollTo(0, keepY);
+    if (scroll) restoreScrollState(scroll);
 
     // Suggestions for link fields: all page addresses.
     const datalist = h('datalist', { id: 'page-links' },
@@ -2265,7 +3564,16 @@
       mount(editor, datalist, ...viewHome());
     }
     updateViewLink();
-    if (opts.keepScroll) window.scrollTo(0, keepY);
+    if (scroll) {
+      restoreScrollState(scroll);
+      // The browser scrolls again after this handler, once the focused node
+      // is gone. Put the page and the boards back on the next frames.
+      requestAnimationFrame(() => {
+        restoreScrollState(scroll);
+        requestAnimationFrame(() => restoreScrollState(scroll));
+      });
+      setTimeout(() => restoreScrollState(scroll), 0);
+    }
   }
 
   // =========================================================================
@@ -2288,6 +3596,9 @@
     $('#app').hidden = false;
     changed();
     render();
+    liveEditors.forEach((editor) => {
+      try { if (editor && typeof editor.refitAutoFits === 'function') editor.refitAutoFits(); } catch (err) { /* ignore */ }
+    });
     api('GET', '/api/messages')
       .then((list) => { unread = list.filter((m) => !m.read).length; renderSidebar(); })
       .catch(() => {});

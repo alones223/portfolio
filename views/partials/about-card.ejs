@@ -1,0 +1,62 @@
+<%
+  const aboutCard = (home && home.aboutCard) || {};
+  const board = aboutCard.board || {};
+  const layers = (Array.isArray(board.layers) ? board.layers : []).filter(function (layer) {
+    return layer && layer.hidden !== true;
+  });
+  const boardW = Number(board.canvasWidth) > 0 ? Math.min(4000, Math.round(Number(board.canvasWidth))) : 640;
+  const boardH = Number(board.canvasHeight) > 0 ? Math.min(4000, Math.round(Number(board.canvasHeight))) : 400;
+  const email = String((site && site.email) || '').trim();
+  const video = safeUrl(aboutCard.video || '');
+  const yt = video ? youtubeId(video) : '';
+%>
+<section class="about-card-slot" aria-labelledby="about-title">
+  <h2 id="about-title" class="title-highlight"><span>About</span></h2>
+  <div class="namecard">
+    <div class="namecard-inner">
+      <div class="namecard-face namecard-front">
+        <div class="namecard-scale" style="--board-w: <%= boardW %>; --board-h: <%= boardH %>">
+          <div class="namecard-fit">
+          <div class="namecard-board">
+            <% if (layers.length) { %>
+              <% layers.forEach(function (layer) { %>
+              <div class="namecard-layer" data-align="<%= ['left','center','right'].indexOf(layer.align) >= 0 ? layer.align : 'left' %>" style="<%= layerBox(layer, boardH) %>;<%= styleToCss(layer) %>">
+                <% if (layer.name === 'Email') { %>
+                  <% if (email) { %><a href="mailto:<%= email %>"><%= email %></a><% } %>
+                <% } else if (layer.name === 'Socials') { %>
+                  <%- include('socials', { site: site }) %>
+                <% } else if (layer.type === 'heading') { %>
+                  <div class="namecard-copy"><%- layerText(layer.text) %></div>
+                <% } else { %>
+                  <div class="namecard-copy"><%- paragraphs(layer.text) %></div>
+                <% } %>
+              </div>
+              <% }); %>
+            <% } else if (String(aboutCard.intro || '').trim() || email) { %>
+              <div class="namecard-fallback">
+                <% if (String(aboutCard.intro || '').trim()) { %><div class="namecard-copy"><%- paragraphs(aboutCard.intro) %></div><% } %>
+                <% if (email) { %><p><a href="mailto:<%= email %>"><%= email %></a></p><% } %>
+                <%- include('socials', { site: site }) %>
+              </div>
+            <% } %>
+          </div>
+          </div>
+        </div>
+      </div>
+      <div class="namecard-face namecard-back" inert>
+        <div class="namecard-stage">
+          <% if (yt) { %>
+          <iframe class="namecard-frame" title="Motion graphic" data-src="https://www.youtube-nocookie.com/embed/<%= yt %>?playsinline=1&rel=0&fs=0&enablejsapi=1" allow="autoplay; encrypted-media; picture-in-picture"></iframe>
+          <% } else if (video) { %>
+          <video class="namecard-video" src="<%= video %>" playsinline preload="metadata" disablepictureinpicture></video>
+          <% } else { %>
+          <p class="namecard-empty" id="namecard-empty">No motion graphic yet. In the admin, open About card and paste a link or upload a video.</p>
+          <% } %>
+          <button type="button" class="namecard-play" aria-label="Play"<% if (!yt && !video) { %> disabled aria-describedby="namecard-empty"<% } %>>
+            <span class="namecard-play-icon" aria-hidden="true">&#9654;</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
