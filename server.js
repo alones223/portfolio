@@ -6,6 +6,7 @@ const session = require('express-session');
 const multer = require('multer');
 
 const { presetSummaries, findPreset, defaultTemplates, layer: presetLayer } = require('./lib/section-presets');
+const { workCase } = require('./lib/work-case');
 
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, 'data');
@@ -197,7 +198,7 @@ function isExternal(url) {
 
 const ANIMATIONS = new Set(['none', 'fade', 'up', 'down', 'left', 'right', 'zoom', 'zoomOut', 'float', 'pulse']);
 const LAYER_TYPES = new Set(['heading', 'text', 'paragraph', 'image', 'gallery', 'group', 'button', 'divider', 'shape', 'youtube', 'pdf']);
-const LAYOUT_SUPPORTED = new Set(['canvas', 'gallery', 'case']);
+const LAYOUT_SUPPORTED = new Set(['canvas', 'gallery', 'case', 'works']);
 const LAYER_FITS = new Set(['cover', 'contain', 'fill']);
 const MAX_LAYERS = 200;
 const MAX_SECTIONS_PER_PAGE = 40;
@@ -733,7 +734,7 @@ function validateSection(section, label, errors) {
   }
   const layout = section.layout || 'gallery';
   const canvas = layout === 'canvas';
-  const known = canvas || layout === 'gallery' || layout === 'case';
+  const known = canvas || layout === 'gallery' || layout === 'case' || layout === 'works';
   if (!known) {
     errors.push(`"${label}": the layout "${layout}" is not supported`);
   }
@@ -789,6 +790,7 @@ app.use((req, res, next) => {
 });
 app.locals.safeUrl = safeUrl;
 app.locals.youtubeId = youtubeId;
+app.locals.workCase = workCase;
 app.locals.ANIMATIONS = ANIMATIONS;
 app.locals.LAYER_FITS = LAYER_FITS;
 app.locals.LAYER_ALIGN = LAYER_ALIGN;

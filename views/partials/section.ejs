@@ -35,6 +35,8 @@
       <div class="case-block reveal"><h3>Outcome</h3><div class="section-text"><%- paragraphs(__s.outcome) %></div></div>
     <% } %>
   </section>
+<% } else if (__s.layout === 'works') { %>
+  <%- include('works-grid', { section: __s }) %>
 <% } else if (__canvas) { %>
   <section class="content-section layout-canvas<%= __s.canvasLock ? ' canvas-lock' : '' %>"
     data-canvas-width="<%= (__s.canvasWidthMode === 'screen') ? 'screen' : 'fixed' %>"

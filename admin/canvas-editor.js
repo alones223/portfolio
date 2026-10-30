@@ -512,7 +512,9 @@ window.CanvasEditorUI = (function () {
     const WIDTH_MAX = 4000;
     // Section canvases lock to the screen width so the board matches what
     // visitors see edge-to-edge. opts.lockWidthToScreen defaults to true.
-    const lockWidthToScreen = opts.lockWidthToScreen !== false;
+    // fixedBoard is only the About card: width and height stay put.
+    const fixedBoard = opts.fixedBoard === true;
+    const lockWidthToScreen = !fixedBoard && opts.lockWidthToScreen !== false;
     const screenBoardWidth = () => {
       const raw = Number(window.screen && window.screen.width) || Number(window.innerWidth) || M.CANVAS_W;
       return clamp(Math.round(raw), WIDTH_MIN, WIDTH_MAX);
@@ -797,8 +799,9 @@ window.CanvasEditorUI = (function () {
     const guideY = h('div', { class: 'cv-guide cv-guide-h', hidden: true });
     const heightHandle = h('div', { class: 'cv-height-handle', title: 'Drag up or down to change the board height' });
     const stage = h('div', { class: 'cv-stage' }, board, guideX, guideY, heightHandle);
+    if (fixedBoard) heightHandle.hidden = true;
     heightHandle.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0) return;
+      if (fixedBoard || e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();
       const startY = e.clientY;
@@ -2071,6 +2074,7 @@ window.CanvasEditorUI = (function () {
       const s = scale();
       board.style.width = `${boardWidth()}px`;
       board.style.height = `${boardHeight()}px`;
+      board.classList.toggle('is-card', fixedBoard);
       const bgUrl = safeUrl(section.canvasImage || '');
       const hasImage = Boolean(bgUrl && bgUrl !== '#');
       const parsedBg = parseColor(section.canvasBg || '');
@@ -2079,7 +2083,7 @@ window.CanvasEditorUI = (function () {
       // so the slider still changes the background when an image is covering it.
       board.style.backgroundColor = hasImage
         ? (hasColour ? parsedBg.hex : 'transparent')
-        : (hasColour ? (section.canvasBg || '') : 'transparent');
+        : (hasColour ? (section.canvasBg || '') : (fixedBoard ? '#fff' : 'transparent'));
       board.style.backgroundImage = 'none';
       let boardBg = board.querySelector(':scope > .cv-board-bg');
       if (!boardBg) {
@@ -2425,15 +2429,19 @@ window.CanvasEditorUI = (function () {
       const canPlace = Boolean(section.canvasImage) && !bgLocked;
       return h('div', { class: 'cv-board-block' },
         h('h4', null, 'Board'),
-        field('Board height', height),
+        fixedBoard
+          ? field('Card size', h('span', { class: 'cv-hint' }, `${boardWidth()} × ${boardHeight()} — locked to the card`))
+          : field('Board height', height),
         colorField(section, 'canvasBg', 'Board background'),
         imageField(section, 'canvasImage', 'Background image', { locked: bgLocked }),
         bgLockField,
-        widthField,
+        fixedBoard ? null : widthField,
         canPlace ? h('p', { class: 'cv-align-label' }, 'Picture place') : null,
         canPlace ? placeField('x', 'Across') : null,
         canPlace ? placeField('y', 'Down') : null,
-        h('p', { class: 'cv-hint' }, section.canvasImage
+        h('p', { class: 'cv-hint' }, fixedBoard
+          ? 'This board is the card. Width and height stay fixed so the site matches this size. Drag the layers to place them.'
+          : section.canvasImage
           ? (bgLocked
             ? 'Background is locked - cannot move, replace, or remove. Drag empty board to rubber-band select layers. Unlock to slide or change the photo. Drag the bottom edge to change height.'
             : 'Drag empty board to slide the photo. Hold Alt and drag to rubber-band select layers. Across and Down also move it. Drag the bottom edge to change height.')

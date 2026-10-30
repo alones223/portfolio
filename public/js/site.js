@@ -294,8 +294,9 @@
   // ---- Works grid: pack cells, then open a project in place --------------
   // A block that does not fit the remaining columns moves to the next row.
   // Later blocks do not jump back into the gap it left.
-  var worksGrid = document.querySelector('.works-cells');
-  if (worksGrid) {
+  var workScroll = { y: 0, locked: false };
+  var popupListenersBound = false;
+  document.querySelectorAll('.works-cells').forEach(function (worksGrid) {
     function worksColumns() {
       var n = parseInt(getComputedStyle(worksGrid).getPropertyValue('--works-cols'), 10);
       return n === 1 || n === 2 ? n : 3;
@@ -367,7 +368,7 @@
         var opener = item.el.querySelector('.works-open');
         if (opener) opener.dataset.num = num;
         var index = item.el.getAttribute('data-work-index');
-        var feature = document.querySelector('.works-feature[data-work-index="' + index + '"]');
+        var feature = (worksGrid.closest('.works-slot') || document).querySelector('.works-feature[data-work-index="' + index + '"]');
         if (feature) feature.dataset.num = num;
       });
     }
@@ -384,7 +385,8 @@
     window.addEventListener('resize', schedulePack);
 
     var selectedTags = [];
-    var tagRow = document.querySelector('.works-tags');
+    var worksSlotForTags = worksGrid.closest('.works-slot') || worksGrid;
+    var tagRow = worksSlotForTags.querySelector('.works-tags');
     function cellTags(el) {
       try {
         var tags = JSON.parse(el.getAttribute('data-tags') || '[]');
@@ -428,62 +430,142 @@
 
     var popup = document.querySelector('.work-popup');
     if (popup) {
-      var cover = popup.querySelector('.work-popup-cover');
-      var numEl = popup.querySelector('.work-popup-num');
-      var metaEl = popup.querySelector('.work-popup-meta');
-      var titleEl = popup.querySelector('.work-popup-title');
-      var introEl = popup.querySelector('.work-popup-intro');
-      var tagsEl = popup.querySelector('.work-popup-tags');
-      var scrollY = 0;
-      var locked = false;
+      var copyEl = popup.querySelector('.work-case-copy');
+      var categoryEl = popup.querySelector('.work-case-category');
+      var titleEl = popup.querySelector('.work-case-title');
+      var introEl = popup.querySelector('.work-case-intro');
+      var tagsEl = popup.querySelector('.work-case-tags');
+      var factsEl = popup.querySelector('.work-case-facts');
+      var sectionsEl = popup.querySelector('.work-case-sections');
+      var piecesEl = popup.querySelector('.work-case-pieces');
       function showLine(el, text) {
-        el.hidden = !text;
-        el.textContent = text || '';
+        var value = text || '';
+        el.hidden = !value;
+        el.textContent = value;
       }
       function lockScroll() {
-        scrollY = window.scrollY;
+        workScroll.y = window.scrollY;
         document.body.classList.add('work-open');
-        document.body.style.top = (-scrollY) + 'px';
-        locked = true;
+        document.body.style.top = (-workScroll.y) + 'px';
+        workScroll.locked = true;
       }
       function unlockScroll() {
-        if (!locked) return;
-        locked = false;
+        if (!workScroll.locked) return;
+        workScroll.locked = false;
         document.body.classList.remove('work-open');
         document.body.style.top = '';
-        window.scrollTo(0, scrollY);
+        window.scrollTo(0, workScroll.y);
       }
-      function showTags(raw) {
-        var tags = [];
-        try { tags = JSON.parse(raw || '[]'); } catch (err) { tags = []; }
-        if (!Array.isArray(tags)) tags = [];
-        tagsEl.replaceChildren.apply(tagsEl, tags.map(function (tag) {
+      function readCases(btn) {
+        var slot = btn && btn.closest ? btn.closest('.works-slot') : null;
+        var node = (slot && slot.querySelector('.works-cases-data')) || document.getElementById('works-cases');
+        if (!node) return [];
+        try {
+          var data = JSON.parse(node.textContent || '[]');
+          return Array.isArray(data) ? data : [];
+        } catch (err) {
+          return [];
+        }
+      }
+      function fillTags(tags) {
+        var list = Array.isArray(tags) ? tags : [];
+        tagsEl.replaceChildren.apply(tagsEl, list.map(function (tag) {
           var li = document.createElement('li');
           li.textContent = tag;
           return li;
         }));
-        tagsEl.hidden = tags.length === 0;
+        tagsEl.hidden = list.length === 0;
+      }
+      function fillFacts(data) {
+        var rows = [];
+        if (data.role) rows.push(['Role', data.role]);
+        if (data.year) rows.push(['Year', data.year]);
+        if (data.output) rows.push(['Output', data.output]);
+        factsEl.replaceChildren.apply(factsEl, rows.map(function (row) {
+          var wrap = document.createElement('div');
+          var dt = document.createElement('dt');
+          var dd = document.createElement('dd');
+          dt.textContent = row[0];
+          dd.textContent = row[1];
+          wrap.append(dt, dd);
+          return wrap;
+        }));
+        factsEl.hidden = rows.length === 0;
+      }
+      function fillSections(sections) {
+        var list = Array.isArray(sections) ? sections : [];
+        sectionsEl.replaceChildren.apply(sectionsEl, list.map(function (section) {
+          var block = document.createElement('section');
+          block.className = 'work-case-section';
+          if (section && section.title) {
+            var heading = document.createElement('h3');
+            heading.textContent = section.title;
+            block.append(heading);
+          }
+          if (section && section.text) {
+            var body = document.createElement('p');
+            body.textContent = section.text;
+            block.append(body);
+          }
+          return block;
+        }));
+      }
+      function fillPieces(pieces, title) {
+        var list = Array.isArray(pieces) ? pieces : [];
+        piecesEl.replaceChildren.apply(piecesEl, list.map(function (piece, index) {
+          var figure = document.createElement('figure');
+          figure.className = 'work-case-piece';
+          if (!piece) return figure;
+          if (piece.kind === 'youtube' && piece.youtubeId) {
+            var frame = document.createElement('iframe');
+            frame.src = 'https://www.youtube-nocookie.com/embed/' + piece.youtubeId;
+            frame.title = title || 'YouTube';
+            frame.allowFullscreen = true;
+            frame.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+            figure.append(frame);
+          } else if (piece.kind === 'pdf' && piece.src) {
+            var pdf = document.createElement('iframe');
+            pdf.src = piece.src;
+            pdf.title = title || 'PDF';
+            figure.append(pdf);
+          } else if (piece.src) {
+            var img = document.createElement('img');
+            img.src = piece.src;
+            img.alt = title || '';
+            if (index === 0) img.setAttribute('fetchpriority', 'high');
+            else img.loading = 'lazy';
+            figure.append(img);
+          }
+          return figure;
+        }));
       }
       function openWork(btn) {
-        var bits = [btn.dataset.category, btn.dataset.year].filter(Boolean);
-        titleEl.textContent = btn.dataset.title || '';
-        showLine(numEl, btn.dataset.num || '');
-        showLine(metaEl, bits.join(' · '));
-        showLine(introEl, btn.dataset.intro || '');
-        showTags(btn.dataset.tags);
-        if (btn.dataset.image) {
-          cover.hidden = false;
-          cover.src = btn.dataset.image;
-          cover.alt = btn.dataset.title || '';
+        var index = Number(btn.getAttribute('data-work-index'));
+        var data = readCases(btn)[index];
+        if (!data) return;
+        showLine(categoryEl, data.category);
+        showLine(titleEl, data.title);
+        showLine(introEl, data.intro);
+        fillTags(data.tags);
+        fillFacts(data);
+        fillSections(data.sections);
+        fillPieces(data.pieces, data.title || '');
+        if (data.title) {
+          popup.setAttribute('aria-labelledby', 'work-popup-title');
+          popup.removeAttribute('aria-label');
         } else {
-          cover.hidden = true;
-          cover.removeAttribute('src');
+          popup.removeAttribute('aria-labelledby');
+          popup.setAttribute('aria-label', 'Project');
         }
+        popup.scrollTop = 0;
+        copyEl.scrollTop = 0;
+        piecesEl.scrollTop = 0;
         lockScroll();
-        popup.showModal();
+        if (!popup.open) popup.showModal();
       }
       function closeWork() {
         if (popup.open) popup.close();
+        unlockScroll();
       }
       var worksSlot = worksGrid.closest('.works-slot') || worksGrid;
       worksSlot.addEventListener('click', function (e) {
@@ -491,9 +573,153 @@
         if (!btn || !worksSlot.contains(btn)) return;
         openWork(btn);
       });
-      popup.querySelector('.work-popup-close').addEventListener('click', closeWork);
-      popup.addEventListener('click', function (e) { if (e.target === popup) closeWork(); });
-      popup.addEventListener('close', unlockScroll);
+      if (!popupListenersBound) {
+        popupListenersBound = true;
+        popup.querySelector('.work-popup-close').addEventListener('click', closeWork);
+        // The close button unlocks itself. Escape still closes the dialog natively,
+        // including browsers that do not emit the dialog close event.
+        popup.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') requestAnimationFrame(unlockScroll);
+        });
+        popup.addEventListener('close', unlockScroll);
+        // Backdrop clicks are retargeted onto the dialog. Only a press and
+        // release outside the panel closes it, and that path unlocks scroll
+        // itself instead of waiting for the close event.
+        var pressedOutside = false;
+        function outsidePopup(e) {
+          var rect = popup.getBoundingClientRect();
+          return e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
+        }
+        popup.addEventListener('pointerdown', function (e) {
+          pressedOutside = outsidePopup(e);
+        });
+        popup.addEventListener('pointerup', function (e) {
+          var shouldClose = pressedOutside && outsidePopup(e);
+          pressedOutside = false;
+          if (!shouldClose || !popup.open) return;
+          closeWork();
+        });
+      }
     }
+  });
+
+  // Hover shows the back. Play locks that side until the clip ends or pause.
+  // The hover target is the outer card, so the flip itself does not flicker.
+  var namecard = document.querySelector('.namecard');
+  if (namecard) {
+    var nameVideo = namecard.querySelector('video');
+    var nameFrame = namecard.querySelector('iframe');
+    var nameFrameSrc = nameFrame ? (nameFrame.getAttribute('data-src') || '') : '';
+    var namePlay = namecard.querySelector('.namecard-play');
+    var nameIcon = namecard.querySelector('.namecard-play-icon');
+    var nameHolding = false;
+    var namePlaying = false;
+    function namecardShow(on) {
+      namecard.classList.toggle('is-flipped', on);
+      var front = namecard.querySelector('.namecard-front');
+      var back = namecard.querySelector('.namecard-back');
+      if (front) front.inert = on;
+      if (back) back.inert = !on;
+    }
+    function namecardStop() {
+      namePlaying = false;
+      namecard.classList.remove('is-playing');
+      if (namePlay) namePlay.setAttribute('aria-label', 'Play');
+      if (nameIcon) nameIcon.textContent = '\u25B6';
+      if (nameVideo) {
+        nameVideo.pause();
+        nameVideo.currentTime = 0;
+      }
+      if (nameFrame) nameFrame.removeAttribute('src');
+    }
+    function namecardApply() {
+      var back = nameHolding || namePlaying;
+      namecardShow(back);
+      if (!back) namecardStop();
+    }
+    function namecardStart() {
+      namePlaying = true;
+      namecard.classList.add('is-playing');
+      if (namePlay) namePlay.setAttribute('aria-label', 'Pause');
+      if (nameIcon) nameIcon.textContent = '\u23F8';
+      namecardApply();
+      if (nameVideo) nameVideo.play().catch(function () {});
+      if (nameFrame && nameFrameSrc) {
+        var join = nameFrameSrc.indexOf('?') >= 0 ? '&' : '?';
+        nameFrame.src = nameFrameSrc + join + 'autoplay=1';
+      }
+    }
+    namecard.addEventListener('pointerenter', function (e) {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+      nameHolding = true;
+      namecardApply();
+    });
+    namecard.addEventListener('pointerleave', function (e) {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+      nameHolding = false;
+      namecardApply();
+    });
+    namecard.addEventListener('pointerup', function (e) {
+      if (!e.pointerType || e.pointerType === 'mouse') return;
+      nameHolding = true;
+      namecardApply();
+    });
+    document.addEventListener('pointerup', function (e) {
+      if (!e.pointerType || e.pointerType === 'mouse') return;
+      if (namecard.contains(e.target)) return;
+      nameHolding = false;
+      namecardApply();
+    });
+    namecard.addEventListener('focusin', function () {
+      nameHolding = true;
+      namecardApply();
+    });
+    namecard.addEventListener('focusout', function (e) {
+      if (namecard.contains(e.relatedTarget)) return;
+      nameHolding = false;
+      namecardApply();
+    });
+    if (namePlay) {
+      namePlay.addEventListener('click', function () {
+        if (namePlaying) {
+          namePlaying = false;
+          namecard.classList.remove('is-playing');
+          if (namePlay) namePlay.setAttribute('aria-label', 'Play');
+          if (nameIcon) nameIcon.textContent = '\u25B6';
+          if (nameVideo) nameVideo.pause();
+          if (nameFrame && nameFrame.contentWindow) {
+            nameFrame.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+          }
+          namecardApply();
+          return;
+        }
+        namecardStart();
+      });
+    }
+    if (nameVideo) {
+      nameVideo.addEventListener('ended', function () {
+        namePlaying = false;
+        namecard.classList.remove('is-playing');
+        if (namePlay) namePlay.setAttribute('aria-label', 'Play');
+        if (nameIcon) nameIcon.textContent = '\u25B6';
+        namecardApply();
+      });
+    }
+    window.addEventListener('message', function (e) {
+      if (!nameFrame || !namePlaying) return;
+      var origin = String(e.origin || '');
+      if (origin.indexOf('youtube') < 0) return;
+      var payload = e.data;
+      if (typeof payload === 'string') {
+        try { payload = JSON.parse(payload); } catch (err) { return; }
+      }
+      if (payload && payload.event === 'onStateChange' && Number(payload.info) === 0) {
+        namePlaying = false;
+        namecard.classList.remove('is-playing');
+        if (namePlay) namePlay.setAttribute('aria-label', 'Play');
+        if (nameIcon) nameIcon.textContent = '\u25B6';
+        namecardApply();
+      }
+    });
   }
 })();

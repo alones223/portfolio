@@ -54,10 +54,10 @@
         {
           "type": "heading",
           "name": "Name",
-          "x": 621,
-          "y": 410,
-          "w": 1277,
-          "h": 94,
+          "x": 657,
+          "y": 414,
+          "w": 721,
+          "h": 146,
           "text": "Yeung Tsz Yu",
           "src": "",
           "alt": "",
@@ -85,20 +85,20 @@
           "columns": 3,
           "gap": 16,
           "aspect": "square",
-          "hugging": false,
+          "hugging": true,
           "buttonStyle": "pill",
           "newTab": true,
           "id": "l-44dbe9",
-          "autoFit": false,
+          "autoFit": true,
           "textShadow": true
         },
         {
           "type": "text",
           "name": "Tagline",
-          "x": 533,
-          "y": 512,
-          "w": 1365,
-          "h": 56,
+          "x": 879,
+          "y": 535,
+          "w": 499,
+          "h": 76,
           "text": "#Multimedia Designer & Illustrator",
           "src": "",
           "alt": "",
@@ -129,7 +129,8 @@
           "hugging": false,
           "buttonStyle": "pill",
           "newTab": true,
-          "id": "l-695068"
+          "id": "l-695068",
+          "autoFit": false
         },
         {
           "type": "heading",
@@ -281,6 +282,17 @@
           "title": "FYP PROJECT",
           "tags": [
             "Animations(FYP)"
+          ]
+        },
+        {
+          "label": "Ai Projects",
+          "image": "/uploads/IMG1207-b9c037.jpg",
+          "link": "/ai-projects",
+          "blockType": "work",
+          "size": "1x1",
+          "title": "Ai Projects",
+          "tags": [
+            "Ai Projects"
           ]
         }
       ],
@@ -694,7 +706,10 @@
             "blockType": "work",
             "size": "2x1",
             "title": "Artworks",
-            "featured": false
+            "featured": true,
+            "tags": [
+              "Artworks"
+            ]
           },
           {
             "label": "Illustrator works",
@@ -703,7 +718,10 @@
             "blockType": "work",
             "size": "1x1",
             "title": "Illustrator works",
-            "featured": true
+            "featured": true,
+            "tags": [
+              "illustrator works"
+            ]
           },
           {
             "label": "CHARACTER DESIGN",
@@ -712,7 +730,10 @@
             "blockType": "work",
             "size": "1x1",
             "title": "CHARACTER DESIGN",
-            "featured": true
+            "featured": true,
+            "tags": [
+              "Character Design"
+            ]
           },
           {
             "label": "PRODUCT DESIGN",
@@ -720,7 +741,10 @@
             "link": "/product-design",
             "blockType": "work",
             "size": "1x1",
-            "title": "PRODUCT DESIGN"
+            "title": "PRODUCT DESIGN",
+            "tags": [
+              "product design"
+            ]
           },
           {
             "label": "FYP PROJECT",
@@ -728,7 +752,21 @@
             "link": "/animationsfyp",
             "blockType": "work",
             "size": "1x1",
-            "title": "FYP PROJECT"
+            "title": "FYP PROJECT",
+            "tags": [
+              "Animations(FYP)"
+            ]
+          },
+          {
+            "label": "Ai Projects",
+            "image": "/uploads/IMG1207-b9c037.jpg",
+            "link": "/ai-projects",
+            "blockType": "work",
+            "size": "1x1",
+            "title": "Ai Projects",
+            "tags": [
+              "Ai Projects"
+            ]
           }
         ],
         "id": "s-home-works",
@@ -1006,7 +1044,144 @@
         "canvasWidth": 2560,
         "canvasWidthMode": "screen"
       }
-    ]
+    ],
+    "aboutCard": {
+      "intro": "Hi , I am Abbie Yeung ! A Graduated Student from Creative Media.\nI am an artist focused on multimedia and illustration design, skilled at blending delicate visual language into digital media. My design style is clean yet expressive, with a strong sense of storytelling. Through my work, I aim to build visual experiences that are both aesthetically pleasing and emotionally engaging.\n\nI believe that great design is more than a visual outcome; it’s a vessel for meaning. In every project, I remain committed to a core concept, solving problems through pure form to build a sincere connection between brand and audience.",
+      "video": "",
+      "board": {
+        "id": "about-card-front",
+        "layout": "canvas",
+        "heading": "About card",
+        "canvasWidth": 640,
+        "canvasHeight": 400,
+        "canvasBg": "",
+        "layers": [
+          {
+            "id": "l-d66s9p6",
+            "type": "text",
+            "name": "Intro",
+            "x": 28,
+            "y": 28,
+            "w": 584,
+            "h": 107,
+            "text": "Hi , I am Abbie Yeung ! A Graduated Student from Creative Media.\nI am an artist focused on multimedia and illustration design, skilled at blending delicate visual language into digital media. My design style is clean yet expressive, with a strong sense of storytelling. Through my work, I aim to build visual experiences that are both aesthetically pleasing and emotionally engaging.\n\nI believe that great design is more than a visual outcome; it’s a vessel for meaning. In every project, I remain committed to a core concept, solving problems through pure form to build a sincere connection between brand and audience.",
+            "src": "",
+            "alt": "",
+            "link": "",
+            "hidden": false,
+            "locked": false,
+            "z": 1,
+            "color": "",
+            "bg": "",
+            "font": "",
+            "size": 14,
+            "weight": 400,
+            "align": "left",
+            "lineHeight": 1.5,
+            "letterSpacing": 0,
+            "radius": 0,
+            "borderWidth": 0,
+            "borderColor": "",
+            "fit": "cover",
+            "animated": false,
+            "anim": "none",
+            "delay": 0,
+            "duration": 0.9,
+            "images": [],
+            "columns": 3,
+            "gap": 16,
+            "aspect": "natural",
+            "hugging": true,
+            "autoFit": true,
+            "buttonStyle": "pill",
+            "newTab": true,
+            "paragraph": false
+          },
+          {
+            "id": "l-k0p43u4",
+            "type": "text",
+            "name": "Email",
+            "x": 28,
+            "y": 310,
+            "w": 180,
+            "h": 36,
+            "text": "Write something here.",
+            "src": "",
+            "alt": "",
+            "link": "",
+            "hidden": false,
+            "locked": false,
+            "z": 2,
+            "color": "",
+            "bg": "",
+            "font": "",
+            "size": 16,
+            "weight": 600,
+            "align": "left",
+            "lineHeight": 1.25,
+            "letterSpacing": 0,
+            "radius": 0,
+            "borderWidth": 0,
+            "borderColor": "",
+            "fit": "cover",
+            "animated": false,
+            "anim": "none",
+            "delay": 0,
+            "duration": 0.9,
+            "images": [],
+            "columns": 3,
+            "gap": 16,
+            "aspect": "natural",
+            "hugging": true,
+            "autoFit": true,
+            "buttonStyle": "pill",
+            "newTab": true,
+            "paragraph": false
+          },
+          {
+            "id": "l-wnpjiau",
+            "type": "text",
+            "name": "Socials",
+            "x": 28,
+            "y": 348,
+            "w": 172,
+            "h": 36,
+            "text": "Write something here.",
+            "src": "",
+            "alt": "",
+            "link": "",
+            "hidden": false,
+            "locked": false,
+            "z": 3,
+            "color": "",
+            "bg": "",
+            "font": "",
+            "size": 16,
+            "weight": 400,
+            "align": "left",
+            "lineHeight": 1.25,
+            "letterSpacing": 0,
+            "radius": 0,
+            "borderWidth": 0,
+            "borderColor": "",
+            "fit": "cover",
+            "animated": false,
+            "anim": "none",
+            "delay": 0,
+            "duration": 0.9,
+            "images": [],
+            "columns": 3,
+            "gap": 16,
+            "aspect": "natural",
+            "hugging": true,
+            "autoFit": true,
+            "buttonStyle": "pill",
+            "newTab": true,
+            "paragraph": false
+          }
+        ]
+      }
+    }
   },
   "pages": [
     {
@@ -1032,34 +1207,22 @@
             {
               "image": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_432a7366437c4a409df85bf34cfeae4d.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_6e74dfe04ae5430099698383be6714ec.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_fe9f25ee1d934171b053c50cf8318af3.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             }
           ],
           "buttons": [],
@@ -1142,10 +1305,7 @@
                   "x": -29,
                   "y": -30,
                   "w": 576,
-                  "h": 494,
-                  "tags": [
-                    "illustrator works"
-                  ]
+                  "h": 494
                 },
                 {
                   "image": "/uploads/0b0535_432a7366437c4a409df85bf34cfeae4d.jpg",
@@ -1154,10 +1314,7 @@
                   "x": 551,
                   "y": 58,
                   "w": 576,
-                  "h": 494,
-                  "tags": [
-                    "illustrator works"
-                  ]
+                  "h": 494
                 },
                 {
                   "image": "/uploads/0b0535_6e74dfe04ae5430099698383be6714ec.jpg",
@@ -1166,10 +1323,7 @@
                   "x": -11,
                   "y": 367,
                   "w": 576,
-                  "h": 494,
-                  "tags": [
-                    "illustrator works"
-                  ]
+                  "h": 494
                 },
                 {
                   "image": "/uploads/0b0535_fe9f25ee1d934171b053c50cf8318af3.jpg",
@@ -1178,10 +1332,7 @@
                   "x": 610,
                   "y": 583,
                   "w": 576,
-                  "h": 494,
-                  "tags": [
-                    "illustrator works"
-                  ]
+                  "h": 494
                 }
               ],
               "columns": 2,
@@ -1332,18 +1483,12 @@
             {
               "image": "/uploads/0b0535_62e265d403904d4da15447c3200e8ed0.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_358d0d96f3744bf294e1d3666298e8ec.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             }
           ],
           "buttons": [],
@@ -1421,18 +1566,12 @@
                 {
                   "image": "/uploads/0b0535_62e265d403904d4da15447c3200e8ed0.jpg",
                   "caption": "",
-                  "link": "",
-                  "tags": [
-                    "illustrator works"
-                  ]
+                  "link": ""
                 },
                 {
                   "image": "/uploads/0b0535_358d0d96f3744bf294e1d3666298e8ec.jpg",
                   "caption": "",
-                  "link": "",
-                  "tags": [
-                    "illustrator works"
-                  ]
+                  "link": ""
                 }
               ],
               "columns": 2,
@@ -1460,18 +1599,12 @@
             {
               "image": "/uploads/0b0535_82719dab230a4eec8c2ba8385fd9e26d.png",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_ad6f51ffb9254266b3b890abf5d2c150.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             }
           ],
           "buttons": [],
@@ -1492,18 +1625,12 @@
             {
               "image": "/uploads/0b0535_943c0778d8a840d0bac067721644a028.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_1246863b2d134ec289eb823f3c9e9668.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             }
           ],
           "buttons": [],
@@ -1524,18 +1651,12 @@
             {
               "image": "/uploads/0b0535_9631d0f0feb14af3bb5644b08f784235.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_505cd74046ab413497817849fe4dfd6c.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "illustrator works"
-              ]
+              "link": ""
             }
           ],
           "buttons": [],
@@ -1746,50 +1867,32 @@
             {
               "image": "/uploads/0b0535_7f0f213a841e4b76a496f506d95448ce.png",
               "caption": "collab w/ @Wunton.\nSong Jacket :Elegance Protocol",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_d616a93ca451424c97dc06256ba25b28.jpg",
               "caption": "collab w/ @linlin\nSong Jacket : 稜鏡軌跡",
-              "link": "https://www.youtube.com/watch?v=ddudvrJfHWo&list=RDddudvrJfHWo&start_radio=1",
-              "tags": [
-                "Artworks"
-              ]
+              "link": "https://www.youtube.com/watch?v=ddudvrJfHWo&list=RDddudvrJfHWo&start_radio=1"
             },
             {
               "image": "/uploads/0b0535_4e30b5c5c3c74d8d8323017f09a031b5.jpg",
               "caption": "Fanart ot music game : maimaiDX",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_6799b4490e064aa181be3842b830696c.png",
               "caption": "Fanart ot music game : maimaiDX",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_ec83defde03c4b0899c0189f7c70c61d.png",
               "caption": "Fanart ot music game : maimaiDX",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_22d8e04d7365485eb214b59f56ba1e92.png",
               "caption": "Fanart ot music game : maimaiDX",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             }
           ],
           "buttons": [],
@@ -1868,50 +1971,32 @@
                 {
                   "image": "/uploads/0b0535_7f0f213a841e4b76a496f506d95448ce.png",
                   "caption": "collab w/ @Wunton.\nSong Jacket :Elegance Protocol",
-                  "link": "",
-                  "tags": [
-                    "Artworks"
-                  ]
+                  "link": ""
                 },
                 {
                   "image": "/uploads/0b0535_d616a93ca451424c97dc06256ba25b28.jpg",
                   "caption": "collab w/ @linlin\nSong Jacket : 稜鏡軌跡",
-                  "link": "https://www.youtube.com/watch?v=ddudvrJfHWo&list=RDddudvrJfHWo&start_radio=1",
-                  "tags": [
-                    "Artworks"
-                  ]
+                  "link": "https://www.youtube.com/watch?v=ddudvrJfHWo&list=RDddudvrJfHWo&start_radio=1"
                 },
                 {
                   "image": "/uploads/0b0535_4e30b5c5c3c74d8d8323017f09a031b5.jpg",
                   "caption": "Fanart ot music game : maimaiDX",
-                  "link": "",
-                  "tags": [
-                    "Artworks"
-                  ]
+                  "link": ""
                 },
                 {
                   "image": "/uploads/0b0535_6799b4490e064aa181be3842b830696c.png",
                   "caption": "Fanart ot music game : maimaiDX",
-                  "link": "",
-                  "tags": [
-                    "Artworks"
-                  ]
+                  "link": ""
                 },
                 {
                   "image": "/uploads/0b0535_ec83defde03c4b0899c0189f7c70c61d.png",
                   "caption": "Fanart ot music game : maimaiDX",
-                  "link": "",
-                  "tags": [
-                    "Artworks"
-                  ]
+                  "link": ""
                 },
                 {
                   "image": "/uploads/0b0535_22d8e04d7365485eb214b59f56ba1e92.png",
                   "caption": "Fanart ot music game : maimaiDX",
-                  "link": "",
-                  "tags": [
-                    "Artworks"
-                  ]
+                  "link": ""
                 }
               ],
               "columns": 3,
@@ -1940,34 +2025,22 @@
             {
               "image": "/uploads/0b0535_c9792f421fbb49efb34ced569fdcc39f.jpg",
               "caption": "Fanart ot music game : Chunithm",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg",
               "caption": "Fanart ot music game : maimaiDX",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_e5faeefca5e04f88a15d586f3c2a3ada.jpg",
               "caption": "Fanart ot music game : maimaiDX",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_2be2be01ad8b46738942ddc8c7ec17b3.jpg",
               "caption": "Fanart ot music game : maimaiDX",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             }
           ],
           "buttons": []
@@ -1985,34 +2058,22 @@
             {
               "image": "/uploads/0b0535_99192f009421451483e30ce7bd7ce7cf.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_99831b40dac1473a9cd40955d9c88c99.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_7bad77e8822140929ddac9723dc8de39.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_323c7c976d154246bec74eb59066d9c7.jpg",
               "caption": "",
-              "link": "",
-              "tags": [
-                "Artworks"
-              ]
+              "link": ""
             }
           ],
           "buttons": []
@@ -2028,7 +2089,7 @@
             "id": "l-85crlmk",
             "type": "shape",
             "name": "Title highlight",
-            "x": 1144,
+            "x": 599,
             "y": 305,
             "w": 275,
             "h": 38,
@@ -2069,10 +2130,10 @@
             "id": "l-5oeug80",
             "type": "heading",
             "name": "Title",
-            "x": 830,
+            "x": 285,
             "y": 281,
-            "w": 900,
-            "h": 64,
+            "w": 380,
+            "h": 89,
             "text": "ARTWORKS",
             "src": "",
             "alt": "",
@@ -2109,7 +2170,7 @@
             "id": "l-awwf38v",
             "type": "divider",
             "name": "Rule",
-            "x": 1254,
+            "x": 709,
             "y": 384,
             "w": 54,
             "h": 2,
@@ -2148,10 +2209,10 @@
             "id": "l-j927jf5",
             "type": "text",
             "name": "Subtitle",
-            "x": 830,
+            "x": 285,
             "y": 456,
-            "w": 900,
-            "h": 80,
+            "w": 964,
+            "h": 44,
             "text": "A selection of my visual art projects and experiments, exploring different styles, moods and storytelling through images.",
             "src": "",
             "alt": "",
@@ -2179,7 +2240,7 @@
             "columns": 3,
             "gap": 16,
             "aspect": "natural",
-            "hugging": false,
+            "hugging": true,
             "autoFit": true,
             "buttonStyle": "pill",
             "newTab": true,
@@ -2191,7 +2252,7 @@
         "canvasImage": "/uploads/0b0535_5507d038a9634f0a99e315eac213887a.jpg",
         "items": [],
         "buttons": [],
-        "canvasWidth": 2560,
+        "canvasWidth": 1470,
         "canvasWidthMode": "screen"
       }
     },
@@ -2219,46 +2280,31 @@
               "image": "/uploads/0b0535_5f625af70b8e47d9bd992628ecd9b5f1.jpg",
               "caption": "Final Work",
               "link": "",
-              "wide": true,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": true
             },
             {
               "image": "/uploads/0b0535_c927adecefdb49799afda354bb5d4c69.jpg",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_6b4345e0326d40af89f2fa93f17c2bad.jpeg",
               "caption": "Clothes design for 稜鏡軌跡\n\nidea based on\n\"Umbrella\" \"Raining\"\n\"Glass Prism\"",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_4311912102fb4045b31a58f136732ae7.png",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_9b3ba633b6dd4ee9a528f2b1910d1f03.png",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             }
           ],
           "buttons": [],
@@ -2335,42 +2381,27 @@
                 {
                   "image": "/uploads/0b0535_5f625af70b8e47d9bd992628ecd9b5f1.jpg",
                   "caption": "Final Work",
-                  "link": "",
-                  "tags": [
-                    "Character Design"
-                  ]
+                  "link": ""
                 },
                 {
                   "image": "/uploads/0b0535_c927adecefdb49799afda354bb5d4c69.jpg",
                   "caption": "",
-                  "link": "",
-                  "tags": [
-                    "Character Design"
-                  ]
+                  "link": ""
                 },
                 {
                   "image": "/uploads/0b0535_6b4345e0326d40af89f2fa93f17c2bad.jpeg",
                   "caption": "Clothes design for 稜鏡軌跡\n\nidea based on\n\"Umbrella\" \"Raining\"\n\"Glass Prism\"",
-                  "link": "",
-                  "tags": [
-                    "Character Design"
-                  ]
+                  "link": ""
                 },
                 {
                   "image": "/uploads/0b0535_4311912102fb4045b31a58f136732ae7.png",
                   "caption": "",
-                  "link": "",
-                  "tags": [
-                    "Character Design"
-                  ]
+                  "link": ""
                 },
                 {
                   "image": "/uploads/0b0535_9b3ba633b6dd4ee9a528f2b1910d1f03.png",
                   "caption": "",
-                  "link": "",
-                  "tags": [
-                    "Character Design"
-                  ]
+                  "link": ""
                 }
               ],
               "columns": 2,
@@ -2442,28 +2473,19 @@
               "image": "/uploads/0b0535_96e92602ac9b4483a978ac2cf80422f2.jpg",
               "caption": "Final Work",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_b25493dde44b4c0ab561d2fcfbf2460c.jpeg",
               "caption": "Clothes Design for Elegance Procotol\nIt shares the same characrer with 稜鏡軌跡",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_3048fd87cc01436bb0dd1e98ce136bb2.jpg",
               "caption": "1st Draft of Elegance Procotol",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             }
           ],
           "buttons": [],
@@ -2485,37 +2507,25 @@
               "image": "/uploads/0b0535_a92e30a5d71b4494960f7056e3bff07e.jpeg",
               "caption": "There were two different colour plans and compositions.\nRight side was chosen.",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_786cb18bf3d84ce5a168214282ea8830.jpeg",
               "caption": "As Silvercord Game Centre is called \"新宿駅新港機城\", and the target audience for the app is rhythm game player,\nI had created a train conductor with some music related element,\nthats why she is wearing headphones and holding a MP3.",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_1f026abbd2224876bcfa71046fe73f74.jpg",
               "caption": "Final Work",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
               "caption": "Arcade Live stream cover",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             }
           ],
           "buttons": [],
@@ -2537,37 +2547,25 @@
               "image": "/uploads/0b0535_ddee362f77904042b00238806c6b04c1.jpg",
               "caption": "Final Work",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_36a02aae5dce4e4f9bec82e3c52df540.jpeg",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_ebf5c5d5284d4cfabf1e40ae065e4ec4.jpg",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_579679073098465789305a35e85b7eca.jpg",
               "caption": "1st apperance of the mermaid character.",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             }
           ],
           "buttons": [],
@@ -2589,46 +2587,31 @@
               "image": "/uploads/0b0535_7fc30f8ac4d845f281d860dd8212907d.jpeg",
               "caption": "",
               "link": "",
-              "wide": true,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": true
             },
             {
               "image": "/uploads/0b0535_0569b4903a724a8994cadca8ce6684f9.png",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_b18d0b9404614e73b304467561e0a558.png",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_99c3758cfef84d45868a618e76805329.png",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_218bcbce999c49c5983174db40288a2c.png",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             }
           ],
           "buttons": [],
@@ -2650,19 +2633,13 @@
               "image": "/uploads/0b0535_9052d7555d844942bde8d19cc82d3f5f.png",
               "caption": "Final work",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_d64175f85a6e4068ab93c5ef57eb27f4.jpeg",
               "caption": "Design Draft",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Character Design"
-              ]
+              "wide": false
             }
           ],
           "buttons": [],
@@ -2868,42 +2845,27 @@
             {
               "image": "/uploads/0b0535_ba49d4be933243ffb4ecc321fdef61b7.jpg",
               "caption": "Acrylic Stand",
-              "link": "",
-              "tags": [
-                "product design"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_b1ac92ee6b724b9f8d1064e5a8fc5c1c.jpg",
               "caption": "Artwork Book",
-              "link": "",
-              "tags": [
-                "product design"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_7140d249395f499aa8dbe33bc6082455.jpg",
               "caption": "Acrylic Keychain",
-              "link": "",
-              "tags": [
-                "product design"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_2b6c21c359974f78ae164bf14b987cce.jpg",
               "caption": "Acrylic Art Board",
-              "link": "",
-              "tags": [
-                "product design"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_40818952c7ee4012916e2f4a73ebc4c3.jpg",
               "caption": "Card Stickers",
-              "link": "",
-              "tags": [
-                "product design"
-              ]
+              "link": ""
             }
           ],
           "buttons": [],
@@ -2924,26 +2886,17 @@
             {
               "image": "/uploads/0b0535_6f890c9065f84201b15cefd3d4d88484.jpg",
               "caption": "Bag Design",
-              "link": "",
-              "tags": [
-                "product design"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_cb3b0e4356504be7b927696b30a8e6ad.jpg",
               "caption": "Sticker & Acrylic Keychain",
-              "link": "",
-              "tags": [
-                "product design"
-              ]
+              "link": ""
             },
             {
               "image": "/uploads/0b0535_330b0356f42c4fb4b898c37852330eac.jpg",
               "caption": "Books & Prints",
-              "link": "",
-              "tags": [
-                "product design"
-              ]
+              "link": ""
             }
           ],
           "buttons": []
@@ -3181,10 +3134,7 @@
               "image": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             }
           ],
           "buttons": [
@@ -3211,37 +3161,25 @@
               "image": "/uploads/0b0535_fd3f565288874af89c02a5fb0b2c9f25.webp",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_767a8977782b438589fea9f9d5321fba.webp",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_6900dad63e2c492894a2203b7d9e3570.webp",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_683790f796904d08917ff3143f5d9d6b.webp",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             }
           ],
           "buttons": [
@@ -3265,37 +3203,25 @@
               "image": "/uploads/0b0535_acf47a340f20429997482d47abeab09a.gif",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_ef213fb0acca48d98061b993547ad652.gif",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_d14ef67d853e423d9dac5b82033719ba.gif",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_eb32c762b9c546aea03bb932b0cd678d.gif",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             }
           ],
           "buttons": [],
@@ -3317,37 +3243,25 @@
               "image": "/uploads/0b0535_092cea2ffa9444fbad661891ae3c1da1.gif",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_d14698a587344e0bbc4f7153d739624b.gif",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_0d030761ce7f4c7796f1fd2c07f44d22.gif",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_218f135020544e30b1e23d63d478e2ca.gif",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             }
           ],
           "buttons": []
@@ -3366,46 +3280,31 @@
               "image": "/uploads/0b0535_914fbf39ec0f429697952ba3842a84aa.webp",
               "caption": "The model breakdown.",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_4dd0cfd889584a748f4dc59e90533da7.png",
               "caption": "Editable model after rigging using dulk angela(after effects plugin)",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_4af543160b464ebbbefc2939c255bca6.gif",
               "caption": "The model is able to move left and right",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_cc6b404f625648f3980599d89f7fa5af.gif",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_98f8d5dec5484988b2971255c3e9c567.gif",
               "caption": "Walk + Running cycle animation",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             }
           ],
           "buttons": []
@@ -3424,55 +3323,37 @@
               "image": "/uploads/0b0535_465ef922775d4d54a0e5ee7dde1b55fd.gif",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_0536884c8e2d4de3acde4a80c53f1940.gif",
               "caption": "Combined animation clips.",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_8d340ff43f1043359a1eb8296ba37574.png",
               "caption": "Each animations has a seperate folder, different layers are used for connecting them together.",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_320f7fb98cf543e598cdce701c42150c.gif",
               "caption": "Final outcome with shading.",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_0b35f68d050542758773bd7cbf6dcf56.gif",
               "caption": "",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             },
             {
               "image": "/uploads/0b0535_8f93114da8f44539951c7b5a4dd90fe2.png",
               "caption": "Face expressions controlled by different layers.",
               "link": "",
-              "wide": false,
-              "tags": [
-                "Animations(FYP)"
-              ]
+              "wide": false
             }
           ],
           "buttons": []
@@ -3933,8 +3814,14 @@
         "items": [],
         "buttons": [],
         "canvasWidth": 2560,
-        "canvasWidthMode": "screen"
-      }
+        "canvasWidthMode": "screen",
+        "tags": [
+          "Ai Projects"
+        ]
+      },
+      "tags": [
+        "Ai Projects"
+      ]
     }
   ]
 }

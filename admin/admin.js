@@ -811,6 +811,7 @@
     ['canvas', 'Layout canvas: freely placed text, images and image groups on a board'],
     ['gallery', 'Gallery: tiles, number and caption on hover, click to enlarge'],
     ['case', 'Case study: brief, process and outcome'],
+    ['works', 'Cell grid'],
   ];
   const ASPECTS = [
     ['square', 'Square crop'],
@@ -878,7 +879,7 @@
   // The same layout board used by page sections, mounted on the home Hero and
   // Works cards. One editor instance per section object, dropped on the next
   // full redraw so it is never saved with the content.
-  function attachCanvasEditor(section, host, onEdit) {
+  function attachCanvasEditor(section, host, onEdit, editorOpts = {}) {
     if (section && section.id) host.dataset.canvasKey = section.id;
     const existing = editors.get(section);
     if (existing && !existing.destroyed) {
@@ -888,6 +889,8 @@
     if (existing) editors.delete(section);
     const editor = window.CanvasEditorUI.createLayoutEditor({
       section,
+      lockWidthToScreen: editorOpts.lockWidthToScreen,
+      fixedBoard: editorOpts.fixedBoard === true,
       onChange: () => {
         const current = editors.get(section);
         changed({ coalesce: Boolean(current && current.isGesturing()) });
@@ -1048,6 +1051,66 @@
       extra || null);
   }
 
+  // This card belongs to this portfolio only. It is not a canvas section and
+  // it is not offered in the section template library.
+  function aboutCardFields(home) {
+    const data = home.aboutCard && typeof home.aboutCard === 'object' ? home.aboutCard : { intro: '', video: '' };
+    home.aboutCard = data;
+    const board = data.board && typeof data.board === 'object' ? data.board : {};
+    data.board = board;
+    board.id = board.id || 'about-card-front';
+    board.layout = 'canvas';
+    board.heading = board.heading || 'About card';
+    // Same size as the public card (.namecard max-width 640, 640x400 board).
+    board.canvasWidth = 640;
+    board.canvasHeight = 400;
+    delete board.canvasWidthMode;
+    if (typeof board.canvasBg !== 'string') board.canvasBg = '';
+    board.layers = Array.isArray(board.layers) ? board.layers : [];
+    board.layers = board.layers.filter((l) => !(l && l.type === 'gallery'
+      && !(l.images || []).some((i) => i && i.image)));
+    if (!board.layers.length) {
+      const add = (type, patch) => board.layers.push(window.CanvasEditor.defaultLayer(type, patch));
+      add('text', {
+        name: 'Intro', text: data.intro || '', x: 28, y: 28, w: 584, h: 260,
+        size: 14, weight: 400, lineHeight: 1.5, align: 'left', hugging: false, z: 1, animated: false, anim: 'none',
+      });
+      add('text', {
+        name: 'Email', x: 28, y: 310, w: 400, h: 30,
+        size: 16, weight: 600, align: 'left', hugging: false, z: 2, animated: false, anim: 'none',
+      });
+      add('text', {
+        name: 'Socials', x: 28, y: 348, w: 300, h: 32,
+        size: 16, weight: 400, align: 'left', hugging: false, z: 3, animated: false, anim: 'none',
+      });
+    }
+    const host = h('div', { class: 'canvas-host about-card-host' });
+    attachCanvasEditor(board, host, null, { fixedBoard: true });
+    const url = h('input', { type: 'text', placeholder: 'https://… or /uploads/….mp4', 'aria-label': 'Motion graphic address' });
+    url.value = data.video || '';
+    url.addEventListener('input', () => {
+      data.video = url.value.trim();
+      changed({ coalesce: true });
+    });
+    const fileIn = h('input', { type: 'file', accept: 'video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov', hidden: true });
+    fileIn.addEventListener('change', async () => {
+      const [next] = await uploadFiles(fileIn.files);
+      fileIn.value = '';
+      if (!next) return;
+      data.video = next;
+      url.value = next;
+      changed();
+    });
+    return [
+      h('p', { class: 'hint' }, 'Drag the introduction, the Email layer, and the Socials layer. Font size, alignment, and position are on each layer. On the site, Email shows the address from Site settings, and Socials shows those icons. Keep those two layer names. This board is only for this card. It is not in the shared template library.'),
+      host,
+      fields(wrapField('Motion graphic', h('div', { class: 'img-buttons' },
+        url,
+        h('button', { type: 'button', class: 'btn small', onclick: () => fileIn.click() }, 'Upload video'),
+        fileIn), { span: 4, hint: 'About 15 seconds. Visitors hover the card to see this side, then press play. It plays on the card.' })),
+    ];
+  }
+
   function viewHome() {
     const home = content.home;
     home.sections = home.sections || [];
@@ -1092,6 +1155,7 @@
         layoutKind: 'hero',
         layoutName: 'Hero',
       }),
+      card('About card', aboutCardFields(home)),
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
           h('h3', null, `Sections (${home.sections.length})`),
@@ -1099,7 +1163,7 @@
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, true)); drawSections(); } }, 'Expand all'),
             h('button', { class: 'btn small', type: 'button', onclick: () => { home.sections.forEach((s) => setPanelOpen(s, false)); drawSections(); } }, 'Collapse all'))),
         h('p', { class: 'hint', style: 'margin-bottom:12px' },
-          'About, Works, and ordinary text use form edit. The hero and freeform layouts use the canvas. Both write the same content.'),
+          'The About card is edited above this list. Works is the cell grid. Other sections are a canvas or a cell grid, one at a time.'),
         sectionsWrap),
       card('Contact',
         h('p', { class: 'hint', style: 'margin-bottom:12px' }, 'Form edit. This text and these field names appear in the contact section on the home page.'),
@@ -1499,6 +1563,8 @@
       title: '',
       category: '',
       year: '',
+      role: '',
+      output: '',
       intro: '',
       text: '',
       youtube: '',
@@ -1506,6 +1572,12 @@
       link: '',
       featured: false,
       tags: [],
+      sections: [
+        { title: '', text: '' },
+        { title: '', text: '' },
+        { title: '', text: '' },
+      ],
+      pieces: [],
     };
   }
 
@@ -1561,7 +1633,111 @@
   }
 
   // The board matches the public grid. A block stays closed until it is clicked.
-  function worksBlocksEditor(arr) {
+  function workTagName(card) {
+    return card.title || card.label || 'Work';
+  }
+
+  function worksTagEditor(section) {
+    const cards = () => (Array.isArray(section.cards) ? section.cards : []).filter((card) => card.blockType !== 'image' && card.blockType !== 'text' && card.blockType !== 'youtube' && card.blockType !== 'pdf');
+    const host = h('div', { class: 'work-tags-panel' });
+    const catalogBox = h('div', { class: 'tag-editor' });
+    const rows = h('div', { class: 'work-tag-rows' });
+    const input = h('input', { type: 'text', placeholder: 'New tag' });
+
+    function catalog() {
+      const names = [];
+      const push = (tag) => {
+        const name = String(tag || '').trim();
+        if (name && !names.includes(name)) names.push(name);
+      };
+      (Array.isArray(section.tags) ? section.tags : []).forEach(push);
+      (section.cards || []).forEach((card) => (Array.isArray(card.tags) ? card.tags : []).forEach(push));
+      return names;
+    }
+
+    function keepCatalog() {
+      section.tags = catalog();
+      return section.tags;
+    }
+
+    function paint() {
+      const names = catalog();
+      catalogBox.replaceChildren(...names.map((tag) => {
+        const remove = h('button', { type: 'button', class: 'tag-remove', 'aria-label': `Remove ${tag}` }, '×');
+        remove.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          section.tags = keepCatalog().filter((item) => item !== tag);
+          (section.cards || []).forEach((card) => {
+            if (Array.isArray(card.tags)) card.tags = card.tags.filter((item) => item !== tag);
+          });
+          changed();
+          paint();
+        });
+        return h('span', { class: 'tag-chip is-on' }, tag, remove);
+      }));
+      rows.replaceChildren(...cards().map((card) => {
+        const chips = h('div', { class: 'tag-editor' });
+        names.forEach((tag) => {
+          const on = Array.isArray(card.tags) && card.tags.includes(tag);
+          const btn = h('button', {
+            type: 'button',
+            class: on ? 'tag-chip is-on' : 'tag-chip',
+            'aria-pressed': on ? 'true' : 'false',
+          }, tag);
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            keepCatalog();
+            const list = Array.isArray(card.tags) ? card.tags.slice() : [];
+            const next = list.includes(tag) ? list.filter((item) => item !== tag) : list.concat(tag);
+            card.tags = next;
+            const pressed = next.includes(tag);
+            btn.classList.toggle('is-on', pressed);
+            btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+            changed();
+          });
+          chips.append(btn);
+        });
+        return h('div', { class: 'work-tag-row' },
+          h('span', { class: 'work-tag-name' }, workTagName(card)),
+          chips);
+      }));
+    }
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const name = input.value.trim();
+      if (!name) return;
+      const names = keepCatalog();
+      if (!names.includes(name)) names.push(name);
+      section.tags = names;
+      input.value = '';
+      changed();
+      paint();
+    });
+
+    host.append(
+      h('div', { class: 'list-head' }, h('span', { class: 'field-label' }, 'Tags')),
+      h('p', { class: 'hint' }, 'These are the filters on the site. Add a tag here, then turn it on for each work. Turning it off a work keeps the tag in this list.'),
+      catalogBox,
+      input,
+      rows);
+    paint();
+    return {
+      el: host,
+      refresh() {
+        const typed = input.value;
+        const focused = document.activeElement === input;
+        paint();
+        input.value = typed;
+        if (focused) input.focus();
+      },
+    };
+  }
+
+  function worksBlocksEditor(arr, hooks = {}) {
     const wrap = h('div', { class: 'list' });
     const touch = () => changed();
     if (openWorkCard && !arr.includes(openWorkCard)) openWorkCard = null;
@@ -1611,6 +1787,7 @@
               },
             }, `+ ${label}`)))),
         h('div', { class: 'work-board-wrap' }, board));
+      if (hooks.onStructure) hooks.onStructure();
     }
 
     function face(item) {
@@ -1742,46 +1919,243 @@
         blocked ? h('p', { class: 'hint' }, 'Three features are already on. Turn one off before choosing another.') : null);
     }
 
-    function tagsField(card) {
-      if (!Array.isArray(card.tags)) card.tags = [];
-      const known = [];
-      arr.forEach((item) => {
-        (Array.isArray(item.tags) ? item.tags : []).forEach((tag) => {
-          const name = String(tag || '').trim();
-          if (name && !known.includes(name)) known.push(name);
-        });
+    function youtubeIdOf(value) {
+      const v = String(value || '').trim();
+      const fromUrl = v.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+      if (fromUrl) return fromUrl[1];
+      if (/^[A-Za-z0-9_-]{11}$/.test(v)) return v;
+      return '';
+    }
+
+    // The main visual is the wall cover. A video uses its thumbnail. A PDF has no still.
+    function syncWorkCover(card) {
+      if (!Array.isArray(card.pieces)) return;
+      const ready = card.pieces.filter((piece) => {
+        const src = String(piece.src || '').trim();
+        if (!src) return false;
+        if (piece.kind === 'youtube') return !!youtubeIdOf(src);
+        return true;
       });
-      const chips = h('div', { class: 'tag-editor' });
-      known.forEach((tag) => {
-        const on = card.tags.includes(tag);
-        const btn = h('button', {
-          type: 'button',
-          class: on ? 'tag-chip is-on' : 'tag-chip',
-          'aria-pressed': on ? 'true' : 'false',
-        }, tag);
-        btn.addEventListener('click', () => {
-          if (card.tags.includes(tag)) card.tags = card.tags.filter((item) => item !== tag);
-          else card.tags.push(tag);
-          changed();
-          draw();
+      const hero = ready.find((piece) => piece.hero) || ready[0];
+      if (!hero) {
+        card.image = '';
+        return;
+      }
+      const pieceKind = hero.kind === 'youtube' || hero.kind === 'pdf' ? hero.kind : 'image';
+      if (pieceKind === 'image') card.image = String(hero.src).trim();
+      else if (pieceKind === 'youtube') {
+        const id = youtubeIdOf(hero.src);
+        card.image = id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
+      } else card.image = '';
+    }
+
+    function sectionsEditor(card) {
+      const list = Array.isArray(card.sections)
+        ? card.sections
+        : [{ title: '', text: '' }, { title: '', text: '' }, { title: '', text: '' }];
+      const host = h('div', { class: 'case-edit' });
+      const commit = () => { card.sections = list; };
+      const drawSections = () => {
+        const rows = list.map((section, i) => {
+          const title = h('input', { type: 'text', placeholder: 'Section title', 'aria-label': `Section ${i + 1} title` });
+          title.value = section.title || '';
+          title.addEventListener('input', () => {
+            commit();
+            section.title = title.value;
+            changed({ coalesce: true });
+          });
+          const text = h('textarea', { rows: 4, placeholder: 'Section text', 'aria-label': `Section ${i + 1} text` });
+          text.value = section.text || '';
+          text.addEventListener('input', () => {
+            commit();
+            section.text = text.value;
+            changed({ coalesce: true });
+          });
+          return h('div', { class: 'case-edit-block' },
+            h('div', { class: 'case-edit-bar' },
+              h('span', { class: 'field-label' }, `Section ${i + 1}`),
+              h('span', { class: 'group-btns' },
+                h('button', {
+                  type: 'button', class: 'btn small',
+                  onclick: () => {
+                    commit();
+                    list.splice(i, 0, { title: '', text: '' });
+                    changed();
+                    drawSections();
+                  },
+                }, 'Insert above'),
+                iconBtn('↑', 'Move section up', () => {
+                  commit();
+                  move(list, i, i - 1);
+                  changed();
+                  drawSections();
+                }, { disabled: i === 0 }),
+                iconBtn('↓', 'Move section down', () => {
+                  commit();
+                  move(list, i, i + 1);
+                  changed();
+                  drawSections();
+                }, { disabled: i === list.length - 1 }),
+                iconBtn('✕', 'Remove section', () => {
+                  commit();
+                  list.splice(i, 1);
+                  changed();
+                  drawSections();
+                }, { danger: true }))),
+            title,
+            text);
         });
-        chips.append(btn);
-      });
-      const input = h('input', { type: 'text', placeholder: 'New tag' });
-      input.addEventListener('keydown', (e) => {
-        if (e.key !== 'Enter') return;
-        e.preventDefault();
-        const name = input.value.trim();
-        if (!name) return;
-        if (!card.tags.includes(name)) card.tags.push(name);
+        mount(host,
+          h('div', { class: 'list-head' }, h('span', { class: 'field-label' }, 'Sections')),
+          h('p', { class: 'hint' }, 'Each section is a line, a title, and a paragraph. Empty ones stay in this list and stay off the site. Insert above a section, or at the end, and move them up or down.'),
+          rows,
+          h('button', {
+            type: 'button', class: 'btn small',
+            onclick: () => {
+              commit();
+              list.push({ title: '', text: '' });
+              changed();
+              drawSections();
+            },
+          }, 'Insert section at the end'));
+      };
+      drawSections();
+      return host;
+    }
+
+    function piecesEditor(card, onCover) {
+      const list = Array.isArray(card.pieces)
+        ? card.pieces
+        : (card.image ? [{ kind: 'image', src: card.image, hero: true }] : []);
+      const host = h('div', { class: 'case-edit' });
+      const commit = () => { card.pieces = list; };
+      const pieceKindOf = (piece) => (piece.kind === 'youtube' || piece.kind === 'pdf' ? piece.kind : 'image');
+      const touchCover = () => { syncWorkCover(card); if (onCover) onCover(); };
+      const addPiece = (kind) => {
+        commit();
+        list.push({ kind, src: '', hero: list.length === 0 });
         changed();
-        draw();
-      });
-      return h('div', { class: 'field span-4' },
-        h('span', { class: 'field-label' }, 'Tags'),
-        chips,
-        input,
-        h('p', { class: 'hint' }, 'A work can carry more than one. Press Enter to add a tag. Visitors filter with these same names.'));
+        drawPieces();
+        touchCover();
+      };
+
+      function drawPieces() {
+        const rows = list.map((piece, i) => {
+          const kind = pieceKindOf(piece);
+          const kindSel = h('select', { 'aria-label': `Piece ${i + 1} type` },
+            [['image', 'Image'], ['youtube', 'YouTube'], ['pdf', 'PDF']].map(([value, text]) =>
+              h('option', { value, selected: kind === value }, text)));
+          kindSel.addEventListener('change', () => {
+            commit();
+            piece.kind = kindSel.value;
+            piece.src = '';
+            changed();
+            drawPieces();
+            touchCover();
+          });
+          let source = null;
+          if (kind === 'image') {
+            source = imageField(piece, 'src', 'Image', {
+              span: 4,
+              onChange: () => { commit(); touchCover(); changed(); },
+            });
+          } else if (kind === 'youtube') {
+            const input = h('input', {
+              type: 'text',
+              placeholder: 'https://www.youtube.com/watch?v=…',
+              'aria-label': `Piece ${i + 1} YouTube link`,
+            });
+            input.value = piece.src || '';
+            input.addEventListener('input', () => {
+              commit();
+              piece.src = input.value;
+              changed({ coalesce: true });
+              touchCover();
+            });
+            source = wrapField('YouTube link', input, { span: 4 });
+          } else {
+            const input = h('input', {
+              type: 'text',
+              placeholder: '/uploads/….pdf',
+              'aria-label': `Piece ${i + 1} PDF address`,
+            });
+            input.value = piece.src || '';
+            input.addEventListener('input', () => {
+              commit();
+              piece.src = input.value;
+              changed({ coalesce: true });
+              touchCover();
+            });
+            const fileIn = h('input', { type: 'file', accept: 'application/pdf,.pdf', hidden: true });
+            fileIn.addEventListener('change', async () => {
+              const [url] = await uploadFiles(fileIn.files);
+              fileIn.value = '';
+              if (!url) return;
+              commit();
+              piece.src = url;
+              changed();
+              drawPieces();
+              touchCover();
+            });
+            source = wrapField('PDF', h('div', { class: 'img-buttons' },
+              input,
+              h('button', { type: 'button', class: 'btn small', onclick: () => fileIn.click() }, 'Upload PDF'),
+              fileIn), { span: 4 });
+          }
+          const heroBtn = h('button', {
+            type: 'button',
+            class: piece.hero ? 'btn small primary' : 'btn small',
+            'aria-pressed': piece.hero ? 'true' : 'false',
+          }, 'Main visual');
+          heroBtn.addEventListener('click', () => {
+            if (piece.hero) return;
+            commit();
+            list.forEach((item) => { item.hero = item === piece; });
+            changed();
+            drawPieces();
+            touchCover();
+          });
+          return h('div', { class: 'case-edit-block' },
+            h('div', { class: 'case-edit-bar' },
+              h('span', { class: 'field-label' }, `Piece ${i + 1}`),
+              h('span', { class: 'group-btns' },
+                kindSel,
+                heroBtn,
+                iconBtn('↑', 'Move piece up', () => {
+                  commit();
+                  move(list, i, i - 1);
+                  changed();
+                  drawPieces();
+                }, { disabled: i === 0 }),
+                iconBtn('↓', 'Move piece down', () => {
+                  commit();
+                  move(list, i, i + 1);
+                  changed();
+                  drawPieces();
+                }, { disabled: i === list.length - 1 }),
+                iconBtn('✕', 'Remove piece', () => {
+                  commit();
+                  const wasHero = piece.hero;
+                  list.splice(i, 1);
+                  if (wasHero && list.length && !list.some((item) => item.hero)) list[0].hero = true;
+                  changed();
+                  drawPieces();
+                  touchCover();
+                }, { danger: true }))),
+            source);
+        });
+        mount(host,
+          h('div', { class: 'list-head' },
+            h('span', { class: 'field-label' }, 'Pieces'),
+            h('span', { class: 'group-btns' },
+              h('button', { type: 'button', class: 'btn small', onclick: () => addPiece('image') }, '+ Image'),
+              h('button', { type: 'button', class: 'btn small', onclick: () => addPiece('youtube') }, '+ YouTube'),
+              h('button', { type: 'button', class: 'btn small', onclick: () => addPiece('pdf') }, '+ PDF'))),
+          h('p', { class: 'hint' }, 'One piece is the main visual. On the site it is the wall cover and the first piece in the popup. The others follow this order.'),
+          rows.length ? rows : h('div', { class: 'list-empty' }, 'No pieces yet.'));
+      }
+      drawPieces();
+      return host;
     }
 
     function editPanel(card) {
@@ -1796,14 +2170,27 @@
         else if (kind === 'pdf') node.textContent = card.pdf || 'PDF';
         else node.textContent = card.title || card.label || 'Work';
       };
+      const paintCover = () => {
+        const face = wrap.querySelector('.work-face.is-open');
+        if (!face) return;
+        let img = face.querySelector('img');
+        if (card.image) {
+          if (!img) {
+            img = h('img', { alt: '' });
+            face.prepend(img);
+          }
+          img.src = card.image;
+          img.draggable = false;
+        } else if (img) img.remove();
+      };
       if (kind === 'work') {
         fieldsForKind.push(
-          imageField(card, 'image', 'Cover', { span: 4, onChange: () => draw() }),
-          textField(card, 'title', 'Title', { span: 2, onInput: paintFace }),
+          textField(card, 'title', 'Title', { span: 2, onInput: () => { paintFace(); if (hooks.onStructure) hooks.onStructure(); } }),
           textField(card, 'category', 'Category', { span: 1 }),
           textField(card, 'year', 'Year', { span: 1 }),
-          textField(card, 'intro', 'Short introduction', { span: 4, multiline: true, rows: 3 }),
-          tagsField(card));
+          textField(card, 'role', 'Role', { span: 2, placeholder: 'Optional' }),
+          textField(card, 'output', 'Output', { span: 2, placeholder: 'Optional' }),
+          textField(card, 'intro', 'Short introduction', { span: 4, multiline: true, rows: 3 }));
       } else if (kind === 'image') {
         fieldsForKind.push(imageField(card, 'image', 'Image', { span: 4, onChange: () => draw() }));
       } else if (kind === 'text') {
@@ -1830,7 +2217,9 @@
           selectField(card, 'blockType', 'Block', WORK_KINDS, { span: 2, onChange: () => draw() }),
           spanPicker(card),
           kind === 'work' ? featureField(card) : null),
-        fields(...fieldsForKind));
+        fields(...fieldsForKind),
+        kind === 'work' ? sectionsEditor(card) : null,
+        kind === 'work' ? piecesEditor(card, paintCover) : null);
     }
 
     draw();
@@ -1925,6 +2314,41 @@
       const body = h('div', { class: 'panel-body' });
       const isWorks = page.works && s === page.works;
       const draw = () => {
+        // A section is either the cell grid or a canvas. The other payload stays
+        // stored, and visitors only see the one that is selected.
+        if (isWorks || s.layout === 'works') {
+          s.cards = Array.isArray(s.cards) ? s.cards : [];
+          if (isWorks && !s.cards.length) {
+            const gal = (s.layers || []).find((l) => l.type === 'gallery');
+            if (gal && Array.isArray(gal.images)) {
+              s.cards = gal.images.map((item) => ({ label: item.caption || '', image: item.image || '', link: item.link || '' }));
+            }
+          }
+          const tagsUi = worksTagEditor(s);
+          const useCanvas = isWorks ? null : h('button', {
+            class: 'btn small', type: 'button',
+            onclick: () => {
+              s.layout = 'canvas';
+              s.layers = Array.isArray(s.layers) ? s.layers : [];
+              if (!s.layers.length) seedCanvasFromClassic(s);
+              if (s.id) editorMode.set(s.id, 'canvas');
+              changed();
+              redraw();
+            },
+          }, 'Canvas');
+          mount(body,
+            useCanvas ? h('div', { class: 'list-tools', style: 'margin-bottom:12px' }, useCanvas) : null,
+            h('p', { class: 'hint' }, isWorks
+              ? 'This section is the cell grid. Its previous canvas stays stored and is not shown to visitors.'
+              : 'Visitors see this grid only. Canvas layers on this section stay stored until you switch this section to Canvas.'),
+            fields(
+              textField(s, 'heading', 'Heading', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } })),
+            tagsUi.el,
+            worksBlocksEditor(s.cards, { onStructure: () => tagsUi.refresh() }),
+            h('p', { class: 'hint' }, 'The grid matches the site. Drag a block onto another to change the order. Click a block to edit it. Up to three works can be Feature. They stay in this grid as well.'));
+          refreshMeta();
+          return;
+        }
         const mode = sectionEditorMode(s);
         const switcher = s.layout === 'case' ? null : h('div', { class: 'list-tools', style: 'margin-bottom:12px' },
           h('button', {
@@ -1937,16 +2361,23 @@
               if (s.layout !== 'canvas') {
                 s.layout = 'canvas';
                 s.layers = s.layers || [];
-                if (!s.layers.length) {
-                  if (isWorks) seedWorksCanvas(s);
-                  else seedCanvasFromClassic(s);
-                }
+                if (!s.layers.length) seedCanvasFromClassic(s);
               }
               if (s.id) editorMode.set(s.id, 'canvas');
               changed();
               redraw();
             },
-          }, 'Canvas edit'));
+          }, 'Canvas'),
+          h('button', {
+            class: 'btn small', type: 'button',
+            onclick: () => {
+              s.layout = 'works';
+              if (!Array.isArray(s.cards)) s.cards = [];
+              if (s.id) editorMode.delete(s.id);
+              changed();
+              redraw();
+            },
+          }, 'Cell grid'));
 
         if (mode === 'form') {
           if (s.layout === 'case') {
@@ -1958,22 +2389,6 @@
                 textField(s, 'process', 'Process', { multiline: true, rows: 6 }),
                 textField(s, 'outcome', 'Outcome', { multiline: true, rows: 6 })),
               h('p', { class: 'hint' }, 'Visitors only see the parts that are filled in.'));
-            refreshMeta();
-            return;
-          }
-          if (isWorks) {
-            s.cards = Array.isArray(s.cards) ? s.cards : [];
-            if (!s.cards.length) {
-              const gal = (s.layers || []).find((l) => l.type === 'gallery');
-              if (gal && Array.isArray(gal.images)) {
-                s.cards = gal.images.map((item) => ({ label: item.caption || '', image: item.image || '', link: item.link || '' }));
-              }
-            }
-            mount(body,
-              fields(
-                textField(s, 'heading', 'Heading', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } })),
-              worksBlocksEditor(s.cards),
-              h('p', { class: 'hint' }, 'The grid matches the site. Drag a block onto another to change the order. Click a block to edit it. Up to three works can be Feature. They stay in this grid as well.'));
             refreshMeta();
             return;
           }
@@ -2030,7 +2445,7 @@
               }),
               h('div', { class: 'span-4' }, editorHost)),
             h('p', { class: 'hint', style: 'margin-top:10px' },
-              'Each section is its own board. Drag a layer in any direction. Arrow keys nudge it. Drag a corner to resize, and drag the round handle above a layer to rotate it. Hold Shift while dragging to snap to the grid. A saved template stays as it is here — change the template itself on Section layouts.'),
+              'Each section is its own board. Image, YouTube and PDF are layers on this board. Drag a layer in any direction. Arrow keys nudge it. Drag a corner to resize, and drag the round handle above a layer to rotate it. Hold Shift while dragging to snap to the grid. Cell grid is a separate mode for this section. A saved template stays as it is here — change the template itself on Section layouts.'),
             h('div', { class: 'cv-btnrow', style: 'margin-top:8px' },
               h('button', {
                 class: 'btn small', type: 'button',
