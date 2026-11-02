@@ -891,6 +891,8 @@
       section,
       lockWidthToScreen: editorOpts.lockWidthToScreen,
       fixedBoard: editorOpts.fixedBoard === true,
+      pageLinks: () => [{ value: '/', label: 'Home' }].concat(
+        (content.pages || []).map((p) => ({ value: `/${p.slug}`, label: p.navLabel || p.title || p.slug }))),
       onChange: () => {
         const current = editors.get(section);
         changed({ coalesce: Boolean(current && current.isGesturing()) });
@@ -1633,15 +1635,9 @@
   }
 
   // The board matches the public grid. A block stays closed until it is clicked.
-  function workTagName(card) {
-    return card.title || card.label || 'Work';
-  }
-
-  function worksTagEditor(section) {
-    const cards = () => (Array.isArray(section.cards) ? section.cards : []).filter((card) => card.blockType !== 'image' && card.blockType !== 'text' && card.blockType !== 'youtube' && card.blockType !== 'pdf');
+  function worksTagEditor(section, editorHooks = {}) {
     const host = h('div', { class: 'work-tags-panel' });
     const catalogBox = h('div', { class: 'tag-editor' });
-    const rows = h('div', { class: 'work-tag-rows' });
     const input = h('input', { type: 'text', placeholder: 'New tag' });
 
     function catalog() {
@@ -1673,35 +1669,9 @@
           });
           changed();
           paint();
+          if (editorHooks.onCatalogChange) editorHooks.onCatalogChange();
         });
         return h('span', { class: 'tag-chip is-on' }, tag, remove);
-      }));
-      rows.replaceChildren(...cards().map((card) => {
-        const chips = h('div', { class: 'tag-editor' });
-        names.forEach((tag) => {
-          const on = Array.isArray(card.tags) && card.tags.includes(tag);
-          const btn = h('button', {
-            type: 'button',
-            class: on ? 'tag-chip is-on' : 'tag-chip',
-            'aria-pressed': on ? 'true' : 'false',
-          }, tag);
-          btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            keepCatalog();
-            const list = Array.isArray(card.tags) ? card.tags.slice() : [];
-            const next = list.includes(tag) ? list.filter((item) => item !== tag) : list.concat(tag);
-            card.tags = next;
-            const pressed = next.includes(tag);
-            btn.classList.toggle('is-on', pressed);
-            btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
-            changed();
-          });
-          chips.append(btn);
-        });
-        return h('div', { class: 'work-tag-row' },
-          h('span', { class: 'work-tag-name' }, workTagName(card)),
-          chips);
       }));
     }
 
@@ -1716,14 +1686,14 @@
       input.value = '';
       changed();
       paint();
+      if (editorHooks.onCatalogChange) editorHooks.onCatalogChange();
     });
 
     host.append(
       h('div', { class: 'list-head' }, h('span', { class: 'field-label' }, 'Tags')),
-      h('p', { class: 'hint' }, 'These are the filters on the site. Add a tag here, then turn it on for each work. Turning it off a work keeps the tag in this list.'),
+      h('p', { class: 'hint' }, 'These are the filters on the site. Add or remove tags here. Turn a tag on for a work inside that work’s editor.'),
       catalogBox,
-      input,
-      rows);
+      input);
     paint();
     return {
       el: host,
@@ -2158,6 +2128,50 @@
       return host;
     }
 
+    function workTagsField(card) {
+      const section = hooks.section;
+      if (!section) return null;
+      const names = [];
+      const push = (tag) => {
+        const name = String(tag || '').trim();
+        if (name && !names.includes(name)) names.push(name);
+      };
+      (Array.isArray(section.tags) ? section.tags : []).forEach(push);
+      (section.cards || []).forEach((c) => (Array.isArray(c.tags) ? c.tags : []).forEach(push));
+      if (!names.length) {
+        return h('div', { class: 'field span-4' },
+          h('span', { class: 'field-label' }, 'Tags'),
+          h('p', { class: 'hint' }, 'Add tags in the Tags list above, then turn them on here.'));
+      }
+      const chips = h('div', { class: 'tag-editor' });
+      names.forEach((tag) => {
+        const on = Array.isArray(card.tags) && card.tags.includes(tag);
+        const btn = h('button', {
+          type: 'button',
+          class: on ? 'tag-chip is-on' : 'tag-chip',
+          'aria-pressed': on ? 'true' : 'false',
+        }, tag);
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          section.tags = names.slice();
+          const list = Array.isArray(card.tags) ? card.tags.slice() : [];
+          const next = list.includes(tag) ? list.filter((item) => item !== tag) : list.concat(tag);
+          card.tags = next;
+          const pressed = next.includes(tag);
+          btn.classList.toggle('is-on', pressed);
+          btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+          changed();
+          if (hooks.onStructure) hooks.onStructure();
+        });
+        chips.append(btn);
+      });
+      return h('div', { class: 'field span-4' },
+        h('span', { class: 'field-label' }, 'Tags'),
+        h('p', { class: 'hint' }, 'Filters for this work on the site.'),
+        chips);
+    }
+
     function editPanel(card) {
       const i = arr.indexOf(card);
       const kind = card.blockType;
@@ -2218,10 +2232,12 @@
           spanPicker(card),
           kind === 'work' ? featureField(card) : null),
         fields(...fieldsForKind),
+        kind === 'work' ? fields(workTagsField(card)) : null,
         kind === 'work' ? sectionsEditor(card) : null,
         kind === 'work' ? piecesEditor(card, paintCover) : null);
     }
 
+    hooks.redraw = draw;
     draw();
     return wrap;
   }
@@ -2324,7 +2340,11 @@
               s.cards = gal.images.map((item) => ({ label: item.caption || '', image: item.image || '', link: item.link || '' }));
             }
           }
-          const tagsUi = worksTagEditor(s);
+          const blockHooks = { section: s };
+          const tagsUi = worksTagEditor(s, {
+            onCatalogChange: () => { if (typeof blockHooks.redraw === 'function') blockHooks.redraw(); },
+          });
+          blockHooks.onStructure = () => tagsUi.refresh();
           const useCanvas = isWorks ? null : h('button', {
             class: 'btn small', type: 'button',
             onclick: () => {
@@ -2344,7 +2364,7 @@
             fields(
               textField(s, 'heading', 'Heading', { onInput: (v) => { titleEl.textContent = v.replace(/\n/g, ' ') || '(untitled section)'; } })),
             tagsUi.el,
-            worksBlocksEditor(s.cards, { onStructure: () => tagsUi.refresh() }),
+            worksBlocksEditor(s.cards, blockHooks),
             h('p', { class: 'hint' }, 'The grid matches the site. Drag a block onto another to change the order. Click a block to edit it. Up to three works can be Feature. They stay in this grid as well.'));
           refreshMeta();
           return;

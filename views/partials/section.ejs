@@ -153,7 +153,7 @@
               <iframe class="layer-embed" title="<%= l.name || 'PDF' %>" src="<%= safeUrl(l.src) %>" loading="lazy"></iframe>
             <% } %>
           <% } else if (l.type === 'button') { %>
-            <span class="layer-button-slot" style="justify-content:<%= LAYER_ALIGN.has(l.align) ? (l.align === 'center' ? 'center' : l.align === 'right' ? 'flex-end' : 'flex-start') : 'flex-start' %>">
+            <span class="layer-button-slot<%= hug ? '' : ' is-sized' %>" style="justify-content:<%= LAYER_ALIGN.has(l.align) ? (l.align === 'center' ? 'center' : l.align === 'right' ? 'flex-end' : 'flex-start') : 'flex-start' %>">
               <a class="layer-button style-<%= ['pill', 'solid', 'outline'].includes(l.buttonStyle) ? l.buttonStyle : 'pill' %>"
                  href="<%= safeUrl(l.link) || '#' %>"
                  style="<%= style %>"

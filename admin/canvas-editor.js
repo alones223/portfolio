@@ -2756,7 +2756,23 @@ window.CanvasEditorUI = (function () {
       if (l.type === 'button') {
         content.push(
           textField(l, 'text', 'Button label'),
-          textField(l, 'link', 'Link', '/artworks or https://…'),
+          (() => {
+            const pages = typeof opts.pageLinks === 'function' ? opts.pageLinks() : [];
+            const known = pages.some((p) => p.value === l.link);
+            const sel = h('select', null,
+              h('option', { value: '', selected: !known }, '— Choose a page —'),
+              pages.map((p) => h('option', { value: p.value, selected: p.value === l.link }, `${p.label} (${p.value})`)));
+            sel.addEventListener('change', () => {
+              if (!sel.value) return;
+              record();
+              l.link = sel.value;
+              l.newTab = false;
+              onChange();
+              render();
+            });
+            return field('Go to page', sel);
+          })(),
+          textField(l, 'link', 'Link (page address or https://…)', '/artworks or https://…'),
           selectField(l, 'buttonStyle', 'Button look', [['pill', 'Rounded pill'], ['solid', 'Rectangle'], ['outline', 'Outline']]),
           toggleField(l, 'newTab', 'Open in a new tab'));
       }

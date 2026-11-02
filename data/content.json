@@ -49,7 +49,7 @@
       "canvasLock": true,
       "canvasHeight": 973,
       "canvasBg": "#617092",
-      "canvasImage": "/uploads/0b0535_2d1f1a4f20714b4ba7366fc1a9069e06.jpg",
+      "canvasImage": "/uploads/IMG_7283-ecbe9a.jpg",
       "layers": [
         {
           "type": "heading",
@@ -130,13 +130,14 @@
           "buttonStyle": "pill",
           "newTab": true,
           "id": "l-695068",
-          "autoFit": false
+          "autoFit": false,
+          "textShadow": true
         },
         {
           "type": "heading",
           "name": "Big word",
-          "x": -508,
-          "y": 685,
+          "x": -39,
+          "y": 643,
           "w": 2566,
           "h": 369,
           "text": "Portfolio",
@@ -211,6 +212,45 @@
           "newTab": false,
           "id": "l-ctao062",
           "autoFit": false
+        },
+        {
+          "id": "l-k9tyddl",
+          "type": "button",
+          "name": "Button 5",
+          "x": 1161,
+          "y": 632,
+          "w": 130,
+          "h": 44,
+          "text": "Read more",
+          "src": "",
+          "alt": "",
+          "link": "",
+          "hidden": false,
+          "locked": false,
+          "z": 7,
+          "color": "",
+          "bg": "",
+          "size": 16,
+          "weight": 600,
+          "align": "center",
+          "lineHeight": 1.25,
+          "letterSpacing": 0,
+          "radius": 0,
+          "borderWidth": 0,
+          "borderColor": "",
+          "fit": "cover",
+          "animated": true,
+          "anim": "up",
+          "delay": 0,
+          "duration": 0.9,
+          "images": [],
+          "columns": 3,
+          "gap": 16,
+          "aspect": "natural",
+          "hugging": false,
+          "autoFit": false,
+          "buttonStyle": "pill",
+          "newTab": true
         }
       ],
       "columns": 3,
@@ -219,7 +259,9 @@
       "buttons": [],
       "templateId": "tpl-default-hero",
       "canvasWidth": 1470,
-      "canvasWidthMode": "screen"
+      "canvasWidthMode": "screen",
+      "canvasImageX": 50,
+      "canvasImageY": 50
     },
     "works": {
       "heading": "Works",
@@ -236,6 +278,35 @@
           "featured": true,
           "tags": [
             "Artworks"
+          ],
+          "year": "2026",
+          "category": "what",
+          "intro": "hi",
+          "sections": [
+            {
+              "title": "test",
+              "text": "what?"
+            },
+            {
+              "title": "hi",
+              "text": "nigga\n"
+            },
+            {
+              "title": "",
+              "text": ""
+            }
+          ],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_441ee70cd48d499db00bd0535b26dc8f.jpg",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/IMG1207-b9c037.jpg",
+              "hero": false
+            }
           ]
         },
         {
@@ -569,7 +640,15 @@
       "items": [],
       "buttons": [],
       "canvasWidth": 2560,
-      "canvasWidthMode": "screen"
+      "canvasWidthMode": "screen",
+      "tags": [
+        "Artworks",
+        "illustrator works",
+        "Character Design",
+        "product design",
+        "Animations(FYP)",
+        "Ai Projects"
+      ]
     },
     "contact": {
       "heading": "Say Hello",
@@ -709,6 +788,35 @@
             "featured": true,
             "tags": [
               "Artworks"
+            ],
+            "year": "2026",
+            "category": "what",
+            "intro": "hi",
+            "sections": [
+              {
+                "title": "test",
+                "text": "what?"
+              },
+              {
+                "title": "hi",
+                "text": "nigga\n"
+              },
+              {
+                "title": "",
+                "text": ""
+              }
+            ],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_441ee70cd48d499db00bd0535b26dc8f.jpg",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/IMG1207-b9c037.jpg",
+                "hero": false
+              }
             ]
           },
           {
@@ -1042,7 +1150,15 @@
         "items": [],
         "buttons": [],
         "canvasWidth": 2560,
-        "canvasWidthMode": "screen"
+        "canvasWidthMode": "screen",
+        "tags": [
+          "Artworks",
+          "illustrator works",
+          "Character Design",
+          "product design",
+          "Animations(FYP)",
+          "Ai Projects"
+        ]
       }
     ],
     "aboutCard": {

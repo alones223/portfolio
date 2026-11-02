@@ -273,15 +273,7 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 }
 .work-tags-panel .hint { margin: 0 0 10px; }
 .work-tags-panel > .tag-editor { margin-bottom: 8px; }
-.work-tags-panel > input { max-width: 220px; margin-bottom: 12px; }
-.work-tag-rows { display: flex; flex-direction: column; gap: 8px; }
-.work-tag-row {
-  display: grid;
-  grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-}
-.work-tag-name { font-size: 13px; }
+.work-tags-panel > input { max-width: 220px; margin-bottom: 0; }
 .work-face-num {
   position: absolute;
   z-index: 2;
@@ -793,6 +785,7 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
   object-fit: contain !important;
 }
 .cv-btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 22px; }
+.cv-layer.cv-t-button:not(.cv-hug) .cv-btn { width: 100%; height: 100%; box-sizing: border-box; }
 .cv-btn.pill { border-radius: 999px; background: var(--navy); }
 .cv-btn.solid { background: var(--navy); }
 .cv-btn.outline { border: 2px solid var(--navy); }
