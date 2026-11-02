@@ -365,6 +365,32 @@
           "tags": [
             "Ai Projects"
           ]
+        },
+        {
+          "label": "Silvercord Game Centre",
+          "image": "",
+          "link": "",
+          "blockType": "work",
+          "size": "1x1",
+          "title": "Silvercord Game Centre",
+          "featured": false,
+          "tags": [],
+          "year": "2026",
+          "category": "",
+          "intro": "",
+          "role": "Character, web app icons, and livestream layout",
+          "output": "Web app icon, maimai livestream cover and layout, character (車長)",
+          "sections": [
+            {
+              "title": "Overview",
+              "text": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world."
+            },
+            {
+              "title": "What you see",
+              "text": "Character (車長), app icon set, and livestream cover / layout comps."
+            }
+          ],
+          "pieces": []
         }
       ],
       "id": "s-home-works",
@@ -875,6 +901,32 @@
             "tags": [
               "Ai Projects"
             ]
+          },
+          {
+            "label": "Silvercord Game Centre",
+            "image": "",
+            "link": "",
+            "blockType": "work",
+            "size": "1x1",
+            "title": "Silvercord Game Centre",
+            "featured": false,
+            "tags": [],
+            "year": "2026",
+            "category": "",
+            "intro": "",
+            "role": "Character, web app icons, and livestream layout",
+            "output": "Web app icon, maimai livestream cover and layout, character (車長)",
+            "sections": [
+              {
+                "title": "Overview",
+                "text": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world."
+              },
+              {
+                "title": "What you see",
+                "text": "Character (車長), app icon set, and livestream cover / layout comps."
+              }
+            ],
+            "pieces": []
           }
         ],
         "id": "s-home-works",
