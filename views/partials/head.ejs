@@ -3,7 +3,7 @@
   const f = site.fonts || {};
   const fontsUrl = googleFontsUrl(f);
 %><!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,8 +15,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <% if (fontsUrl) { %><link rel="stylesheet" href="<%= fontsUrl %>"><% } %>
   <% if (customFontFaces) { %><style><%- customFontFaces %></style><% } %>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/canvas.css?v=hero-canvas">
+  <link rel="stylesheet" href="/css/style.css?v=cache21">
+  <link rel="stylesheet" href="/css/canvas.css?v=cache6">
   <style>
     :root {
       --navy: <%= t.navy || '#0A192F' %>;
@@ -31,7 +31,7 @@
       --big-word: <%= t.bigWord || '#00FFFF' %>;
       --button: <%= t.button || '#FF5722' %>;
       --marquee-bg: <%= t.marqueeBg || '#4F5E75' %>;
-      --marquee-text: <%= t.marqueeText || '#0A192F' %>;
+      --marquee-text: <%= t.marqueeText || '#FDFDFD' %>;
       --font-display: "<%= fontFamily(f.display) || 'Krona One' %>", "Arial Black", sans-serif;
       --font-serif: "<%= fontFamily(f.serif) || 'Playfair Display' %>", "Times New Roman", serif;
       --font-body: "<%= fontFamily(f.body) || 'Zen Kaku Gothic New' %>", "Yu Gothic", "YuGothic", "Microsoft JhengHei", sans-serif;

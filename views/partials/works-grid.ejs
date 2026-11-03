@@ -1,0 +1,80 @@
+<%
+  const workCards = (section && section.cards) || [];
+  const workCases = workCards.map(function (card) {
+    const kind = ['image', 'text', 'youtube', 'pdf'].indexOf(card.blockType) >= 0 ? card.blockType : 'work';
+    return kind === 'work' ? workCase(card) : null;
+  });
+  const workTags = [];
+  workCards.forEach(function (card) {
+    const list = Array.isArray(card.tags) ? card.tags : [];
+    list.forEach(function (tag) {
+      if (tag && workTags.indexOf(tag) < 0) workTags.push(tag);
+    });
+  });
+%>
+<div class="works-slot" data-filter="all">
+  <% if (section && section.heading) { %>
+  <h2 class="title-highlight"><span><%= section.heading %></span></h2>
+  <% } %>
+  <% if (workCards.length) { %>
+  <div class="works-tags" role="group" aria-label="Tags">
+    <button type="button" class="works-tag" data-tag="" aria-pressed="true">All</button>
+    <% workTags.forEach(function (tag) { %>
+    <button type="button" class="works-tag" data-tag="<%= tag %>" aria-pressed="false"><%= tag %></button>
+    <% }); %>
+  </div>
+  <div class="works-cells-wrap">
+  <ul class="works-cells">
+    <% workCards.forEach(function (card, index) { %>
+    <%
+      const cellSize = /^[1-3]x[1-3]$/.test(card.size) ? card.size : '1x1';
+      const kind = ['image', 'text', 'youtube', 'pdf'].indexOf(card.blockType) >= 0 ? card.blockType : 'work';
+      const num = String(index + 1).padStart(2, '0');
+      const info = workCases[index] || {};
+      const title = info.title || card.title || card.label || '';
+      const category = info.category || '';
+      const year = info.year || '';
+      const intro = info.intro || '';
+      const cover = info.cover || '';
+      const tags = Array.isArray(card.tags) ? card.tags : [];
+      let youtube = '';
+      if (kind === 'youtube') {
+        const match = String(card.youtube || '').match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+        youtube = match ? match[1] : '';
+      }
+    %>
+    <li class="works-cell" data-size="<%= cellSize %>" data-kind="<%= kind %>" data-work-index="<%= index %>" data-tags="<%= JSON.stringify(tags) %>">
+      <p class="works-num"><%= num %></p>
+      <% if (kind === 'work') { %>
+      <button type="button" class="works-open" data-work-index="<%= index %>" data-num="<%= num %>">
+        <% if (cover) { %><img src="<%= cover %>" alt=""><% } %>
+        <span class="works-card-copy">
+          <% if (category || year) { %>
+          <span class="works-card-meta">
+            <% if (category) { %><span><%= category %></span><% } %>
+            <% if (year) { %><span><%= year %></span><% } %>
+          </span>
+          <% } %>
+          <% if (title) { %><span class="works-card-title"><%= title %></span><% } %>
+          <% if (intro) { %><span class="works-card-intro"><%= intro %></span><% } %>
+          <span class="works-view">View Project</span>
+        </span>
+      </button>
+      <% } else if (kind === 'image') { %>
+        <% if (card.image) { %><img src="<%= card.image %>" alt="<%= title %>"><% } %>
+      <% } else if (kind === 'text') { %>
+        <div class="works-cell-copy"><%= card.text || '' %></div>
+      <% } else if (kind === 'youtube' && youtube) { %>
+        <iframe src="https://www.youtube-nocookie.com/embed/<%= youtube %>" title="<%= title || 'YouTube' %>" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <% } else if (kind === 'pdf' && card.pdf) { %>
+        <iframe src="<%= card.pdf %>" title="<%= title || 'PDF' %>"></iframe>
+      <% } else { %>
+        <div class="works-cell-copy"><%= title || card.youtube || card.pdf || '' %></div>
+      <% } %>
+    </li>
+    <% }); %>
+  </ul>
+  </div>
+  <% } %>
+  <script type="application/json" class="works-cases-data"><%- JSON.stringify(workCases).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029') %></script>
+</div>

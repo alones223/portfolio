@@ -1,0 +1,85 @@
+<%
+  const aboutCard = (home && home.aboutCard) || {};
+  const board = aboutCard.board || {};
+  const layers = (Array.isArray(board.layers) ? board.layers : []).filter(function (layer) {
+    return layer && layer.hidden !== true;
+  });
+  const boardW = Number(board.canvasWidth) > 0 ? Math.min(4000, Math.round(Number(board.canvasWidth))) : 640;
+  const boardH = Number(board.canvasHeight) > 0 ? Math.min(4000, Math.round(Number(board.canvasHeight))) : 400;
+  const bgImg = board.canvasImage ? safeUrl(board.canvasImage) : '';
+  const bgHasColour = Boolean(String(board.canvasBg || '').trim());
+  const bgParsed = canvasBackground(board.canvasBg);
+  const bgPlace = function (v) { const n = Number(v); return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : 50; };
+  // Same rules as the admin editor: colour (or white) under the photo, and the
+  // colour's opacity fades the photo.
+  const bgColour = bgImg ? (bgHasColour ? bgParsed.color : 'transparent') : (bgHasColour ? (safeColor(board.canvasBg) || '#fff') : '#fff');
+  const email = String((site && site.email) || '').trim();
+  const video = safeUrl(aboutCard.video || '');
+  const yt = video ? youtubeId(video) : '';
+%>
+<section class="about-card-slot" aria-labelledby="about-title">
+  <h2 id="about-title" class="title-highlight"><span>About</span></h2>
+  <div class="namecard">
+    <div class="namecard-inner">
+      <div class="namecard-face namecard-front">
+        <div class="namecard-scale" style="--board-w: <%= boardW %>; --board-h: <%= boardH %>">
+          <div class="namecard-fit">
+          <div class="namecard-board" style="background-color:<%= bgColour %>">
+            <% if (bgImg && bgImg !== '#') { %>
+            <div class="namecard-bg" style="background-image:url('<%= String(bgImg).replace(/['"()\s]/g, function (c) { return encodeURIComponent(c).replace(/[()]/g, function (p) { return p === '(' ? '%28' : '%29'; }); }) %>');background-position:<%= bgPlace(board.canvasImageX) %>% <%= bgPlace(board.canvasImageY) %>%;opacity:<%= bgHasColour ? bgParsed.alpha : 1 %>"></div>
+            <% } %>
+            <% if (layers.length) { %>
+              <% layers.forEach(function (layer) { %>
+              <% const isShape = layer.type === 'shape';
+                 const isText = layer.type === 'text' || layer.type === 'heading' || layer.type === 'paragraph';
+                 const hug = isText && Boolean(layer.hugging || layer.autoFit); %>
+              <div class="namecard-layer<%= (hug || isShape || Math.abs(Number(layer.rotate) || 0) > 0.05) ? ' is-hug' : '' %><%= hug ? ' is-text' : '' %>" data-align="<%= ['left','center','right'].indexOf(layer.align) >= 0 ? layer.align : 'left' %>" style="<%= layerBox(layer, boardH) %>">
+                <div class="namecard-turn" style="<%= isShape ? '' : styleToCss(layer) + ';' %><%= turnStyle(layer) %>">
+                <% if (isShape) { %>
+                  <% if (shapeKindOf(layer) === 'rect') { %>
+                    <span class="layer-shape" style="<%= styleToCss(layer) %><%= layer.bg ? '' : ';background:#E1E5EB' %>"></span>
+                  <% } else { %>
+                    <%- shapeMarkup(layer) %>
+                  <% } %>
+                <% } else if (layer.type === 'image') { %>
+                  <% if (layer.src) { %><img class="namecard-img" src="<%= safeUrl(layer.src) %>" alt="<%= layer.alt || '' %>" style="object-fit:<%= ['cover','contain','fill'].indexOf(layer.fit) >= 0 ? layer.fit : 'cover' %>;border-radius:<%= Math.min(Math.max(Number(layer.radius) || 0, 0), 500) %>px"><% } %>
+                <% } else if (layer.name === 'Email') { %>
+                  <% if (email) { %><a href="mailto:<%= email %>"><%= email %></a><% } %>
+                <% } else if (layer.name === 'Socials') { %>
+                  <%- include('socials', { site: site }) %>
+                <% } else if (layer.type === 'heading') { %>
+                  <div class="namecard-copy"><%- layerText(layer.text) %></div>
+                <% } else { %>
+                  <div class="namecard-copy"><%- (layer.paragraph || layer.type === 'paragraph') ? paragraphs(layer.text) : layerText(layer.text) %></div>
+                <% } %>
+                </div>
+              </div>
+              <% }); %>
+            <% } else if (!bgImg && (String(aboutCard.intro || '').trim() || email)) { %>
+              <div class="namecard-fallback">
+                <% if (String(aboutCard.intro || '').trim()) { %><div class="namecard-copy"><%- paragraphs(aboutCard.intro) %></div><% } %>
+                <% if (email) { %><p><a href="mailto:<%= email %>"><%= email %></a></p><% } %>
+                <%- include('socials', { site: site }) %>
+              </div>
+            <% } %>
+          </div>
+          </div>
+        </div>
+      </div>
+      <div class="namecard-face namecard-back" inert>
+        <div class="namecard-stage">
+          <% if (yt) { %>
+          <iframe class="namecard-frame" title="Motion graphic" data-src="https://www.youtube-nocookie.com/embed/<%= yt %>?playsinline=1&rel=0&fs=0&enablejsapi=1" allow="autoplay; encrypted-media; picture-in-picture"></iframe>
+          <% } else if (video) { %>
+          <video class="namecard-video" src="<%= video %>" playsinline preload="metadata" disablepictureinpicture></video>
+          <% } else { %>
+          <p class="namecard-empty" id="namecard-empty">No motion graphic yet. In the admin, open About card and paste a link or upload a video.</p>
+          <% } %>
+          <button type="button" class="namecard-play" aria-label="Play"<% if (!yt && !video) { %> disabled aria-describedby="namecard-empty"<% } %>>
+            <span class="namecard-play-icon" aria-hidden="true">&#9654;</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

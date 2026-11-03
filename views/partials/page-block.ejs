@@ -1,0 +1,23 @@
+<% if (page.headerBoard && page.headerBoard.layout === 'canvas') { %>
+  <%- include('section', { section: page.headerBoard }) %>
+<% } else { %>
+<%
+  const __heroBits = [];
+  if (page.heroImage) __heroBits.push("--hero-image: url('" + esc(page.heroImage) + "')");
+  if (page.highlightColor && safeColor(page.highlightColor)) __heroBits.push('--page-highlight: ' + safeColor(page.highlightColor));
+  if (page.highlightAuto === false && Number(page.highlightLength) > 0) {
+    __heroBits.push('--highlight-len: ' + Math.min(2000, Math.max(8, Math.round(Number(page.highlightLength)))) + 'px');
+  }
+%>
+<section class="page-hero<%= page.highlightAuto === false ? ' is-highlight-fixed' : '' %>"<% if (__heroBits.length) { %> style="<%= __heroBits.join('; ') %>"<% } %>>
+  <div class="page-hero-inner">
+    <h2 class="title-highlight page-title reveal"><span><%= page.title %></span></h2>
+    <span class="page-hero-rule" aria-hidden="true"></span>
+    <% if (page.subtitle) { %><h6 class="page-subtitle reveal"><%= page.subtitle %></h6><% } %>
+  </div>
+</section>
+<% } %>
+
+<% (page.sections || []).forEach(function (section) { %>
+  <%- include('section', { section }) %>
+<% }) %>
