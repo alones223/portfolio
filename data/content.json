@@ -3,7 +3,7 @@
     "title": "Yeung Tsz Yu Abbie",
     "name": "Yeung Tsz Yu",
     "logo": "/uploads/0b0535_04813ec0b0994c6385868ea4144935a1.jpg",
-    "email": "alones223@gmail.com",
+    "email": "yeungtszyuabbie@gmail.com",
     "footerContactTitle": "Contact me",
     "copyright": "© 2026 Yeung Tsz Yu. all rights reserved.",
     "homeNavLabel": "Home",
@@ -47,15 +47,15 @@
       "textAfter": "",
       "layout": "canvas",
       "canvasLock": true,
-      "canvasHeight": 973,
+      "canvasHeight": 1223,
       "canvasBg": "#617092",
       "canvasImage": "/uploads/IMG_7283-ecbe9a.jpg",
       "layers": [
         {
           "type": "heading",
           "name": "Name",
-          "x": 657,
-          "y": 414,
+          "x": 1609,
+          "y": 415,
           "w": 721,
           "h": 146,
           "text": "Yeung Tsz Yu",
@@ -95,8 +95,8 @@
         {
           "type": "text",
           "name": "Tagline",
-          "x": 879,
-          "y": 535,
+          "x": 1831,
+          "y": 536,
           "w": 499,
           "h": 76,
           "text": "#Multimedia Designer & Illustrator",
@@ -136,8 +136,8 @@
         {
           "type": "heading",
           "name": "Big word",
-          "x": -39,
-          "y": 643,
+          "x": 5,
+          "y": 901,
           "w": 2566,
           "h": 369,
           "text": "Portfolio",
@@ -176,8 +176,8 @@
         {
           "type": "button",
           "name": "View works",
-          "x": 1638,
-          "y": 590,
+          "x": 2070,
+          "y": 612,
           "w": 260,
           "h": 64,
           "text": "View works",
@@ -212,45 +212,6 @@
           "newTab": false,
           "id": "l-ctao062",
           "autoFit": false
-        },
-        {
-          "id": "l-k9tyddl",
-          "type": "button",
-          "name": "Button 5",
-          "x": 1161,
-          "y": 632,
-          "w": 130,
-          "h": 44,
-          "text": "Read more",
-          "src": "",
-          "alt": "",
-          "link": "",
-          "hidden": false,
-          "locked": false,
-          "z": 7,
-          "color": "",
-          "bg": "",
-          "size": 16,
-          "weight": 600,
-          "align": "center",
-          "lineHeight": 1.25,
-          "letterSpacing": 0,
-          "radius": 0,
-          "borderWidth": 0,
-          "borderColor": "",
-          "fit": "cover",
-          "animated": true,
-          "anim": "up",
-          "delay": 0,
-          "duration": 0.9,
-          "images": [],
-          "columns": 3,
-          "gap": 16,
-          "aspect": "natural",
-          "hugging": false,
-          "autoFit": false,
-          "buttonStyle": "pill",
-          "newTab": true
         }
       ],
       "columns": 3,
@@ -258,113 +219,641 @@
       "items": [],
       "buttons": [],
       "templateId": "tpl-default-hero",
-      "canvasWidth": 1470,
+      "canvasWidth": 2560,
       "canvasWidthMode": "screen",
       "canvasImageX": 50,
-      "canvasImageY": 50
+      "canvasImageY": 48,
+      "backgroundLocked": true
     },
     "works": {
       "heading": "Works",
       "decorText": "WO\nRKS",
-      "description": "Exploration of personal creative visions using traditional and digital media, focusing on expressive visual storytelling.",
+      "description": "Illustration, character systems, event merch, and interactive animation — built so the style holds across jackets, booths, products, and motion.",
       "cards": [
         {
-          "label": "Artworks",
-          "image": "/uploads/0b0535_441ee70cd48d499db00bd0535b26dc8f.jpg",
-          "link": "/artworks",
+          "label": "Garden of Sound and Memory",
+          "image": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
+          "link": "",
           "blockType": "work",
           "size": "2x1",
-          "title": "Artworks",
+          "title": "Garden of Sound and Memory",
           "featured": true,
           "tags": [
-            "Artworks"
+            "Animations",
+            "Character Design",
+            "Illustration"
           ],
-          "year": "2026",
-          "category": "what",
-          "intro": "hi",
+          "year": "2025",
+          "category": "Animation / Installation",
+          "intro": "Immersive FYP installation: two memory stories share one garden across the seasons, then a live session where you generate sound with the cast.",
           "sections": [
             {
-              "title": "test",
-              "text": "what?"
+              "title": "Overview",
+              "text": "Garden of Sound and Memory（聲憶之庭）— group FYP immersive installation. Two memory stories run side by side in one garden while seasons loop meeting → build-up → separation → cool-down."
             },
             {
-              "title": "hi",
-              "text": "nigga\n"
+              "title": "Story",
+              "text": "Left, human and environment: a gardener meets an injured bird, cares for it, then plays with the bird and its friends. Right, person to person: kids collide into friendship, help each other, then drift apart. The tree keeps the two stories apart; spring petals reset the year."
             },
             {
-              "title": "",
-              "text": ""
+              "title": "What happens in the installation",
+              "text": "Animation part — sit with the seasonal film and read both sides of the garden. Interactive part — characters (and a “wave your hands” cue) break the fourth wall; Kinect tracks your body so you generate live sound and stay inside the piece with the cast."
+            },
+            {
+              "title": "My role",
+              "text": "Animator & Illustrator — timeline, style, storyboard, and the animated sequences."
             }
           ],
           "pieces": [
             {
               "kind": "image",
-              "src": "/uploads/0b0535_441ee70cd48d499db00bd0535b26dc8f.jpg",
+              "src": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
+              "hero": true
+            },
+            {
+              "kind": "youtube",
+              "src": "https://youtu.be/L4Cxz96hIxQ",
+              "hero": false
+            },
+            {
+              "kind": "youtube",
+              "src": "https://youtu.be/KHLJnf5X_5g",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_acf47a340f20429997482d47abeab09a.gif",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_ef213fb0acca48d98061b993547ad652.gif",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_d14ef67d853e423d9dac5b82033719ba.gif",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_eb32c762b9c546aea03bb932b0cd678d.gif",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_fd3f565288874af89c02a5fb0b2c9f25.webp",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_767a8977782b438589fea9f9d5321fba.webp",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_6900dad63e2c492894a2203b7d9e3570.webp",
+              "hero": false
+            }
+          ],
+          "role": "Animator & Illustrator",
+          "output": "Animation demo · live interactive session"
+        },
+        {
+          "label": "Song Jacket Design",
+          "image": "/uploads/0b0535_d616a93ca451424c97dc06256ba25b28.jpg",
+          "link": "",
+          "blockType": "work",
+          "size": "1x1",
+          "title": "Song Jacket Design",
+          "featured": false,
+          "tags": [
+            "Illustrator Works",
+            "Illustration",
+            "Character Design"
+          ],
+          "year": "2025–2026",
+          "category": "Illustration",
+          "intro": "Song jackets for tracks: two collabs (稜鏡軌跡, Elegance Protocol) plus my own fanart covers — same craft of making a song read at thumbnail size.",
+          "sections": [
+            {
+              "title": "Overview",
+              "text": "Song jackets for tracks: two collabs (稜鏡軌跡, Elegance Protocol) plus my own fanart covers, same craft of making a song read at thumbnail size."
+            },
+            {
+              "title": "Collabs",
+              "text": "Listen: 稜鏡軌跡 https://youtu.be/ddudvrJfHWo · Elegance Protocol https://soundcloud.com/wuntonm/elegance-protocol-dynamix. Partnered projects where I drew the jackets for someone else’s track world. First two images in the gallery."
+            },
+            {
+              "title": "Own work",
+              "text": "Fanart song jackets I designed end-to-end: composition, character, and type that still hold as a cover."
+            },
+            {
+              "title": "What you see",
+              "text": "Full jackets and crop details — strong silhouette, title lockup, colour that survives small booth / player thumbs."
+            }
+          ],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_d616a93ca451424c97dc06256ba25b28.jpg",
               "hero": true
             },
             {
               "kind": "image",
-              "src": "/uploads/IMG1207-b9c037.jpg",
+              "src": "/uploads/0b0535_7f0f213a841e4b76a496f506d95448ce.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_4e30b5c5c3c74d8d8323017f09a031b5.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_6799b4490e064aa181be3842b830696c.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_ec83defde03c4b0899c0189f7c70c61d.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_22d8e04d7365485eb214b59f56ba1e92.png",
               "hero": false
             }
           ]
         },
         {
-          "label": "Illustrator works",
-          "image": "/uploads/0b0535_ad8c3868a5bc477ab0f62d9428e20eae.jpg",
-          "link": "/illustrator-works",
-          "blockType": "work",
+          "title": "Character Design",
+          "year": "2024–2026",
+          "featured": false,
           "size": "1x1",
-          "title": "Illustrator works",
+          "tags": [
+            "Character Design",
+            "Illustration"
+          ],
+          "intro": "Character sheets and concepts across commissioned and personal work — 稜鏡軌跡, Elegance Protocol, Silvercord Game Centre, Mermaid, FYP animation, and original characters.",
+          "sections": [],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_c927adecefdb49799afda354bb5d4c69.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_6b4345e0326d40af89f2fa93f17c2bad.jpeg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_4311912102fb4045b31a58f136732ae7.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_5f625af70b8e47d9bd992628ecd9b5f1.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_9b3ba633b6dd4ee9a528f2b1910d1f03.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_b25493dde44b4c0ab561d2fcfbf2460c.jpeg",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_3048fd87cc01436bb0dd1e98ce136bb2.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_96e92602ac9b4483a978ac2cf80422f2.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_a92e30a5d71b4494960f7056e3bff07e.jpeg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_786cb18bf3d84ce5a168214282ea8830.jpeg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_1f026abbd2224876bcfa71046fe73f74.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_36a02aae5dce4e4f9bec82e3c52df540.jpeg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_ddee362f77904042b00238806c6b04c1.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_ebf5c5d5284d4cfabf1e40ae065e4ec4.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_579679073098465789305a35e85b7eca.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_7fc30f8ac4d845f281d860dd8212907d.jpeg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_d64175f85a6e4068ab93c5ef57eb27f4.jpeg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_9052d7555d844942bde8d19cc82d3f5f.png",
+              "hero": false
+            }
+          ],
+          "blockType": "work",
+          "image": "/uploads/0b0535_b25493dde44b4c0ab561d2fcfbf2460c.jpeg"
+        },
+        {
+          "label": "Silvercord Game Centre",
+          "image": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
+          "link": "",
+          "blockType": "work",
+          "size": "2x1",
+          "title": "Silvercord Game Centre",
           "featured": true,
           "tags": [
-            "illustrator works"
-          ]
+            "Character Design",
+            "Illustrator Works",
+            "Illustration"
+          ],
+          "year": "2026",
+          "category": "Character Design",
+          "intro": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world.",
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_1f026abbd2224876bcfa71046fe73f74.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/live-stream-01-568790.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/live-stream-03-acb32d.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/live-stream-04-25294b.png",
+              "hero": false
+            }
+          ],
+          "sections": [
+            {
+              "title": "Overview",
+              "text": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world."
+            },
+            {
+              "title": "What you see",
+              "text": "Character（Train conductor）, app icon set, and livestream cover / layout comps."
+            }
+          ],
+          "role": "Character design, web app icons, livestream layout",
+          "output": "Web app icon, maimai livestream cover & layout, character（Train conductor）"
         },
         {
-          "label": "CHARACTER DESIGN",
-          "image": "/uploads/0b0535_b25493dde44b4c0ab561d2fcfbf2460c.jpeg",
-          "link": "/character-design",
+          "title": "Illustrations",
+          "year": "2024–2026",
+          "featured": false,
+          "size": "1x1",
+          "tags": [
+            "Illustration"
+          ],
+          "intro": "Finished illustrations spanning full scenes and cleaner character pieces — colour, mood, and storytelling through a single frame.",
+          "sections": [],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_c9792f421fbb49efb34ced569fdcc39f.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/9_10_2026-0202e9.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_e5faeefca5e04f88a15d586f3c2a3ada.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/image-3a1948.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_2be2be01ad8b46738942ddc8c7ec17b3.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_99831b40dac1473a9cd40955d9c88c99.jpg",
+              "hero": false
+            }
+          ],
+          "blockType": "work",
+          "image": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg"
+        },
+        {
+          "label": "Fanbooks",
+          "image": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
+          "link": "",
           "blockType": "work",
           "size": "1x1",
-          "title": "CHARACTER DESIGN",
+          "title": "Fanbooks",
           "featured": true,
           "tags": [
-            "Character Design"
+            "Illustrator Works",
+            "Illustration",
+            "Product Design"
+          ],
+          "year": "2026",
+          "category": "Print / Illustration",
+          "intro": "A cafe-menu concept maimai fanbook: each page is a character special — illustration and interior layout built for booth browsing.",
+          "sections": [
+            {
+              "title": "Overview",
+              "text": "A cafe-menu concept maimai fanbook. Each spread treats one cast member as today's special: character art plus a cafe-style menu board, made to flip through at a booth."
+            },
+            {
+              "title": "What you see",
+              "text": "Six maimai characters, each holding their matching dessert or drink on cafe-style menu interiors."
+            }
+          ],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/Sweetie-Paradise_003-a8a02b.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-menu-laz.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-menu-salt.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-interior-04.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-interior-01.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-interior-03.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-interior-02.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_432a7366437c4a409df85bf34cfeae4d.jpg",
+              "hero": false
+            }
           ]
         },
         {
-          "label": "PRODUCT DESIGN",
-          "image": "/uploads/0b0535_ba49d4be933243ffb4ecc321fdef61b7.jpg",
-          "link": "/product-design",
+          "label": "Illustrator",
+          "image": "/uploads/ill-works-landai-poster.png",
+          "link": "",
           "blockType": "work",
           "size": "1x1",
-          "title": "PRODUCT DESIGN",
+          "title": "Illustrator Works",
+          "featured": false,
           "tags": [
-            "product design"
+            "Illustrator Works",
+            "Illustration"
+          ],
+          "year": "2024–2026",
+          "category": "Event Graphics",
+          "intro": "A selection of work made in Adobe Illustrator—vector graphics, layouts, and print-ready assets.",
+          "sections": [],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/ill-works-landai-poster.png",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_62e265d403904d4da15447c3200e8ed0.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_358d0d96f3744bf294e1d3666298e8ec.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_82719dab230a4eec8c2ba8385fd9e26d.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_ad6f51ffb9254266b3b890abf5d2c150.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_943c0778d8a840d0bac067721644a028.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_1246863b2d134ec289eb823f3c9e9668.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_9631d0f0feb14af3bb5644b08f784235.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_505cd74046ab413497817849fe4dfd6c.jpg",
+              "hero": false
+            }
           ]
         },
         {
-          "label": "FYP PROJECT",
-          "image": "/uploads/0b0535_89cbd98bfdb34473863cea29739bdd6e.jpg",
-          "link": "/animationsfyp",
-          "blockType": "work",
+          "title": "Fancy Frontier 47",
+          "year": "2025",
+          "featured": false,
           "size": "1x1",
-          "title": "FYP PROJECT",
           "tags": [
-            "Animations(FYP)"
-          ]
+            "Product Design",
+            "Merch",
+            "Illustration"
+          ],
+          "intro": "Convention merch under 紅色荔枝樹 at Fancy Frontier 47 — character goods designed for the table: artbooks, acrylic charms, stickers, shikishi, and mini NFC CDs.",
+          "sections": [
+            {
+              "title": "Booth & products",
+              "text": "Booth at Fancy Frontier 47 plus product lines (maimai chibi keychains & stickers, shikishi (色紙 ), mini NFC CD sets) and booth price lists. \nFocus: print finish, die-cut acrylic, NFC mini discs, and how the display reads from the aisle."
+            }
+          ],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/merch-ff47-booth-a1b2c3.jpg",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_ba49d4be933243ffb4ecc321fdef61b7.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_b1ac92ee6b724b9f8d1064e5a8fc5c1c.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_7140d249395f499aa8dbe33bc6082455.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_2b6c21c359974f78ae164bf14b987cce.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_62e265d403904d4da15447c3200e8ed0.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_358d0d96f3744bf294e1d3666298e8ec.jpg",
+              "hero": false
+            }
+          ],
+          "blockType": "work",
+          "image": "/uploads/merch-ff47-booth-a1b2c3.jpg"
         },
         {
-          "label": "Ai Projects",
-          "image": "/uploads/IMG1207-b9c037.jpg",
-          "link": "/ai-projects",
-          "blockType": "work",
+          "title": "Rainbow Gala 33",
+          "year": "2026",
+          "featured": false,
           "size": "1x1",
-          "title": "Ai Projects",
           "tags": [
-            "Ai Projects"
-          ]
+            "Product Design",
+            "Merch",
+            "Illustration"
+          ],
+          "intro": "Convention merch under 紅色荔枝樹 at Rainbow Gala 33 — the same product line on the table: acrylic charms, stickers, shikishi, and mini NFC CDs.",
+          "sections": [
+            {
+              "title": "Booth & products",
+              "text": "Booth at Rainbow Gala 33 with product display and price lists; same physical product design focus as FF47."
+            }
+          ],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/merch-rg33-booth-d4e5f6.jpg",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/merch-shikishi-nfc-789abc.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/merch-maimai-charms-def012.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_330b0356f42c4fb4b898c37852330eac.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_6f890c9065f84201b15cefd3d4d88484.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_943c0778d8a840d0bac067721644a028.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_1246863b2d134ec289eb823f3c9e9668.jpg",
+              "hero": false
+            }
+          ],
+          "blockType": "work",
+          "image": "/uploads/merch-rg33-booth-d4e5f6.jpg"
         }
       ],
       "id": "s-home-works",
@@ -642,18 +1131,18 @@
       "canvasWidth": 2560,
       "canvasWidthMode": "screen",
       "tags": [
-        "Artworks",
-        "illustrator works",
+        "Illustrator Works",
         "Character Design",
-        "product design",
-        "Animations(FYP)",
-        "Ai Projects"
+        "Animations",
+        "Illustration",
+        "Product Design",
+        "Merch"
       ]
     },
     "contact": {
       "heading": "Say Hello",
       "text": "Feel free to reach out for collaborations or project inquiries. I look forward to hearing from you and will respond as soon as possible.",
-      "emailLine": "Email: alones223@gmail.com",
+      "emailLine": "yeungtszyuabbie@gmail.com",
       "labelName": "姓名",
       "labelEmail": "電子郵件",
       "labelSubject": "主旨",
@@ -664,217 +1153,634 @@
     "marquee": "CREATIVE PROJECTS • DESIGN STRATEGY • VISUAL DIRECTION",
     "sections": [
       {
-        "id": "s-about-canvas",
-        "name": "About Me",
-        "heading": "About Me",
-        "layout": "canvas",
-        "canvasLock": true,
-        "canvasHeight": 820,
-        "canvasBg": "#E1E5EB",
-        "layers": [
-          {
-            "id": "l-decor-top",
-            "type": "heading",
-            "name": "Ghost word (top)",
-            "x": 10,
-            "y": 24,
-            "w": 1189,
-            "h": 112,
-            "text": "ABOUT ME",
-            "size": 96,
-            "weight": 700,
-            "align": "center",
-            "color": "#F2F4F7",
-            "letterSpacing": 4,
-            "anim": "none",
-            "animated": false,
-            "z": 1,
-            "font": "\"STAR SHINES STILL STAR\", sans-serif",
-            "autoFit": true,
-            "hugging": true,
-            "lineHeight": 1
-          },
-          {
-            "id": "l-heading",
-            "type": "heading",
-            "name": "Heading \"About Me\"",
-            "x": 250,
-            "y": 171,
-            "w": 336,
-            "h": 72,
-            "text": "About Me",
-            "size": 54,
-            "weight": 700,
-            "align": "left",
-            "color": "#0A192F",
-            "anim": "up",
-            "duration": 0.9,
-            "delay": 0,
-            "z": 2,
-            "autoFit": true,
-            "hugging": true,
-            "font": "var(--font-display)"
-          },
-          {
-            "id": "l-rule",
-            "type": "divider",
-            "name": "Accent bar",
-            "x": 250,
-            "y": 318,
-            "w": 230,
-            "h": 8,
-            "color": "#95B8FE",
-            "anim": "up",
-            "duration": 0.9,
-            "delay": 0.15,
-            "z": 3
-          },
-          {
-            "id": "l-intro",
-            "type": "text",
-            "name": "Intro paragraph",
-            "x": 250,
-            "y": 360,
-            "w": 485,
-            "h": 172,
-            "hugging": false,
-            "size": 16,
-            "lineHeight": 1.55,
-            "color": "#4F5E75",
-            "anim": "up",
-            "duration": 0.9,
-            "delay": 0.25,
-            "text": "Hi , I am Abbie Yeung ! A Graduated Student from Creative Media.\nI am an artist focused on multimedia and illustration design, skilled at blending delicate visual language into digital media. My design style is clean yet expressive, with a strong sense of storytelling. Through my work, I aim to build visual experiences that are both aesthetically pleasing and emotionally engaging.",
-            "z": 4,
-            "autoFit": false
-          },
-          {
-            "id": "l-outro",
-            "type": "text",
-            "name": "Second paragraph",
-            "x": 806,
-            "y": 360,
-            "w": 485,
-            "h": 321,
-            "hugging": true,
-            "size": 16,
-            "lineHeight": 1.55,
-            "color": "#4F5E75",
-            "anim": "up",
-            "duration": 0.9,
-            "delay": 0.4,
-            "text": "I believe that great design is more than a visual outcome; it’s a vessel for meaning. In every project, I remain committed to a core concept, solving problems through pure form to build a sincere connection between brand and audience.",
-            "z": 5,
-            "autoFit": false
-          }
-        ],
-        "buttons": [],
-        "items": [],
-        "text": "",
-        "textAfter": "Hi , I am Abbie Yeung ! A Graduated Student from Creative Media.\nI am an artist focused on multimedia and illustration design, skilled at blending delicate visual language into digital media. My design style is clean yet expressive, with a strong sense of storytelling. Through my work, I aim to build visual experiences that are both aesthetically pleasing and emotionally engaging."
-      },
-      {
         "heading": "Works",
         "decorText": "WO\nRKS",
-        "description": "Exploration of personal creative visions using traditional and digital media, focusing on expressive visual storytelling.",
+        "description": "Illustration, character systems, event merch, and interactive animation — built so the style holds across jackets, booths, products, and motion.",
         "cards": [
           {
-            "label": "Artworks",
-            "image": "/uploads/0b0535_441ee70cd48d499db00bd0535b26dc8f.jpg",
-            "link": "/artworks",
+            "label": "Garden of Sound and Memory",
+            "image": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
+            "link": "",
             "blockType": "work",
             "size": "2x1",
-            "title": "Artworks",
+            "title": "Garden of Sound and Memory",
             "featured": true,
             "tags": [
-              "Artworks"
+              "Animations",
+              "Character Design",
+              "Illustration"
             ],
-            "year": "2026",
-            "category": "what",
-            "intro": "hi",
+            "year": "2025",
+            "category": "Animation / Installation",
+            "intro": "Immersive FYP installation: two memory stories share one garden across the seasons, then a live session where you generate sound with the cast.",
             "sections": [
               {
-                "title": "test",
-                "text": "what?"
+                "title": "Overview",
+                "text": "Garden of Sound and Memory（聲憶之庭）— group FYP immersive installation. Two memory stories run side by side in one garden while seasons loop meeting → build-up → separation → cool-down."
               },
               {
-                "title": "hi",
-                "text": "nigga\n"
+                "title": "Story",
+                "text": "Left, human and environment: a gardener meets an injured bird, cares for it, then plays with the bird and its friends. Right, person to person: kids collide into friendship, help each other, then drift apart. The tree keeps the two stories apart; spring petals reset the year."
               },
               {
-                "title": "",
-                "text": ""
+                "title": "What happens in the installation",
+                "text": "Animation part — sit with the seasonal film and read both sides of the garden. Interactive part — characters (and a “wave your hands” cue) break the fourth wall; Kinect tracks your body so you generate live sound and stay inside the piece with the cast."
+              },
+              {
+                "title": "My role",
+                "text": "Animator & Illustrator — timeline, style, storyboard, and the animated sequences."
               }
             ],
             "pieces": [
               {
                 "kind": "image",
-                "src": "/uploads/0b0535_441ee70cd48d499db00bd0535b26dc8f.jpg",
+                "src": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
+                "hero": true
+              },
+              {
+                "kind": "youtube",
+                "src": "https://youtu.be/L4Cxz96hIxQ",
+                "hero": false
+              },
+              {
+                "kind": "youtube",
+                "src": "https://youtu.be/KHLJnf5X_5g",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_acf47a340f20429997482d47abeab09a.gif",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_ef213fb0acca48d98061b993547ad652.gif",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_d14ef67d853e423d9dac5b82033719ba.gif",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_eb32c762b9c546aea03bb932b0cd678d.gif",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_fd3f565288874af89c02a5fb0b2c9f25.webp",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_767a8977782b438589fea9f9d5321fba.webp",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_6900dad63e2c492894a2203b7d9e3570.webp",
+                "hero": false
+              }
+            ],
+            "role": "Animator & Illustrator",
+            "output": "Animation demo · live interactive session"
+          },
+          {
+            "label": "Song Jacket Design",
+            "image": "/uploads/0b0535_d616a93ca451424c97dc06256ba25b28.jpg",
+            "link": "",
+            "blockType": "work",
+            "size": "1x1",
+            "title": "Song Jacket Design",
+            "featured": false,
+            "tags": [
+              "Illustrator Works",
+              "Illustration",
+              "Character Design"
+            ],
+            "year": "2025–2026",
+            "category": "Illustration",
+            "intro": "Song jackets for tracks: two collabs (稜鏡軌跡, Elegance Protocol) plus my own fanart covers — same craft of making a song read at thumbnail size.",
+            "sections": [
+              {
+                "title": "Overview",
+                "text": "Song jackets for tracks: two collabs (稜鏡軌跡, Elegance Protocol) plus my own fanart covers, same craft of making a song read at thumbnail size."
+              },
+              {
+                "title": "Collabs",
+                "text": "Listen: 稜鏡軌跡 https://youtu.be/ddudvrJfHWo · Elegance Protocol https://soundcloud.com/wuntonm/elegance-protocol-dynamix. Partnered projects where I drew the jackets for someone else’s track world. First two images in the gallery."
+              },
+              {
+                "title": "Own work",
+                "text": "Fanart song jackets I designed end-to-end: composition, character, and type that still hold as a cover."
+              },
+              {
+                "title": "What you see",
+                "text": "Full jackets and crop details — strong silhouette, title lockup, colour that survives small booth / player thumbs."
+              }
+            ],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_d616a93ca451424c97dc06256ba25b28.jpg",
                 "hero": true
               },
               {
                 "kind": "image",
-                "src": "/uploads/IMG1207-b9c037.jpg",
+                "src": "/uploads/0b0535_7f0f213a841e4b76a496f506d95448ce.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_4e30b5c5c3c74d8d8323017f09a031b5.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_6799b4490e064aa181be3842b830696c.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_ec83defde03c4b0899c0189f7c70c61d.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_22d8e04d7365485eb214b59f56ba1e92.png",
                 "hero": false
               }
             ]
           },
           {
-            "label": "Illustrator works",
-            "image": "/uploads/0b0535_ad8c3868a5bc477ab0f62d9428e20eae.jpg",
-            "link": "/illustrator-works",
-            "blockType": "work",
+            "title": "Character Design",
+            "year": "2024–2026",
+            "featured": false,
             "size": "1x1",
-            "title": "Illustrator works",
+            "tags": [
+              "Character Design",
+              "Illustration"
+            ],
+            "intro": "Character sheets and concepts across commissioned and personal work — 稜鏡軌跡, Elegance Protocol, Silvercord Game Centre, Mermaid, FYP animation, and original characters.",
+            "sections": [],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_c927adecefdb49799afda354bb5d4c69.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_6b4345e0326d40af89f2fa93f17c2bad.jpeg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_4311912102fb4045b31a58f136732ae7.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_5f625af70b8e47d9bd992628ecd9b5f1.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_9b3ba633b6dd4ee9a528f2b1910d1f03.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_b25493dde44b4c0ab561d2fcfbf2460c.jpeg",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_3048fd87cc01436bb0dd1e98ce136bb2.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_96e92602ac9b4483a978ac2cf80422f2.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_a92e30a5d71b4494960f7056e3bff07e.jpeg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_786cb18bf3d84ce5a168214282ea8830.jpeg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_1f026abbd2224876bcfa71046fe73f74.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_36a02aae5dce4e4f9bec82e3c52df540.jpeg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_ddee362f77904042b00238806c6b04c1.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_ebf5c5d5284d4cfabf1e40ae065e4ec4.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_579679073098465789305a35e85b7eca.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_7fc30f8ac4d845f281d860dd8212907d.jpeg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_d64175f85a6e4068ab93c5ef57eb27f4.jpeg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_9052d7555d844942bde8d19cc82d3f5f.png",
+                "hero": false
+              }
+            ],
+            "blockType": "work",
+            "image": "/uploads/0b0535_b25493dde44b4c0ab561d2fcfbf2460c.jpeg"
+          },
+          {
+            "label": "Silvercord Game Centre",
+            "image": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
+            "link": "",
+            "blockType": "work",
+            "size": "2x1",
+            "title": "Silvercord Game Centre",
             "featured": true,
             "tags": [
-              "illustrator works"
-            ]
+              "Character Design",
+              "Illustrator Works",
+              "Illustration"
+            ],
+            "year": "2026",
+            "category": "Character Design",
+            "intro": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world.",
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_1f026abbd2224876bcfa71046fe73f74.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/live-stream-01-568790.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/live-stream-03-acb32d.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/live-stream-04-25294b.png",
+                "hero": false
+              }
+            ],
+            "sections": [
+              {
+                "title": "Overview",
+                "text": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world."
+              },
+              {
+                "title": "What you see",
+                "text": "Character（Train conductor）, app icon set, and livestream cover / layout comps."
+              }
+            ],
+            "role": "Character design, web app icons, livestream layout",
+            "output": "Web app icon, maimai livestream cover & layout, character（Train conductor）"
           },
           {
-            "label": "CHARACTER DESIGN",
-            "image": "/uploads/0b0535_b25493dde44b4c0ab561d2fcfbf2460c.jpeg",
-            "link": "/character-design",
+            "title": "Illustrations",
+            "year": "2024–2026",
+            "featured": false,
+            "size": "1x1",
+            "tags": [
+              "Illustration"
+            ],
+            "intro": "Finished illustrations spanning full scenes and cleaner character pieces — colour, mood, and storytelling through a single frame.",
+            "sections": [],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_c9792f421fbb49efb34ced569fdcc39f.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/9_10_2026-0202e9.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_e5faeefca5e04f88a15d586f3c2a3ada.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/image-3a1948.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_2be2be01ad8b46738942ddc8c7ec17b3.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_99831b40dac1473a9cd40955d9c88c99.jpg",
+                "hero": false
+              }
+            ],
+            "blockType": "work",
+            "image": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg"
+          },
+          {
+            "label": "Fanbooks",
+            "image": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
+            "link": "",
             "blockType": "work",
             "size": "1x1",
-            "title": "CHARACTER DESIGN",
+            "title": "Fanbooks",
             "featured": true,
             "tags": [
-              "Character Design"
+              "Illustrator Works",
+              "Illustration",
+              "Product Design"
+            ],
+            "year": "2026",
+            "category": "Print / Illustration",
+            "intro": "A cafe-menu concept maimai fanbook: each page is a character special — illustration and interior layout built for booth browsing.",
+            "sections": [
+              {
+                "title": "Overview",
+                "text": "A cafe-menu concept maimai fanbook. Each spread treats one cast member as today's special: character art plus a cafe-style menu board, made to flip through at a booth."
+              },
+              {
+                "title": "What you see",
+                "text": "Six maimai characters, each holding their matching dessert or drink on cafe-style menu interiors."
+              }
+            ],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/Sweetie-Paradise_003-a8a02b.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-menu-laz.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-menu-salt.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-interior-04.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-interior-01.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-interior-03.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-interior-02.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_432a7366437c4a409df85bf34cfeae4d.jpg",
+                "hero": false
+              }
             ]
           },
           {
-            "label": "PRODUCT DESIGN",
-            "image": "/uploads/0b0535_ba49d4be933243ffb4ecc321fdef61b7.jpg",
-            "link": "/product-design",
+            "label": "Illustrator",
+            "image": "/uploads/ill-works-landai-poster.png",
+            "link": "",
             "blockType": "work",
             "size": "1x1",
-            "title": "PRODUCT DESIGN",
+            "title": "Illustrator Works",
+            "featured": false,
             "tags": [
-              "product design"
+              "Illustrator Works",
+              "Illustration"
+            ],
+            "year": "2024–2026",
+            "category": "Event Graphics",
+            "intro": "A selection of work made in Adobe Illustrator—vector graphics, layouts, and print-ready assets.",
+            "sections": [],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/ill-works-landai-poster.png",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_62e265d403904d4da15447c3200e8ed0.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_358d0d96f3744bf294e1d3666298e8ec.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_82719dab230a4eec8c2ba8385fd9e26d.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_ad6f51ffb9254266b3b890abf5d2c150.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_943c0778d8a840d0bac067721644a028.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_1246863b2d134ec289eb823f3c9e9668.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_9631d0f0feb14af3bb5644b08f784235.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_505cd74046ab413497817849fe4dfd6c.jpg",
+                "hero": false
+              }
             ]
           },
           {
-            "label": "FYP PROJECT",
-            "image": "/uploads/0b0535_89cbd98bfdb34473863cea29739bdd6e.jpg",
-            "link": "/animationsfyp",
-            "blockType": "work",
+            "title": "Fancy Frontier 47",
+            "year": "2025",
+            "featured": false,
             "size": "1x1",
-            "title": "FYP PROJECT",
             "tags": [
-              "Animations(FYP)"
-            ]
+              "Product Design",
+              "Merch",
+              "Illustration"
+            ],
+            "intro": "Convention merch under 紅色荔枝樹 at Fancy Frontier 47 — character goods designed for the table: artbooks, acrylic charms, stickers, shikishi, and mini NFC CDs.",
+            "sections": [
+              {
+                "title": "Booth & products",
+                "text": "Booth at Fancy Frontier 47 plus product lines (maimai chibi keychains & stickers, shikishi (色紙 ), mini NFC CD sets) and booth price lists. \nFocus: print finish, die-cut acrylic, NFC mini discs, and how the display reads from the aisle."
+              }
+            ],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/merch-ff47-booth-a1b2c3.jpg",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_ba49d4be933243ffb4ecc321fdef61b7.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_b1ac92ee6b724b9f8d1064e5a8fc5c1c.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_7140d249395f499aa8dbe33bc6082455.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_2b6c21c359974f78ae164bf14b987cce.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_62e265d403904d4da15447c3200e8ed0.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_358d0d96f3744bf294e1d3666298e8ec.jpg",
+                "hero": false
+              }
+            ],
+            "blockType": "work",
+            "image": "/uploads/merch-ff47-booth-a1b2c3.jpg"
           },
           {
-            "label": "Ai Projects",
-            "image": "/uploads/IMG1207-b9c037.jpg",
-            "link": "/ai-projects",
-            "blockType": "work",
+            "title": "Rainbow Gala 33",
+            "year": "2026",
+            "featured": false,
             "size": "1x1",
-            "title": "Ai Projects",
             "tags": [
-              "Ai Projects"
-            ]
+              "Product Design",
+              "Merch",
+              "Illustration"
+            ],
+            "intro": "Convention merch under 紅色荔枝樹 at Rainbow Gala 33 — the same product line on the table: acrylic charms, stickers, shikishi, and mini NFC CDs.",
+            "sections": [
+              {
+                "title": "Booth & products",
+                "text": "Booth at Rainbow Gala 33 with product display and price lists; same physical product design focus as FF47."
+              }
+            ],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/merch-rg33-booth-d4e5f6.jpg",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/merch-shikishi-nfc-789abc.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/merch-maimai-charms-def012.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_330b0356f42c4fb4b898c37852330eac.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_6f890c9065f84201b15cefd3d4d88484.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_943c0778d8a840d0bac067721644a028.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_1246863b2d134ec289eb823f3c9e9668.jpg",
+                "hero": false
+              }
+            ],
+            "blockType": "work",
+            "image": "/uploads/merch-rg33-booth-d4e5f6.jpg"
           }
         ],
         "id": "s-home-works",
@@ -1152,18 +2058,18 @@
         "canvasWidth": 2560,
         "canvasWidthMode": "screen",
         "tags": [
-          "Artworks",
-          "illustrator works",
+          "Illustrator Works",
           "Character Design",
-          "product design",
-          "Animations(FYP)",
-          "Ai Projects"
+          "Animations",
+          "Illustration",
+          "Product Design",
+          "Merch"
         ]
       }
     ],
     "aboutCard": {
       "intro": "Hi , I am Abbie Yeung ! A Graduated Student from Creative Media.\nI am an artist focused on multimedia and illustration design, skilled at blending delicate visual language into digital media. My design style is clean yet expressive, with a strong sense of storytelling. Through my work, I aim to build visual experiences that are both aesthetically pleasing and emotionally engaging.\n\nI believe that great design is more than a visual outcome; it’s a vessel for meaning. In every project, I remain committed to a core concept, solving problems through pure form to build a sincere connection between brand and audience.",
-      "video": "",
+      "video": "/uploads/portfolio-showcase-cdb83a.mp4",
       "board": {
         "id": "about-card-front",
         "layout": "canvas",
@@ -1171,131 +2077,10 @@
         "canvasWidth": 640,
         "canvasHeight": 400,
         "canvasBg": "",
-        "layers": [
-          {
-            "id": "l-d66s9p6",
-            "type": "text",
-            "name": "Intro",
-            "x": 28,
-            "y": 28,
-            "w": 584,
-            "h": 107,
-            "text": "Hi , I am Abbie Yeung ! A Graduated Student from Creative Media.\nI am an artist focused on multimedia and illustration design, skilled at blending delicate visual language into digital media. My design style is clean yet expressive, with a strong sense of storytelling. Through my work, I aim to build visual experiences that are both aesthetically pleasing and emotionally engaging.\n\nI believe that great design is more than a visual outcome; it’s a vessel for meaning. In every project, I remain committed to a core concept, solving problems through pure form to build a sincere connection between brand and audience.",
-            "src": "",
-            "alt": "",
-            "link": "",
-            "hidden": false,
-            "locked": false,
-            "z": 1,
-            "color": "",
-            "bg": "",
-            "font": "",
-            "size": 14,
-            "weight": 400,
-            "align": "left",
-            "lineHeight": 1.5,
-            "letterSpacing": 0,
-            "radius": 0,
-            "borderWidth": 0,
-            "borderColor": "",
-            "fit": "cover",
-            "animated": false,
-            "anim": "none",
-            "delay": 0,
-            "duration": 0.9,
-            "images": [],
-            "columns": 3,
-            "gap": 16,
-            "aspect": "natural",
-            "hugging": true,
-            "autoFit": true,
-            "buttonStyle": "pill",
-            "newTab": true,
-            "paragraph": false
-          },
-          {
-            "id": "l-k0p43u4",
-            "type": "text",
-            "name": "Email",
-            "x": 28,
-            "y": 310,
-            "w": 180,
-            "h": 36,
-            "text": "Write something here.",
-            "src": "",
-            "alt": "",
-            "link": "",
-            "hidden": false,
-            "locked": false,
-            "z": 2,
-            "color": "",
-            "bg": "",
-            "font": "",
-            "size": 16,
-            "weight": 600,
-            "align": "left",
-            "lineHeight": 1.25,
-            "letterSpacing": 0,
-            "radius": 0,
-            "borderWidth": 0,
-            "borderColor": "",
-            "fit": "cover",
-            "animated": false,
-            "anim": "none",
-            "delay": 0,
-            "duration": 0.9,
-            "images": [],
-            "columns": 3,
-            "gap": 16,
-            "aspect": "natural",
-            "hugging": true,
-            "autoFit": true,
-            "buttonStyle": "pill",
-            "newTab": true,
-            "paragraph": false
-          },
-          {
-            "id": "l-wnpjiau",
-            "type": "text",
-            "name": "Socials",
-            "x": 28,
-            "y": 348,
-            "w": 172,
-            "h": 36,
-            "text": "Write something here.",
-            "src": "",
-            "alt": "",
-            "link": "",
-            "hidden": false,
-            "locked": false,
-            "z": 3,
-            "color": "",
-            "bg": "",
-            "font": "",
-            "size": 16,
-            "weight": 400,
-            "align": "left",
-            "lineHeight": 1.25,
-            "letterSpacing": 0,
-            "radius": 0,
-            "borderWidth": 0,
-            "borderColor": "",
-            "fit": "cover",
-            "animated": false,
-            "anim": "none",
-            "delay": 0,
-            "duration": 0.9,
-            "images": [],
-            "columns": 3,
-            "gap": 16,
-            "aspect": "natural",
-            "hugging": true,
-            "autoFit": true,
-            "buttonStyle": "pill",
-            "newTab": true,
-            "paragraph": false
-          }
-        ]
+        "layers": [],
+        "canvasImage": "/uploads/portfolio-card-879f46.png",
+        "canvasImageX": 50,
+        "canvasImageY": 50
       }
     }
   },
@@ -1834,8 +2619,8 @@
             "name": "Title",
             "x": 922,
             "y": 289,
-            "w": 729,
-            "h": 96,
+            "w": 20,
+            "h": 28,
             "text": "ILLUSTRATOR WORK",
             "src": "",
             "alt": "",
@@ -1912,8 +2697,8 @@
             "name": "Subtitle",
             "x": 1024,
             "y": 450,
-            "w": 514,
-            "h": 64,
+            "w": 20,
+            "h": 20,
             "text": "A selection of my works using illustrator to create.",
             "src": "",
             "alt": "",
@@ -2205,7 +2990,7 @@
             "id": "l-85crlmk",
             "type": "shape",
             "name": "Title highlight",
-            "x": 599,
+            "x": 1144,
             "y": 305,
             "w": 275,
             "h": 38,
@@ -2246,10 +3031,10 @@
             "id": "l-5oeug80",
             "type": "heading",
             "name": "Title",
-            "x": 285,
+            "x": 830,
             "y": 281,
-            "w": 380,
-            "h": 89,
+            "w": 20,
+            "h": 28,
             "text": "ARTWORKS",
             "src": "",
             "alt": "",
@@ -2286,7 +3071,7 @@
             "id": "l-awwf38v",
             "type": "divider",
             "name": "Rule",
-            "x": 709,
+            "x": 1254,
             "y": 384,
             "w": 54,
             "h": 2,
@@ -2325,10 +3110,10 @@
             "id": "l-j927jf5",
             "type": "text",
             "name": "Subtitle",
-            "x": 285,
+            "x": 830,
             "y": 456,
-            "w": 964,
-            "h": 44,
+            "w": 20,
+            "h": 20,
             "text": "A selection of my visual art projects and experiments, exploring different styles, moods and storytelling through images.",
             "src": "",
             "alt": "",
@@ -2368,7 +3153,7 @@
         "canvasImage": "/uploads/0b0535_5507d038a9634f0a99e315eac213887a.jpg",
         "items": [],
         "buttons": [],
-        "canvasWidth": 1470,
+        "canvasWidth": 2560,
         "canvasWidthMode": "screen"
       }
     },
@@ -2817,8 +3602,8 @@
             "name": "Title",
             "x": 972,
             "y": 281,
-            "w": 605,
-            "h": 63,
+            "w": 20,
+            "h": 28,
             "text": "Character Design",
             "src": "",
             "alt": "",
@@ -3198,7 +3983,7 @@
     {
       "id": "p-fyp",
       "slug": "animationsfyp",
-      "navLabel": "Animations(FYP)",
+      "navLabel": "Animations",
       "showInNav": false,
       "title": "FYP project",
       "subtitle": "A selection of my FYP group project animation show case.",
@@ -3528,8 +4313,8 @@
             "name": "Title",
             "x": 830,
             "y": 281,
-            "w": 900,
-            "h": 64,
+            "w": 372,
+            "h": 88,
             "text": "FYP project",
             "src": "",
             "alt": "",
@@ -3607,8 +4392,8 @@
             "name": "Subtitle",
             "x": 830,
             "y": 456,
-            "w": 900,
-            "h": 80,
+            "w": 472,
+            "h": 44,
             "text": "A selection of my FYP group project animation show case.",
             "src": "",
             "alt": "",
@@ -3636,7 +4421,7 @@
             "columns": 3,
             "gap": 16,
             "aspect": "natural",
-            "hugging": false,
+            "hugging": true,
             "autoFit": true,
             "buttonStyle": "pill",
             "newTab": true,

@@ -30,6 +30,10 @@
   <% }) %>
   </div>
 
+  <div id="about" class="page-anchor">
+    <%- include('partials/about-card', { home, site }) %>
+  </div>
+
   <section id="works" class="works-slot page-anchor" data-filter="all" aria-labelledby="works-title">
     <h2 id="works-title" class="title-highlight"><span>Works</span></h2>
     <% const workCards = (home.works && home.works.cards) || []; %>
@@ -143,10 +147,6 @@
     <% } %>
     <script type="application/json" id="works-cases" class="works-cases-data"><%- JSON.stringify(workCases).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029') %></script>
   </section>
-
-  <div id="about" class="page-anchor">
-    <%- include('partials/about-card', { home, site }) %>
-  </div>
 
   <section class="contact page-anchor" id="contact">
     <div class="contact-info reveal">

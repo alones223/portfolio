@@ -1523,12 +1523,12 @@ function publicPages(content) {
 function navFor(content, currentSlug) {
   const items = [
     { label: content.site.homeNavLabel || 'Home', href: '/#home', active: !currentSlug || currentSlug === 'home' },
-    { label: 'Works', href: '/#works', active: currentSlug === 'works' },
     { label: 'About', href: '/#about', active: currentSlug === 'about' },
+    { label: 'Works', href: '/#works', active: currentSlug === 'works' },
     { label: 'Contact', href: '/#contact', active: currentSlug === 'contact' },
   ];
   // Extra pages stay available for a cloned site. This portfolio hides its old
-  // pages with showInNav, so the public menu is Home, Works, About, Contact.
+  // pages with showInNav, so the public menu is Home, About, Works, Contact.
   publicPages(content).forEach((p) => {
     items.push({ label: p.navLabel || p.title, href: `/#${p.slug}`, active: p.slug === currentSlug });
   });

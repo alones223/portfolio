@@ -1063,7 +1063,7 @@
     board.id = board.id || 'about-card-front';
     board.layout = 'canvas';
     board.heading = board.heading || 'About card';
-    // Same size as the public card (.namecard max-width 640, 640x400 board).
+    // Authoring size. The public card scales this 640x400 board up to 1200px wide.
     board.canvasWidth = 640;
     board.canvasHeight = 400;
     delete board.canvasWidthMode;
@@ -1071,21 +1071,6 @@
     board.layers = Array.isArray(board.layers) ? board.layers : [];
     board.layers = board.layers.filter((l) => !(l && l.type === 'gallery'
       && !(l.images || []).some((i) => i && i.image)));
-    if (!board.layers.length) {
-      const add = (type, patch) => board.layers.push(window.CanvasEditor.defaultLayer(type, patch));
-      add('text', {
-        name: 'Intro', text: data.intro || '', x: 28, y: 28, w: 584, h: 260,
-        size: 14, weight: 400, lineHeight: 1.5, align: 'left', hugging: false, z: 1, animated: false, anim: 'none',
-      });
-      add('text', {
-        name: 'Email', x: 28, y: 310, w: 400, h: 30,
-        size: 16, weight: 600, align: 'left', hugging: false, z: 2, animated: false, anim: 'none',
-      });
-      add('text', {
-        name: 'Socials', x: 28, y: 348, w: 300, h: 32,
-        size: 16, weight: 400, align: 'left', hugging: false, z: 3, animated: false, anim: 'none',
-      });
-    }
     const host = h('div', { class: 'canvas-host about-card-host' });
     attachCanvasEditor(board, host, null, { fixedBoard: true });
     const url = h('input', { type: 'text', placeholder: 'https://… or /uploads/….mp4', 'aria-label': 'Motion graphic address' });
@@ -1104,7 +1089,7 @@
       changed();
     });
     return [
-      h('p', { class: 'hint' }, 'Drag the introduction, the Email layer, and the Socials layer. Font size, alignment, and position are on each layer. On the site, Email shows the address from Site settings, and Socials shows those icons. Keep those two layer names. This board is only for this card. It is not in the shared template library.'),
+      h('p', { class: 'hint' }, 'Add only the layers you want on this card. Nothing is placed for you. This board is only for this card. It is not in the shared template library.'),
       host,
       fields(wrapField('Motion graphic', h('div', { class: 'img-buttons' },
         url,
@@ -1656,9 +1641,32 @@
       return section.tags;
     }
 
+    function renameTag(from, to) {
+      const next = String(to || '').trim();
+      if (!from || !next || next === from) return false;
+      const names = keepCatalog();
+      if (names.includes(next) && next !== from) {
+        toast('That tag name is already used.', true);
+        return false;
+      }
+      section.tags = names.map((item) => (item === from ? next : item));
+      (section.cards || []).forEach((card) => {
+        if (!Array.isArray(card.tags)) return;
+        card.tags = card.tags.map((item) => (item === from ? next : item));
+      });
+      changed();
+      paint();
+      if (editorHooks.onCatalogChange) editorHooks.onCatalogChange();
+      return true;
+    }
+
     function paint() {
       const names = catalog();
       catalogBox.replaceChildren(...names.map((tag) => {
+        const label = h('span', {
+          class: 'tag-chip-label',
+          title: 'Double-click to rename',
+        }, tag);
         const remove = h('button', { type: 'button', class: 'tag-remove', 'aria-label': `Remove ${tag}` }, '×');
         remove.addEventListener('click', (e) => {
           e.preventDefault();
@@ -1671,7 +1679,37 @@
           paint();
           if (editorHooks.onCatalogChange) editorHooks.onCatalogChange();
         });
-        return h('span', { class: 'tag-chip is-on' }, tag, remove);
+        const chip = h('span', { class: 'tag-chip is-on' }, label, remove);
+        label.addEventListener('dblclick', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const edit = h('input', {
+            type: 'text',
+            class: 'tag-rename',
+            value: tag,
+            'aria-label': `Rename ${tag}`,
+          });
+          const finish = (commit) => {
+            const value = edit.value;
+            if (edit.isConnected) chip.replaceChild(label, edit);
+            if (commit) renameTag(tag, value);
+            else label.textContent = tag;
+          };
+          edit.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') {
+              ev.preventDefault();
+              finish(true);
+            } else if (ev.key === 'Escape') {
+              ev.preventDefault();
+              finish(false);
+            }
+          });
+          edit.addEventListener('blur', () => finish(true));
+          chip.replaceChild(edit, label);
+          edit.focus();
+          edit.select();
+        });
+        return chip;
       }));
     }
 
@@ -1691,7 +1729,7 @@
 
     host.append(
       h('div', { class: 'list-head' }, h('span', { class: 'field-label' }, 'Tags')),
-      h('p', { class: 'hint' }, 'These are the filters on the site. Add or remove tags here. Turn a tag on for a work inside that work’s editor.'),
+      h('p', { class: 'hint' }, 'These are the filters on the site. Double-click a tag to rename it, or add / remove tags here. Turn a tag on for a work inside that work’s editor.'),
       catalogBox,
       input);
     paint();

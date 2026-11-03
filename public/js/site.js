@@ -294,7 +294,7 @@
   // ---- Works grid: pack cells, then open a project in place --------------
   // A block that does not fit the remaining columns moves to the next row.
   // Later blocks do not jump back into the gap it left.
-  var workScroll = { y: 0, locked: false };
+  var workScroll = { y: 0, locked: false, invoker: null, pin: 0, behaviorHeld: false, behaviorPrev: '' };
   var popupListenersBound = false;
   document.querySelectorAll('.works-cells').forEach(function (worksGrid) {
     function worksColumns() {
@@ -444,17 +444,63 @@
         el.textContent = value;
       }
       function lockScroll() {
-        workScroll.y = window.scrollY;
+        if (workScroll.locked) return;
+        workScroll.y = window.scrollY || document.documentElement.scrollTop || 0;
         document.body.classList.add('work-open');
         document.body.style.top = (-workScroll.y) + 'px';
         workScroll.locked = true;
+      }
+      // html uses scroll-behavior: smooth. A plain scrollTo after unlock
+      // animates from the top and looks like the page reloaded.
+      function holdInstantScroll() {
+        if (workScroll.behaviorHeld) return;
+        workScroll.behaviorHeld = true;
+        workScroll.behaviorPrev = document.documentElement.style.scrollBehavior;
+        document.documentElement.style.scrollBehavior = 'auto';
+      }
+      function releaseInstantScroll(pin) {
+        if (workScroll.pin !== pin || !workScroll.behaviorHeld) return;
+        document.documentElement.style.scrollBehavior = workScroll.behaviorPrev || '';
+        workScroll.behaviorHeld = false;
+      }
+      function scrollInstant(y) {
+        holdInstantScroll();
+        try {
+          window.scrollTo({ left: 0, top: y, behavior: 'instant' });
+        } catch (err) {
+          window.scrollTo(0, y);
+        }
+      }
+      function focusInvoker() {
+        var invoker = workScroll.invoker;
+        if (!invoker || !invoker.isConnected || typeof invoker.focus !== 'function') return;
+        invoker.focus({ preventScroll: true });
+      }
+      // Dialog close returns focus after the close event and scrolls the opener
+      // into view. Pin the position from open, then again on the next frames.
+      function pinSavedScroll() {
+        var y = workScroll.y;
+        var pin = (workScroll.pin += 1);
+        scrollInstant(y);
+        focusInvoker();
+        scrollInstant(y);
+        requestAnimationFrame(function () {
+          if (workScroll.pin !== pin) return;
+          focusInvoker();
+          scrollInstant(y);
+          requestAnimationFrame(function () {
+            if (workScroll.pin !== pin) return;
+            scrollInstant(y);
+            releaseInstantScroll(pin);
+          });
+        });
       }
       function unlockScroll() {
         if (!workScroll.locked) return;
         workScroll.locked = false;
         document.body.classList.remove('work-open');
         document.body.style.top = '';
-        window.scrollTo(0, workScroll.y);
+        pinSavedScroll();
       }
       function readCases(btn) {
         var slot = btn && btn.closest ? btn.closest('.works-slot') : null;
@@ -492,6 +538,32 @@
         }));
         factsEl.hidden = rows.length === 0;
       }
+      function linkifySectionText(text) {
+        var frag = document.createDocumentFragment();
+        var re = /(https?:\/\/[^\s<>"']+)/g;
+        var last = 0;
+        var m;
+        var value = String(text || '');
+        while ((m = re.exec(value))) {
+          if (m.index > last) frag.appendChild(document.createTextNode(value.slice(last, m.index)));
+          var url = m[1];
+          var trail = '';
+          while (/[),.;:!?]$/.test(url)) {
+            trail = url.slice(-1) + trail;
+            url = url.slice(0, -1);
+          }
+          var a = document.createElement('a');
+          a.href = url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = url;
+          frag.appendChild(a);
+          if (trail) frag.appendChild(document.createTextNode(trail));
+          last = m.index + m[1].length;
+        }
+        if (last < value.length) frag.appendChild(document.createTextNode(value.slice(last)));
+        return frag;
+      }
       function fillSections(sections) {
         var list = Array.isArray(sections) ? sections : [];
         sectionsEl.replaceChildren.apply(sectionsEl, list.map(function (section) {
@@ -504,7 +576,7 @@
           }
           if (section && section.text) {
             var body = document.createElement('p');
-            body.textContent = section.text;
+            body.appendChild(linkifySectionText(section.text));
             block.append(body);
           }
           return block;
@@ -560,12 +632,15 @@
         popup.scrollTop = 0;
         copyEl.scrollTop = 0;
         piecesEl.scrollTop = 0;
+        workScroll.invoker = btn;
         lockScroll();
         if (!popup.open) popup.showModal();
       }
       function closeWork() {
         if (popup.open) popup.close();
         unlockScroll();
+        // close() focuses the opener after the close listeners have run.
+        pinSavedScroll();
       }
       var worksSlot = worksGrid.closest('.works-slot') || worksGrid;
       worksSlot.addEventListener('click', function (e) {
@@ -579,7 +654,11 @@
         // The close button unlocks itself. Escape still closes the dialog natively,
         // including browsers that do not emit the dialog close event.
         popup.addEventListener('keydown', function (e) {
-          if (e.key === 'Escape') requestAnimationFrame(unlockScroll);
+          if (e.key !== 'Escape') return;
+          requestAnimationFrame(function () {
+            unlockScroll();
+            pinSavedScroll();
+          });
         });
         popup.addEventListener('close', unlockScroll);
         // Backdrop clicks are retargeted onto the dialog. Only a press and

@@ -1321,8 +1321,13 @@ window.CanvasEditorUI = (function () {
       measuredW = Math.min(Math.max(Math.ceil(measuredW + padX * 2), 20), 6000);
       measuredH = Math.max(Math.ceil(measuredH + padY * 2), 20);
       // Hard cap: autofit height should track lines, not a stuck min-height / wrap blow-up.
-      const heightCap = Math.ceil(fontSize * lineHeight * lineCount + padY * 2 + fontSize * 0.5);
-      measuredH = Math.min(measuredH, Math.max(heightCap, fontSize + padY * 2));
+      // Only applies when the width is hugged (no wrapping). With a fixed width the
+      // words wrap onto more lines than there are line breaks, so the measured
+      // height is the real one and must not be capped.
+      if (shrinkWidth) {
+        const heightCap = Math.ceil(fontSize * lineHeight * lineCount + padY * 2 + fontSize * 0.5);
+        measuredH = Math.min(measuredH, Math.max(heightCap, fontSize + padY * 2));
+      }
       box.style.cssText = prevBox;
       el.style.cssText = prevEl;
       l.hugging = true;
@@ -3656,28 +3661,37 @@ window.CanvasEditorUI = (function () {
       if (!box || box.querySelector('.cv-inline-edit')) return;
       if (gestureOpen) endGesture();
       record();
+      // Hide the painted copy so Enter and typing do not stack on top of it.
+      [...box.children].forEach((node) => { node.style.visibility = 'hidden'; });
       const editor = h('textarea', {
         class: 'cv-inline-edit',
         style: `${layerStyle(layer)};background:transparent`,
       });
       editor.value = layer.text || '';
       editor.addEventListener('pointerdown', (ev) => ev.stopPropagation());
-      const commit = () => {
-        if (!editor.isConnected) return;
-        layer.text = editor.value;
+      let closed = false;
+      const finish = (save) => {
+        if (closed || !editor.isConnected) return;
+        closed = true;
+        editor.removeEventListener('blur', onBlur);
+        if (save) layer.text = editor.value;
         editor.remove();
-        onChange();
-        fitTextBox(layer);
-        render();
+        [...box.children].forEach((node) => { node.style.visibility = ''; });
+        if (save) {
+          onChange();
+          fitTextBox(layer);
+          render();
+        } else {
+          paintBoard();
+        }
       };
-      editor.addEventListener('blur', commit);
+      const onBlur = () => finish(true);
+      editor.addEventListener('blur', onBlur);
       editor.addEventListener('keydown', (ev) => {
         ev.stopPropagation();
         if (ev.key === 'Escape') {
           ev.preventDefault();
-          editor.removeEventListener('blur', commit);
-          editor.remove();
-          paintBoard();
+          finish(false);
         } else if (ev.key === 'Enter' && layer.type === 'button') {
           ev.preventDefault();
           editor.blur();

@@ -219,7 +219,9 @@ button { font: inherit; color: inherit; }
   padding: 96px 48px 112px;
 }
 .namecard {
-  max-width: 640px;
+  /* Board is authored at 640px; show it larger so body text stays readable
+     on a full-screen desktop. Narrow screens still shrink to the column. */
+  width: min(1200px, 100%);
   margin: 32px auto 0;
   perspective: 1200px;
 }
@@ -250,19 +252,41 @@ button { font: inherit; color: inherit; }
   top: 0;
   width: calc(var(--board-w) * 1px);
   height: calc(var(--board-h) * 1px);
-  transform: scale(calc(100cqw / var(--board-w)));
+  transform: scale(calc(100cqw / (var(--board-w) * 1px)));
   transform-origin: top left;
+}
+/* Same type defaults as the admin canvas editor, so text wraps and looks
+   identical to what was laid out there. */
+.namecard-board {
+  font-family: system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", sans-serif;
 }
 .namecard-layer {
   position: absolute;
-  overflow: auto;
+  box-sizing: border-box;
+  overflow: hidden;
 }
+.namecard-bg {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-size: cover;
+  pointer-events: none;
+}
+.namecard-layer.is-hug { overflow: visible; }
+.namecard-turn { width: 100%; height: 100%; box-sizing: border-box; }
+.namecard-layer.is-hug .namecard-turn { height: 100%; }
+.namecard-layer.is-hug.is-text .namecard-turn { height: auto; }
+.namecard-layer .layer-shape,
+.namecard-layer .layer-shape-svg { display: block; width: 100%; height: 100%; }
+.namecard-img { display: block; width: 100%; height: 100%; }
+.namecard-copy { margin: 0; }
+.namecard-copy p { margin: 0; }
 .namecard-layer a { color: inherit; }
 .namecard-layer .socials { margin: 0; }
 .namecard-layer[data-align="center"] .socials { justify-content: center; }
 .namecard-layer[data-align="right"] .socials { justify-content: flex-end; }
 .namecard-layer .socials svg { width: 1.7em; height: 1.7em; }
-.namecard-copy p + p { margin-top: 0.6em; }
+.namecard-copy p + p { margin-top: 0.85em; }
 .namecard-fallback { padding: 28px; }
 .namecard-stage {
   position: relative;
@@ -496,7 +520,7 @@ button { font: inherit; color: inherit; }
 }
 .works-card-title {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 26px;
   line-height: 1.2;
 }
 .works-card-intro {
@@ -510,7 +534,7 @@ button { font: inherit; color: inherit; }
 }
 .works-view {
   margin-top: 2px;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.3;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -1049,6 +1073,24 @@ body.work-open { position: fixed; inset-inline: 0; width: 100%; overflow: hidden
   .works-features { grid-template-columns: 1fr; }
   .works-cell[data-size="2x1"],
   .works-cell[data-size="2x2"] { grid-column: span 1; }
+}
+
+@media (min-width: 1200px) {
+  .works-num { font-size: 15px; }
+  .works-feature-mark { font-size: 15px; }
+  .works-card-meta { font-size: 16px; }
+  .works-card-title { font-size: 34px; line-height: 1.2; }
+  .works-card-intro { font-size: 17px; line-height: 1.45; }
+  .works-view { font-size: 17px; }
+  .works-cell-copy { font-size: 18px; line-height: 1.55; }
+  .work-case-category { font-size: 16px; }
+  .work-case-title { font-size: clamp(36px, 2.5vw, 52px); }
+  .work-case-intro { font-size: 18px; line-height: 1.75; }
+  .work-case-tags li { font-size: 15px; }
+  .work-case-facts dt { font-size: 15px; }
+  .work-case-facts dd { font-size: 18px; line-height: 1.55; }
+  .work-case-section h3 { font-size: 24px; }
+  .work-case-section p { font-size: 18px; line-height: 1.75; }
 }
 
 @media (prefers-reduced-motion: reduce) {

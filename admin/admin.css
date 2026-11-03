@@ -265,6 +265,23 @@ fieldset.group legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
   line-height: 1;
   cursor: pointer;
 }
+
+.tag-chip-label { cursor: text; }
+.tag-rename {
+  width: auto;
+  min-width: 72px;
+  max-width: 180px;
+  height: 22px;
+  min-height: 22px;
+  margin: 0;
+  padding: 0 6px;
+  border: 1px solid var(--accent, #3b82f6);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.2;
+}
+
 .work-tags-panel {
   margin: 4px 0 16px;
   padding: 12px;
