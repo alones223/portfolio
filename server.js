@@ -825,6 +825,11 @@ app.use('/admin', express.static(path.join(ROOT, 'admin')));
 const loginAttempts = new Map(); // ip -> { count, until }
 
 
+function requireAuth(req, res, next) {
+  if (req.session && req.session.admin) return next();
+  res.status(401).json({ error: 'Please log in again.' });
+}
+
 function passwordMatches(input) {
   const a = crypto.createHash('sha256').update(String(input)).digest();
   const b = crypto.createHash('sha256').update(ADMIN_PASSWORD).digest();
