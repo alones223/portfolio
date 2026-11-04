@@ -44,11 +44,98 @@ button { font: inherit; color: inherit; }
 /* Header                                                              */
 /* ------------------------------------------------------------------ */
 
+/* The bar floats as a rounded pill. The header itself is only a transparent
+   sticky holder, so the page (and on the home page the hero photo) runs under
+   the glass. */
+:root { --nav-h: 68px; --nav-gap: 14px; }
 .site-header {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: var(--header-bg);
+  padding: var(--nav-gap) 24px 10px;
+  background: none;
+  pointer-events: none;
+}
+body.home .site-header {
+  padding-bottom: 0;
+  margin-bottom: calc(-1 * (var(--nav-h) + var(--nav-gap)));
+}
+.header-inner {
+  pointer-events: auto;
+  isolation: isolate;
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--header-bg) 82%, transparent);
+  box-shadow: 0 8px 30px rgba(10, 25, 47, .14);
+}
+.logo, .nav-toggle { position: relative; z-index: 1; }
+.logo img { border-radius: 50%; }
+
+/* Liquid glass, Apple style: almost clear, so the page shows through with only
+   a light blur. Colour is boosted instead of tinted, the edges carry bright
+   specular rims, and on Chromium the backdrop is also refracted (see #lg-refract). */
+@supports (backdrop-filter: blur(1px)) {
+  .header-inner {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, .04) 55%, rgba(255, 255, 255, .12)),
+      color-mix(in oklab, var(--header-bg) 9%, transparent);
+    -webkit-backdrop-filter: blur(7px) saturate(1.9) brightness(1.12) contrast(1.04);
+    backdrop-filter: blur(7px) saturate(1.9) brightness(1.12) contrast(1.04);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .9),
+      inset 0 -1px 0 rgba(255, 255, 255, .4),
+      inset 1px 0 0 rgba(255, 255, 255, .35),
+      inset -1px 0 0 rgba(255, 255, 255, .35),
+      inset 0 0 26px rgba(255, 255, 255, .16),
+      inset 0 -10px 18px -12px rgba(255, 255, 255, .5),
+      0 12px 34px rgba(10, 25, 47, .16),
+      0 2px 6px rgba(10, 25, 47, .08);
+  }
+  .header-inner::before,
+  .header-inner::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Specular glints: a bright patch at the top-left and a soft sweep across. */
+  .header-inner::before {
+    background:
+      radial-gradient(30% 150% at 7% -55%, rgba(255, 255, 255, .75), transparent 70%),
+      linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .22) 46%, transparent 54%),
+      radial-gradient(26% 120% at 93% 165%, rgba(255, 255, 255, .4), transparent 70%);
+    mix-blend-mode: soft-light;
+  }
+  /* The lit rim: brighter on top, fading toward the bottom. */
+  .header-inner::after {
+    border: 1px solid transparent;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .85), rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .5)) border-box;
+    -webkit-mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) exclude, linear-gradient(#000 0 0) padding-box;
+    mask-composite: exclude;
+  }
+  .site-nav a { text-shadow: 0 0 10px rgba(255, 255, 255, .55); }
+}
+/* Chromium accepts an SVG filter in backdrop-filter, which gives real refraction. */
+@supports (backdrop-filter: url(#lg-refract)) {
+  .lg-chromium .header-inner {
+    -webkit-backdrop-filter: url(#lg-refract) blur(5px) saturate(1.9) brightness(1.12) contrast(1.04);
+    backdrop-filter: url(#lg-refract) blur(5px) saturate(1.9) brightness(1.12) contrast(1.04);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .header-inner {
+    background: var(--header-bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: 0 6px 20px rgba(10, 25, 47, .14);
+  }
+  .header-inner::before,
+  .header-inner::after { display: none; }
 }
 @supports selector(:target-current) {
   .site-nav { scroll-target-group: auto; }
@@ -61,11 +148,11 @@ button { font: inherit; color: inherit; }
   display: flex;
   align-items: center;
   gap: 32px;
-  min-height: 80px;
-  padding: 12px 40px;
+  min-height: var(--nav-h);
+  padding: 6px 22px 6px 14px;
 }
 .logo { flex-shrink: 0; }
-.logo img { width: 56px; height: 56px; object-fit: cover; }
+.logo img { width: 54px; height: 54px; object-fit: cover; }
 .site-nav {
   position: absolute;
   left: 51.3%;
@@ -218,6 +305,9 @@ button { font: inherit; color: inherit; }
   background: var(--about-bg);
   padding: 96px 48px 112px;
 }
+@media (max-width: 600px) {
+  .about-card-slot { padding: 64px 16px 72px; }
+}
 .namecard {
   /* Board is authored at 640px; show it larger so body text stays readable
      on a full-screen desktop. Narrow screens still shrink to the column. */
@@ -288,10 +378,11 @@ button { font: inherit; color: inherit; }
 .namecard-layer .socials svg { width: 1.7em; height: 1.7em; }
 .namecard-copy p + p { margin-top: 0.85em; }
 .namecard-fallback { padding: 28px; }
+/* Back face must not size the card: it follows the front's height, otherwise
+   on narrow screens its min-height leaves a blank strip under the front. */
 .namecard-stage {
-  position: relative;
-  height: 100%;
-  min-height: 240px;
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -856,14 +947,14 @@ body.work-open { position: fixed; inset-inline: 0; width: 100%; overflow: hidden
   padding: 72px 48px 64px;
 }
 .footer-left, .footer-right { display: flex; flex-direction: column; }
-.footer-right { align-items: flex-end; text-align: right; }
+.footer-right { align-items: flex-start; text-align: left; }
 .footer-name,
 .footer-contact-title { font-size: 16px; font-weight: 500; line-height: 1.4; color: var(--navy); }
 .footer-copy { margin-top: auto; font-size: 15px; }
 .footer-right p { margin-top: 8px; font-size: 15px; }
 .footer-right a { text-decoration: none; }
 .footer-right a:hover { text-decoration: underline; }
-.footer-right .socials { margin-top: auto; }
+.footer-right .socials { margin-top: 16px; }
 
 .socials { display: flex; gap: 20px; }
 .socials a { display: block; transition: transform .2s; }
@@ -1014,7 +1105,7 @@ body.work-open { position: fixed; inset-inline: 0; width: 100%; overflow: hidden
 }
 
 @media (max-width: 1320px) {
-  .header-inner { gap: 16px; padding: 12px 16px; }
+  .header-inner { gap: 16px; padding: 6px 16px 6px 12px; }
   .site-nav a { font-size: 12px; letter-spacing: 0.02em; }
 }
 
@@ -1025,23 +1116,34 @@ body.work-open { position: fixed; inset-inline: 0; width: 100%; overflow: hidden
 
   /* Collapse the menu into a hamburger button */
   html { scroll-padding-top: 100px; }
-  .header-inner { min-height: 90px; padding: 10px 24px; }
-  .logo img { width: 66px; height: 66px; }
+  :root { --nav-h: 64px; }
+  .header-inner { padding: 5px 12px 5px 10px; }
+  .logo img { width: 52px; height: 52px; }
   .nav-toggle { display: flex; }
   .site-nav {
-    position: absolute; left: 0; right: 0; top: 100%; bottom: auto;
-    background: var(--header-bg);
+    position: absolute; left: 0; right: 0; top: calc(100% + 8px); bottom: auto;
+    border-radius: 28px;
+    /* The pill is a backdrop root, so this panel cannot blur the page behind it.
+       It stays mostly opaque instead, so the links are always readable. */
+    background: color-mix(in oklab, var(--header-bg) 90%, transparent);
     max-height: 0; overflow: hidden;
     transition: max-height .35s ease;
   }
-  .nav-open .site-nav { max-height: 480px; box-shadow: 0 12px 20px rgba(10, 25, 47, .12); }
+  .nav-open .site-nav { max-height: 480px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8), 0 14px 30px rgba(10, 25, 47, .16); }
+  @media (prefers-reduced-transparency: reduce) {
+    .site-nav {
+      background: var(--header-bg);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
   .site-nav ul { flex-direction: column; align-items: flex-start; gap: 4px; width: auto; margin-left: 0; margin-right: 0; padding: 10px 24px 24px; }
   .site-nav a { font-size: 14px; padding: 10px 0; }
 }
 
 @media (max-width: 900px) {
-  .header-inner { min-height: 80px; padding: 10px 20px; }
-  .logo img { width: 60px; height: 60px; }
+  .site-header { padding-left: 12px; padding-right: 12px; }
+  .logo img { width: 50px; height: 50px; }
   .hero-text { right: 6%; left: 6%; }
   .hero-tagline { margin-right: 0; margin-top: 16px; }
 

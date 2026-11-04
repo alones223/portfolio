@@ -7,7 +7,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script>document.documentElement.classList.add('js')</script>
+  <script>
+    document.documentElement.classList.add('js');
+    // Chromium can refract the backdrop with an SVG filter; Safari and Firefox ignore it.
+    (function () {
+      var b = (navigator.userAgentData && navigator.userAgentData.brands) || [];
+      if (window.chrome || b.some(function (x) { return /Chromium/i.test(x.brand); })) document.documentElement.classList.add('lg-chromium');
+    })();
+  </script>
   <title><%= pageTitle %> | <%= site.title %></title>
   <meta name="description" content="<%= site.name %> — portfolio">
   <% if (site.logo) { %><link rel="icon" href="<%= site.logo %>"><% } %>
@@ -15,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <% if (fontsUrl) { %><link rel="stylesheet" href="<%= fontsUrl %>"><% } %>
   <% if (customFontFaces) { %><style><%- customFontFaces %></style><% } %>
-  <link rel="stylesheet" href="/css/style.css?v=cache21">
+  <link rel="stylesheet" href="/css/style.css?v=cache25">
   <link rel="stylesheet" href="/css/canvas.css?v=cache6">
   <style>
     :root {

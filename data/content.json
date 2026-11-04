@@ -47,17 +47,17 @@
       "textAfter": "",
       "layout": "canvas",
       "canvasLock": true,
-      "canvasHeight": 1223,
+      "canvasHeight": 1200,
       "canvasBg": "#617092",
       "canvasImage": "/uploads/IMG_7283-ecbe9a.jpg",
       "layers": [
         {
           "type": "heading",
           "name": "Name",
-          "x": 1609,
+          "x": 1021,
           "y": 415,
-          "w": 721,
-          "h": 146,
+          "w": 1309,
+          "h": 214,
           "text": "Yeung Tsz Yu",
           "src": "",
           "alt": "",
@@ -68,7 +68,7 @@
           "color": "#FDFDFD",
           "bg": "",
           "font": "var(--font-display)",
-          "size": 80,
+          "size": 117,
           "weight": 400,
           "align": "right",
           "lineHeight": 1,
@@ -85,20 +85,20 @@
           "columns": 3,
           "gap": 16,
           "aspect": "square",
-          "hugging": true,
+          "hugging": false,
           "buttonStyle": "pill",
           "newTab": true,
           "id": "l-44dbe9",
-          "autoFit": true,
+          "autoFit": false,
           "textShadow": true
         },
         {
           "type": "text",
           "name": "Tagline",
-          "x": 1831,
-          "y": 536,
-          "w": 499,
-          "h": 76,
+          "x": 1100,
+          "y": 574,
+          "w": 1230,
+          "h": 125,
           "text": "#Multimedia Designer & Illustrator",
           "src": "",
           "alt": "",
@@ -109,7 +109,7 @@
           "color": "#FFFFFF",
           "bg": "",
           "font": "var(--font-serif)",
-          "size": 31,
+          "size": 51,
           "weight": 400,
           "align": "right",
           "lineHeight": 1.35,
@@ -176,10 +176,10 @@
         {
           "type": "button",
           "name": "View works",
-          "x": 2070,
-          "y": 612,
-          "w": 260,
-          "h": 64,
+          "x": 1945,
+          "y": 686,
+          "w": 385,
+          "h": 129,
           "text": "View works",
           "src": "",
           "alt": "",
@@ -190,7 +190,7 @@
           "color": "#FFFFFF",
           "bg": "",
           "font": "var(--font-serif)",
-          "size": 20,
+          "size": 48,
           "weight": 700,
           "align": "right",
           "lineHeight": 1.35,
@@ -237,7 +237,7 @@
           "blockType": "work",
           "size": "2x1",
           "title": "Garden of Sound and Memory",
-          "featured": true,
+          "featured": false,
           "tags": [
             "Animations",
             "Character Design",
@@ -554,137 +554,13 @@
           "output": "Web app icon, maimai livestream cover & layout, character（Train conductor）"
         },
         {
-          "title": "Illustrations",
-          "year": "2024–2026",
-          "featured": false,
-          "size": "1x1",
-          "tags": [
-            "Illustration"
-          ],
-          "intro": "Finished illustrations spanning full scenes and cleaner character pieces — colour, mood, and storytelling through a single frame.",
-          "sections": [],
-          "pieces": [
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg",
-              "hero": true
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_c9792f421fbb49efb34ced569fdcc39f.jpg",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/9_10_2026-0202e9.jpg",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_e5faeefca5e04f88a15d586f3c2a3ada.jpg",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/image-3a1948.jpg",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_2be2be01ad8b46738942ddc8c7ec17b3.jpg",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_99831b40dac1473a9cd40955d9c88c99.jpg",
-              "hero": false
-            }
-          ],
-          "blockType": "work",
-          "image": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg"
-        },
-        {
-          "label": "Fanbooks",
-          "image": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
-          "link": "",
-          "blockType": "work",
-          "size": "1x1",
-          "title": "Fanbooks",
-          "featured": true,
-          "tags": [
-            "Illustrator Works",
-            "Illustration",
-            "Product Design"
-          ],
-          "year": "2026",
-          "category": "Print / Illustration",
-          "intro": "A cafe-menu concept maimai fanbook: each page is a character special — illustration and interior layout built for booth browsing.",
-          "sections": [
-            {
-              "title": "Overview",
-              "text": "A cafe-menu concept maimai fanbook. Each spread treats one cast member as today's special: character art plus a cafe-style menu board, made to flip through at a booth."
-            },
-            {
-              "title": "What you see",
-              "text": "Six maimai characters, each holding their matching dessert or drink on cafe-style menu interiors."
-            }
-          ],
-          "pieces": [
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
-              "hero": true
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/Sweetie-Paradise_003-a8a02b.jpg",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/fanbook-menu-laz.png",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/fanbook-menu-salt.png",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/fanbook-interior-04.png",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/fanbook-interior-01.png",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/fanbook-interior-03.png",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/fanbook-interior-02.png",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_432a7366437c4a409df85bf34cfeae4d.jpg",
-              "hero": false
-            }
-          ]
-        },
-        {
           "label": "Illustrator",
           "image": "/uploads/ill-works-landai-poster.png",
           "link": "",
           "blockType": "work",
-          "size": "1x1",
+          "size": "1x2",
           "title": "Illustrator Works",
-          "featured": false,
+          "featured": true,
           "tags": [
             "Illustrator Works",
             "Illustration"
@@ -737,6 +613,130 @@
             {
               "kind": "image",
               "src": "/uploads/0b0535_505cd74046ab413497817849fe4dfd6c.jpg",
+              "hero": false
+            }
+          ]
+        },
+        {
+          "title": "Illustrations",
+          "year": "2024–2026",
+          "featured": false,
+          "size": "1x1",
+          "tags": [
+            "Illustration"
+          ],
+          "intro": "Finished illustrations spanning full scenes and cleaner character pieces — colour, mood, and storytelling through a single frame.",
+          "sections": [],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_c9792f421fbb49efb34ced569fdcc39f.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/9_10_2026-0202e9.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_e5faeefca5e04f88a15d586f3c2a3ada.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/image-3a1948.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_2be2be01ad8b46738942ddc8c7ec17b3.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_99831b40dac1473a9cd40955d9c88c99.jpg",
+              "hero": false
+            }
+          ],
+          "blockType": "work",
+          "image": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg"
+        },
+        {
+          "label": "Fanbooks",
+          "image": "/uploads/Sweetie-Paradise_003-a8a02b.jpg",
+          "link": "",
+          "blockType": "work",
+          "size": "1x1",
+          "title": "Fanbooks",
+          "featured": true,
+          "tags": [
+            "Illustrator Works",
+            "Illustration",
+            "Product Design"
+          ],
+          "year": "2026",
+          "category": "Print / Illustration",
+          "intro": "A cafe-menu concept maimai fanbook: each page is a character special — illustration and interior layout built for booth browsing.",
+          "sections": [
+            {
+              "title": "Overview",
+              "text": "A cafe-menu concept maimai fanbook. Each spread treats one cast member as today's special: character art plus a cafe-style menu board, made to flip through at a booth."
+            },
+            {
+              "title": "What you see",
+              "text": "Six maimai characters, each holding their matching dessert or drink on cafe-style menu interiors."
+            }
+          ],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/Sweetie-Paradise_003-a8a02b.jpg",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-menu-laz.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-menu-salt.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-interior-04.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-interior-01.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-interior-03.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/fanbook-interior-02.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_432a7366437c4a409df85bf34cfeae4d.jpg",
               "hero": false
             }
           ]
@@ -1164,7 +1164,7 @@
             "blockType": "work",
             "size": "2x1",
             "title": "Garden of Sound and Memory",
-            "featured": true,
+            "featured": false,
             "tags": [
               "Animations",
               "Character Design",
@@ -1481,137 +1481,13 @@
             "output": "Web app icon, maimai livestream cover & layout, character（Train conductor）"
           },
           {
-            "title": "Illustrations",
-            "year": "2024–2026",
-            "featured": false,
-            "size": "1x1",
-            "tags": [
-              "Illustration"
-            ],
-            "intro": "Finished illustrations spanning full scenes and cleaner character pieces — colour, mood, and storytelling through a single frame.",
-            "sections": [],
-            "pieces": [
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg",
-                "hero": true
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_c9792f421fbb49efb34ced569fdcc39f.jpg",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/9_10_2026-0202e9.jpg",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_e5faeefca5e04f88a15d586f3c2a3ada.jpg",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/image-3a1948.jpg",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_2be2be01ad8b46738942ddc8c7ec17b3.jpg",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_99831b40dac1473a9cd40955d9c88c99.jpg",
-                "hero": false
-              }
-            ],
-            "blockType": "work",
-            "image": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg"
-          },
-          {
-            "label": "Fanbooks",
-            "image": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
-            "link": "",
-            "blockType": "work",
-            "size": "1x1",
-            "title": "Fanbooks",
-            "featured": true,
-            "tags": [
-              "Illustrator Works",
-              "Illustration",
-              "Product Design"
-            ],
-            "year": "2026",
-            "category": "Print / Illustration",
-            "intro": "A cafe-menu concept maimai fanbook: each page is a character special — illustration and interior layout built for booth browsing.",
-            "sections": [
-              {
-                "title": "Overview",
-                "text": "A cafe-menu concept maimai fanbook. Each spread treats one cast member as today's special: character art plus a cafe-style menu board, made to flip through at a booth."
-              },
-              {
-                "title": "What you see",
-                "text": "Six maimai characters, each holding their matching dessert or drink on cafe-style menu interiors."
-              }
-            ],
-            "pieces": [
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
-                "hero": true
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/Sweetie-Paradise_003-a8a02b.jpg",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/fanbook-menu-laz.png",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/fanbook-menu-salt.png",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/fanbook-interior-04.png",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/fanbook-interior-01.png",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/fanbook-interior-03.png",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/fanbook-interior-02.png",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_432a7366437c4a409df85bf34cfeae4d.jpg",
-                "hero": false
-              }
-            ]
-          },
-          {
             "label": "Illustrator",
             "image": "/uploads/ill-works-landai-poster.png",
             "link": "",
             "blockType": "work",
-            "size": "1x1",
+            "size": "1x2",
             "title": "Illustrator Works",
-            "featured": false,
+            "featured": true,
             "tags": [
               "Illustrator Works",
               "Illustration"
@@ -1664,6 +1540,130 @@
               {
                 "kind": "image",
                 "src": "/uploads/0b0535_505cd74046ab413497817849fe4dfd6c.jpg",
+                "hero": false
+              }
+            ]
+          },
+          {
+            "title": "Illustrations",
+            "year": "2024–2026",
+            "featured": false,
+            "size": "1x1",
+            "tags": [
+              "Illustration"
+            ],
+            "intro": "Finished illustrations spanning full scenes and cleaner character pieces — colour, mood, and storytelling through a single frame.",
+            "sections": [],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_c9792f421fbb49efb34ced569fdcc39f.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/9_10_2026-0202e9.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_e5faeefca5e04f88a15d586f3c2a3ada.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/image-3a1948.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_2be2be01ad8b46738942ddc8c7ec17b3.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_99831b40dac1473a9cd40955d9c88c99.jpg",
+                "hero": false
+              }
+            ],
+            "blockType": "work",
+            "image": "/uploads/0b0535_18361692bb8e4b2b921e96bbe1447863.jpg"
+          },
+          {
+            "label": "Fanbooks",
+            "image": "/uploads/Sweetie-Paradise_003-a8a02b.jpg",
+            "link": "",
+            "blockType": "work",
+            "size": "1x1",
+            "title": "Fanbooks",
+            "featured": true,
+            "tags": [
+              "Illustrator Works",
+              "Illustration",
+              "Product Design"
+            ],
+            "year": "2026",
+            "category": "Print / Illustration",
+            "intro": "A cafe-menu concept maimai fanbook: each page is a character special — illustration and interior layout built for booth browsing.",
+            "sections": [
+              {
+                "title": "Overview",
+                "text": "A cafe-menu concept maimai fanbook. Each spread treats one cast member as today's special: character art plus a cafe-style menu board, made to flip through at a booth."
+              },
+              {
+                "title": "What you see",
+                "text": "Six maimai characters, each holding their matching dessert or drink on cafe-style menu interiors."
+              }
+            ],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_4134076fba414d53af0f08adedd66e73.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/Sweetie-Paradise_003-a8a02b.jpg",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-menu-laz.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-menu-salt.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-interior-04.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-interior-01.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-interior-03.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/fanbook-interior-02.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_432a7366437c4a409df85bf34cfeae4d.jpg",
                 "hero": false
               }
             ]
