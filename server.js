@@ -294,7 +294,7 @@ function parseShapePoints(value) {
   return pts.length >= 3 ? pts : null;
 }
 
-// Outer tips stay at 46 inside the 100×100 box. The inner radius is a
+// Outer tips stay at 46 inside the 100?100 box. The inner radius is a
 // percentage of that reach: 41 is the original star, lower is sharper.
 function starInnerPct(layer) {
   const n = Number(layer && layer.starInner);
@@ -743,7 +743,7 @@ function validateSection(section, label, errors) {
       errors.push(`"${label}": a layout canvas needs a list of layers`);
     } else {
       if (section.layers.length > 200) errors.push(`"${label}": a layout canvas cannot hold more than 200 layers`);
-      section.layers.forEach((layer, i) => validateLayer(layer, `${label} → layer ${i + 1}`, errors));
+      section.layers.forEach((layer, i) => validateLayer(layer, `${label} ??layer ${i + 1}`, errors));
     }
     if (section.canvasHeight != null && (Number(section.canvasHeight) < 200 || Number(section.canvasHeight) > 4000)) {
       errors.push(`"${label}": the board height must be between 200 and 4000`);
@@ -824,12 +824,6 @@ app.use('/admin', express.static(path.join(ROOT, 'admin')));
 
 const loginAttempts = new Map(); // ip -> { count, until }
 
-function requireAuth(req, res, next) {
-  // Login disabled — let everyone through
-  return next();
-  // if (req.session && req.session.admin) return next();
-  // res.status(401).json({ error: 'Please log in again.' });
-}
 
 function passwordMatches(input) {
   const a = crypto.createHash('sha256').update(String(input)).digest();
@@ -912,7 +906,7 @@ app.post('/api/backups/:name/restore', requireAuth, (req, res) => {
 //
 // Every section belongs to exactly one page (or to the home page), and each
 // section owns its own board and layers. These endpoints only ever build or
-// store a *section* — the page it is added to is chosen by the admin, which
+// store a *section* ??the page it is added to is chosen by the admin, which
 // keeps the "grouped by page" rule in one place.
 // ---------------------------------------------------------------------------
 
