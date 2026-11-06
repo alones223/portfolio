@@ -1093,15 +1093,17 @@ app.delete('/api/layouts/:id', requireAuth, (req, res) => {
 // Media uploads
 // ---------------------------------------------------------------------------
 
-const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.mp4', '.webm', '.pdf', '.woff', '.woff2', '.ttf', '.otf']);
+const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg', '.mp4', '.webm', '.mp3', '.wav', '.ogg', '.aac', '.m4a', '.pdf', '.woff', '.woff2', '.ttf', '.otf']);
 const FONT_EXT = new Set(['.woff', '.woff2', '.ttf', '.otf']);
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg']);
 const VIDEO_EXT = new Set(['.mp4', '.webm']);
+const AUDIO_EXT = new Set(['.mp3', '.wav', '.ogg', '.aac', '.m4a']);
 
 function mediaKind(name) {
   const ext = path.extname(name).toLowerCase();
   if (FONT_EXT.has(ext)) return 'font';
   if (VIDEO_EXT.has(ext)) return 'video';
+  if (AUDIO_EXT.has(ext)) return 'audio';
   if (ext === '.pdf') return 'pdf';
   if (IMAGE_EXT.has(ext)) return 'image';
   return 'other';

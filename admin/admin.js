@@ -12,11 +12,13 @@
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const pad2 = (n) => String(n).padStart(2, '0');
   const isVideo = (url) => /\.(mp4|webm)(\?|$)/i.test(url || '');
+  const isAudio = (url) => /\.(mp3|wav|ogg|aac|m4a)(\?|$)/i.test(url || '');
   const isFontFile = (url) => /\.(woff2?|ttf|otf)(\?|$)/i.test(url || '');
   const isPdf = (url) => /\.pdf(\?|$)/i.test(url || '');
   const mediaKindOf = (url) => {
     if (isFontFile(url)) return 'font';
     if (isVideo(url)) return 'video';
+    if (isAudio(url)) return 'audio';
     if (isPdf(url)) return 'pdf';
     return 'image';
   };
@@ -114,6 +116,7 @@
 
   function mediaPreview(url) {
     if (!url) return document.createTextNode('No image');
+    if (isAudio(url)) return h('audio', { src: url, controls: true, preload: 'metadata' });
     if (isVideo(url)) return h('video', { src: url, muted: true, preload: 'metadata' });
     if (isPdf(url)) {
       return h('div', { class: 'pdf-thumb' },
@@ -713,7 +716,7 @@
     }
 
     function dropzone() {
-      const fileIn = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm', multiple: true, hidden: true });
+      const fileIn = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm,audio/mp3,audio/wav,audio/ogg,audio/aac,audio/mp4,.mp3,.wav,.ogg,.aac,.m4a', multiple: true, hidden: true });
       fileIn.addEventListener('change', async () => {
         const urls = await uploadFiles(fileIn.files);
         fileIn.value = '';
@@ -2855,6 +2858,7 @@
       h('option', { value: 'all' }, 'All types'),
       h('option', { value: 'image' }, 'Images'),
       h('option', { value: 'video' }, 'Videos'),
+      h('option', { value: 'audio' }, 'Audio'),
       h('option', { value: 'pdf' }, 'PDFs'),
       h('option', { value: 'font' }, 'Fonts'));
     typeSel.value = mediaTypeFilter;
@@ -2871,7 +2875,7 @@
     const bulkBar = h('div', { class: 'media-bulk', hidden: true });
     const fileIn = h('input', {
       type: 'file',
-      accept: 'image/*,video/mp4,video/webm,application/pdf,.pdf,.woff,.woff2,.ttf,.otf',
+      accept: 'image/*,video/mp4,video/webm,audio/mp3,audio/wav,audio/ogg,audio/aac,audio/mp4,.mp3,.wav,.ogg,.aac,.m4a,application/pdf,.pdf,.woff,.woff2,.ttf,.otf',
       multiple: true,
       hidden: true,
     });

@@ -49,7 +49,7 @@
       "canvasLock": true,
       "canvasHeight": 1200,
       "canvasBg": "#617092",
-      "canvasImage": "/uploads/IMG_7283-ecbe9a.jpg",
+      "canvasImage": "/uploads/portfolio-card-02-29ccdb.png",
       "layers": [
         {
           "type": "heading",
@@ -62,7 +62,7 @@
           "src": "",
           "alt": "",
           "link": "",
-          "hidden": false,
+          "hidden": true,
           "locked": false,
           "z": 3,
           "color": "#FDFDFD",
@@ -95,15 +95,15 @@
         {
           "type": "text",
           "name": "Tagline",
-          "x": 1100,
-          "y": 574,
+          "x": 1565,
+          "y": 594,
           "w": 1230,
           "h": 125,
           "text": "#Multimedia Designer & Illustrator",
           "src": "",
           "alt": "",
           "link": "",
-          "hidden": false,
+          "hidden": true,
           "locked": false,
           "z": 4,
           "color": "#FFFFFF",
@@ -134,50 +134,10 @@
           "textShadow": true
         },
         {
-          "type": "heading",
-          "name": "Big word",
-          "x": 5,
-          "y": 901,
-          "w": 2566,
-          "h": 369,
-          "text": "Portfolio",
-          "src": "",
-          "alt": "",
-          "link": "",
-          "hidden": false,
-          "locked": false,
-          "z": 2,
-          "color": "rgba(255,255,255,0.16)",
-          "bg": "",
-          "font": "var(--font-serif)",
-          "size": 321,
-          "weight": 400,
-          "align": "left",
-          "lineHeight": 1.15,
-          "letterSpacing": 0,
-          "radius": 0,
-          "borderWidth": 0,
-          "borderColor": "",
-          "fit": "cover",
-          "animated": true,
-          "anim": "up",
-          "delay": 0.05,
-          "duration": 0.9,
-          "images": [],
-          "columns": 3,
-          "gap": 16,
-          "aspect": "square",
-          "hugging": false,
-          "buttonStyle": "pill",
-          "newTab": true,
-          "id": "l-35115e",
-          "autoFit": false
-        },
-        {
           "type": "button",
           "name": "View works",
-          "x": 1945,
-          "y": 686,
+          "x": 2007,
+          "y": 801,
           "w": 385,
           "h": 129,
           "text": "View works",
@@ -189,7 +149,7 @@
           "z": 6,
           "color": "#FFFFFF",
           "bg": "",
-          "font": "var(--font-serif)",
+          "font": "\"ARMEDLEMON\", sans-serif",
           "size": 48,
           "weight": 700,
           "align": "right",
@@ -211,7 +171,8 @@
           "buttonStyle": "pill",
           "newTab": false,
           "id": "l-ctao062",
-          "autoFit": false
+          "autoFit": false,
+          "textShadow": false
         }
       ],
       "columns": 3,
@@ -222,103 +183,13 @@
       "canvasWidth": 2560,
       "canvasWidthMode": "screen",
       "canvasImageX": 50,
-      "canvasImageY": 48,
-      "backgroundLocked": true
+      "canvasImageY": 81
     },
     "works": {
       "heading": "Works",
       "decorText": "WO\nRKS",
       "description": "Illustration, character systems, event merch, and interactive animation — built so the style holds across jackets, booths, products, and motion.",
       "cards": [
-        {
-          "label": "Garden of Sound and Memory",
-          "image": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
-          "link": "",
-          "blockType": "work",
-          "size": "2x1",
-          "title": "Garden of Sound and Memory",
-          "featured": false,
-          "tags": [
-            "Animations",
-            "Character Design",
-            "Illustration"
-          ],
-          "year": "2025",
-          "category": "Animation / Installation",
-          "intro": "Immersive FYP installation: two memory stories share one garden across the seasons, then a live session where you generate sound with the cast.",
-          "sections": [
-            {
-              "title": "Overview",
-              "text": "Garden of Sound and Memory（聲憶之庭）— group FYP immersive installation. Two memory stories run side by side in one garden while seasons loop meeting → build-up → separation → cool-down."
-            },
-            {
-              "title": "Story",
-              "text": "Left, human and environment: a gardener meets an injured bird, cares for it, then plays with the bird and its friends. Right, person to person: kids collide into friendship, help each other, then drift apart. The tree keeps the two stories apart; spring petals reset the year."
-            },
-            {
-              "title": "What happens in the installation",
-              "text": "Animation part — sit with the seasonal film and read both sides of the garden. Interactive part — characters (and a “wave your hands” cue) break the fourth wall; Kinect tracks your body so you generate live sound and stay inside the piece with the cast."
-            },
-            {
-              "title": "My role",
-              "text": "Animator & Illustrator — timeline, style, storyboard, and the animated sequences."
-            }
-          ],
-          "pieces": [
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
-              "hero": true
-            },
-            {
-              "kind": "youtube",
-              "src": "https://youtu.be/L4Cxz96hIxQ",
-              "hero": false
-            },
-            {
-              "kind": "youtube",
-              "src": "https://youtu.be/KHLJnf5X_5g",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_acf47a340f20429997482d47abeab09a.gif",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_ef213fb0acca48d98061b993547ad652.gif",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_d14ef67d853e423d9dac5b82033719ba.gif",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_eb32c762b9c546aea03bb932b0cd678d.gif",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_fd3f565288874af89c02a5fb0b2c9f25.webp",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_767a8977782b438589fea9f9d5321fba.webp",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_6900dad63e2c492894a2203b7d9e3570.webp",
-              "hero": false
-            }
-          ],
-          "role": "Animator & Illustrator",
-          "output": "Animation demo · live interactive session"
-        },
         {
           "label": "Song Jacket Design",
           "image": "/uploads/0b0535_d616a93ca451424c97dc06256ba25b28.jpg",
@@ -385,6 +256,129 @@
               "hero": false
             }
           ]
+        },
+        {
+          "blockType": "work",
+          "size": "2x1",
+          "image": "/uploads/IMG_7455-1-3fd269.png",
+          "label": "",
+          "title": "Bag Design",
+          "category": "Print / Illustration",
+          "year": "2024",
+          "role": "",
+          "output": "",
+          "intro": "A fanart bag design of game \"maimaiDX\"",
+          "text": "",
+          "youtube": "",
+          "pdf": "",
+          "link": "",
+          "featured": false,
+          "tags": [
+            "Illustration",
+            "Product Design",
+            "Merch"
+          ],
+          "sections": [
+            {
+              "title": "",
+              "text": ""
+            },
+            {
+              "title": "",
+              "text": ""
+            },
+            {
+              "title": "",
+              "text": ""
+            },
+            {
+              "title": "",
+              "text": ""
+            }
+          ],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/IMG_7455-1-3fd269.png",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/quiq-e6aea9.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/764661106_17919405384421950_636698744970-ab9551.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/762623787_17919405375421950_510207945231-c073dc.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/766052939_17919405360421950_721583935545-789834.jpg",
+              "hero": false
+            }
+          ]
+        },
+        {
+          "label": "Silvercord Game Centre",
+          "image": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
+          "link": "",
+          "blockType": "work",
+          "size": "2x1",
+          "title": "Silvercord Game Centre",
+          "featured": true,
+          "tags": [
+            "Character Design",
+            "Illustrator Works",
+            "Illustration"
+          ],
+          "year": "2026",
+          "category": "Character Design",
+          "intro": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world.",
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
+              "hero": true
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_1f026abbd2224876bcfa71046fe73f74.jpg",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/live-stream-01-568790.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/live-stream-03-acb32d.png",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/live-stream-04-25294b.png",
+              "hero": false
+            }
+          ],
+          "sections": [
+            {
+              "title": "Overview",
+              "text": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world."
+            },
+            {
+              "title": "What you see",
+              "text": "Character（Train conductor）, app icon set, and livestream cover / layout comps."
+            }
+          ],
+          "role": "Character design, web app icons, livestream layout",
+          "output": "Web app icon, maimai livestream cover & layout, character（Train conductor）"
         },
         {
           "title": "Character Design",
@@ -498,62 +492,6 @@
           "image": "/uploads/0b0535_b25493dde44b4c0ab561d2fcfbf2460c.jpeg"
         },
         {
-          "label": "Silvercord Game Centre",
-          "image": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
-          "link": "",
-          "blockType": "work",
-          "size": "2x1",
-          "title": "Silvercord Game Centre",
-          "featured": true,
-          "tags": [
-            "Character Design",
-            "Illustrator Works",
-            "Illustration"
-          ],
-          "year": "2026",
-          "category": "Character Design",
-          "intro": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world.",
-          "pieces": [
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
-              "hero": true
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/0b0535_1f026abbd2224876bcfa71046fe73f74.jpg",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/live-stream-01-568790.png",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/live-stream-03-acb32d.png",
-              "hero": false
-            },
-            {
-              "kind": "image",
-              "src": "/uploads/live-stream-04-25294b.png",
-              "hero": false
-            }
-          ],
-          "sections": [
-            {
-              "title": "Overview",
-              "text": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world."
-            },
-            {
-              "title": "What you see",
-              "text": "Character（Train conductor）, app icon set, and livestream cover / layout comps."
-            }
-          ],
-          "role": "Character design, web app icons, livestream layout",
-          "output": "Web app icon, maimai livestream cover & layout, character（Train conductor）"
-        },
-        {
           "label": "Illustrator",
           "image": "/uploads/ill-works-landai-poster.png",
           "link": "",
@@ -616,6 +554,95 @@
               "hero": false
             }
           ]
+        },
+        {
+          "label": "Garden of Sound and Memory",
+          "image": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
+          "link": "",
+          "blockType": "work",
+          "size": "1x1",
+          "title": "Garden of Sound and Memory",
+          "featured": false,
+          "tags": [
+            "Animations",
+            "Character Design",
+            "Illustration"
+          ],
+          "year": "2025",
+          "category": "Animation / Installation",
+          "intro": "Immersive FYP installation: two memory stories share one garden across the seasons, then a live session where you generate sound with the cast.",
+          "sections": [
+            {
+              "title": "Overview",
+              "text": "Garden of Sound and Memory（聲憶之庭）— group FYP immersive installation. Two memory stories run side by side in one garden while seasons loop meeting → build-up → separation → cool-down."
+            },
+            {
+              "title": "Story",
+              "text": "Left, human and environment: a gardener meets an injured bird, cares for it, then plays with the bird and its friends. Right, person to person: kids collide into friendship, help each other, then drift apart. The tree keeps the two stories apart; spring petals reset the year."
+            },
+            {
+              "title": "What happens in the installation",
+              "text": "Animation part — sit with the seasonal film and read both sides of the garden. Interactive part — characters (and a “wave your hands” cue) break the fourth wall; Kinect tracks your body so you generate live sound and stay inside the piece with the cast."
+            },
+            {
+              "title": "My role",
+              "text": "Animator & Illustrator — timeline, style, storyboard, and the animated sequences."
+            }
+          ],
+          "pieces": [
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
+              "hero": true
+            },
+            {
+              "kind": "youtube",
+              "src": "https://youtu.be/L4Cxz96hIxQ",
+              "hero": false
+            },
+            {
+              "kind": "youtube",
+              "src": "https://youtu.be/KHLJnf5X_5g",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_acf47a340f20429997482d47abeab09a.gif",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_ef213fb0acca48d98061b993547ad652.gif",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_d14ef67d853e423d9dac5b82033719ba.gif",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_eb32c762b9c546aea03bb932b0cd678d.gif",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_fd3f565288874af89c02a5fb0b2c9f25.webp",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_767a8977782b438589fea9f9d5321fba.webp",
+              "hero": false
+            },
+            {
+              "kind": "image",
+              "src": "/uploads/0b0535_6900dad63e2c492894a2203b7d9e3570.webp",
+              "hero": false
+            }
+          ],
+          "role": "Animator & Illustrator",
+          "output": "Animation demo · live interactive session"
         },
         {
           "title": "Illustrations",
@@ -1158,95 +1185,6 @@
         "description": "Illustration, character systems, event merch, and interactive animation — built so the style holds across jackets, booths, products, and motion.",
         "cards": [
           {
-            "label": "Garden of Sound and Memory",
-            "image": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
-            "link": "",
-            "blockType": "work",
-            "size": "2x1",
-            "title": "Garden of Sound and Memory",
-            "featured": false,
-            "tags": [
-              "Animations",
-              "Character Design",
-              "Illustration"
-            ],
-            "year": "2025",
-            "category": "Animation / Installation",
-            "intro": "Immersive FYP installation: two memory stories share one garden across the seasons, then a live session where you generate sound with the cast.",
-            "sections": [
-              {
-                "title": "Overview",
-                "text": "Garden of Sound and Memory（聲憶之庭）— group FYP immersive installation. Two memory stories run side by side in one garden while seasons loop meeting → build-up → separation → cool-down."
-              },
-              {
-                "title": "Story",
-                "text": "Left, human and environment: a gardener meets an injured bird, cares for it, then plays with the bird and its friends. Right, person to person: kids collide into friendship, help each other, then drift apart. The tree keeps the two stories apart; spring petals reset the year."
-              },
-              {
-                "title": "What happens in the installation",
-                "text": "Animation part — sit with the seasonal film and read both sides of the garden. Interactive part — characters (and a “wave your hands” cue) break the fourth wall; Kinect tracks your body so you generate live sound and stay inside the piece with the cast."
-              },
-              {
-                "title": "My role",
-                "text": "Animator & Illustrator — timeline, style, storyboard, and the animated sequences."
-              }
-            ],
-            "pieces": [
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
-                "hero": true
-              },
-              {
-                "kind": "youtube",
-                "src": "https://youtu.be/L4Cxz96hIxQ",
-                "hero": false
-              },
-              {
-                "kind": "youtube",
-                "src": "https://youtu.be/KHLJnf5X_5g",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_acf47a340f20429997482d47abeab09a.gif",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_ef213fb0acca48d98061b993547ad652.gif",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_d14ef67d853e423d9dac5b82033719ba.gif",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_eb32c762b9c546aea03bb932b0cd678d.gif",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_fd3f565288874af89c02a5fb0b2c9f25.webp",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_767a8977782b438589fea9f9d5321fba.webp",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_6900dad63e2c492894a2203b7d9e3570.webp",
-                "hero": false
-              }
-            ],
-            "role": "Animator & Illustrator",
-            "output": "Animation demo · live interactive session"
-          },
-          {
             "label": "Song Jacket Design",
             "image": "/uploads/0b0535_d616a93ca451424c97dc06256ba25b28.jpg",
             "link": "",
@@ -1312,6 +1250,129 @@
                 "hero": false
               }
             ]
+          },
+          {
+            "blockType": "work",
+            "size": "2x1",
+            "image": "/uploads/IMG_7455-1-3fd269.png",
+            "label": "",
+            "title": "Bag Design",
+            "category": "Print / Illustration",
+            "year": "2024",
+            "role": "",
+            "output": "",
+            "intro": "A fanart bag design of game \"maimaiDX\"",
+            "text": "",
+            "youtube": "",
+            "pdf": "",
+            "link": "",
+            "featured": false,
+            "tags": [
+              "Illustration",
+              "Product Design",
+              "Merch"
+            ],
+            "sections": [
+              {
+                "title": "",
+                "text": ""
+              },
+              {
+                "title": "",
+                "text": ""
+              },
+              {
+                "title": "",
+                "text": ""
+              },
+              {
+                "title": "",
+                "text": ""
+              }
+            ],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/IMG_7455-1-3fd269.png",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/quiq-e6aea9.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/764661106_17919405384421950_636698744970-ab9551.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/762623787_17919405375421950_510207945231-c073dc.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/766052939_17919405360421950_721583935545-789834.jpg",
+                "hero": false
+              }
+            ]
+          },
+          {
+            "label": "Silvercord Game Centre",
+            "image": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
+            "link": "",
+            "blockType": "work",
+            "size": "2x1",
+            "title": "Silvercord Game Centre",
+            "featured": true,
+            "tags": [
+              "Character Design",
+              "Illustrator Works",
+              "Illustration"
+            ],
+            "year": "2026",
+            "category": "Character Design",
+            "intro": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world.",
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
+                "hero": true
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_1f026abbd2224876bcfa71046fe73f74.jpg",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/live-stream-01-568790.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/live-stream-03-acb32d.png",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/live-stream-04-25294b.png",
+                "hero": false
+              }
+            ],
+            "sections": [
+              {
+                "title": "Overview",
+                "text": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world."
+              },
+              {
+                "title": "What you see",
+                "text": "Character（Train conductor）, app icon set, and livestream cover / layout comps."
+              }
+            ],
+            "role": "Character design, web app icons, livestream layout",
+            "output": "Web app icon, maimai livestream cover & layout, character（Train conductor）"
           },
           {
             "title": "Character Design",
@@ -1425,62 +1486,6 @@
             "image": "/uploads/0b0535_b25493dde44b4c0ab561d2fcfbf2460c.jpeg"
           },
           {
-            "label": "Silvercord Game Centre",
-            "image": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
-            "link": "",
-            "blockType": "work",
-            "size": "2x1",
-            "title": "Silvercord Game Centre",
-            "featured": true,
-            "tags": [
-              "Character Design",
-              "Illustrator Works",
-              "Illustration"
-            ],
-            "year": "2026",
-            "category": "Character Design",
-            "intro": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world.",
-            "pieces": [
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_5874475daaa2449a8c4b748839c0a9b1.jpg",
-                "hero": true
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/0b0535_1f026abbd2224876bcfa71046fe73f74.jpg",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/live-stream-01-568790.png",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/live-stream-03-acb32d.png",
-                "hero": false
-              },
-              {
-                "kind": "image",
-                "src": "/uploads/live-stream-04-25294b.png",
-                "hero": false
-              }
-            ],
-            "sections": [
-              {
-                "title": "Overview",
-                "text": "Commission for Silvercord: a stationmaster character tied to「新宿駅新港機城」, plus web app icons and the maimai livestream cover layout — one face and frame for the stream world."
-              },
-              {
-                "title": "What you see",
-                "text": "Character（Train conductor）, app icon set, and livestream cover / layout comps."
-              }
-            ],
-            "role": "Character design, web app icons, livestream layout",
-            "output": "Web app icon, maimai livestream cover & layout, character（Train conductor）"
-          },
-          {
             "label": "Illustrator",
             "image": "/uploads/ill-works-landai-poster.png",
             "link": "",
@@ -1543,6 +1548,95 @@
                 "hero": false
               }
             ]
+          },
+          {
+            "label": "Garden of Sound and Memory",
+            "image": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
+            "link": "",
+            "blockType": "work",
+            "size": "1x1",
+            "title": "Garden of Sound and Memory",
+            "featured": false,
+            "tags": [
+              "Animations",
+              "Character Design",
+              "Illustration"
+            ],
+            "year": "2025",
+            "category": "Animation / Installation",
+            "intro": "Immersive FYP installation: two memory stories share one garden across the seasons, then a live session where you generate sound with the cast.",
+            "sections": [
+              {
+                "title": "Overview",
+                "text": "Garden of Sound and Memory（聲憶之庭）— group FYP immersive installation. Two memory stories run side by side in one garden while seasons loop meeting → build-up → separation → cool-down."
+              },
+              {
+                "title": "Story",
+                "text": "Left, human and environment: a gardener meets an injured bird, cares for it, then plays with the bird and its friends. Right, person to person: kids collide into friendship, help each other, then drift apart. The tree keeps the two stories apart; spring petals reset the year."
+              },
+              {
+                "title": "What happens in the installation",
+                "text": "Animation part — sit with the seasonal film and read both sides of the garden. Interactive part — characters (and a “wave your hands” cue) break the fourth wall; Kinect tracks your body so you generate live sound and stay inside the piece with the cast."
+              },
+              {
+                "title": "My role",
+                "text": "Animator & Illustrator — timeline, style, storyboard, and the animated sequences."
+              }
+            ],
+            "pieces": [
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_dcac28d71e494e37a07f48078ee9fe3c.jpg",
+                "hero": true
+              },
+              {
+                "kind": "youtube",
+                "src": "https://youtu.be/L4Cxz96hIxQ",
+                "hero": false
+              },
+              {
+                "kind": "youtube",
+                "src": "https://youtu.be/KHLJnf5X_5g",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_acf47a340f20429997482d47abeab09a.gif",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_ef213fb0acca48d98061b993547ad652.gif",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_d14ef67d853e423d9dac5b82033719ba.gif",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_eb32c762b9c546aea03bb932b0cd678d.gif",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_fd3f565288874af89c02a5fb0b2c9f25.webp",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_767a8977782b438589fea9f9d5321fba.webp",
+                "hero": false
+              },
+              {
+                "kind": "image",
+                "src": "/uploads/0b0535_6900dad63e2c492894a2203b7d9e3570.webp",
+                "hero": false
+              }
+            ],
+            "role": "Animator & Illustrator",
+            "output": "Animation demo · live interactive session"
           },
           {
             "title": "Illustrations",
@@ -2069,14 +2163,14 @@
     ],
     "aboutCard": {
       "intro": "Hi , I am Abbie Yeung ! A Graduated Student from Creative Media.\nI am an artist focused on multimedia and illustration design, skilled at blending delicate visual language into digital media. My design style is clean yet expressive, with a strong sense of storytelling. Through my work, I aim to build visual experiences that are both aesthetically pleasing and emotionally engaging.\n\nI believe that great design is more than a visual outcome; it’s a vessel for meaning. In every project, I remain committed to a core concept, solving problems through pure form to build a sincere connection between brand and audience.",
-      "video": "/uploads/portfolio-showcase-cdb83a.mp4",
+      "video": "/uploads/portfolio-showcase-with-bgm-57ed4a.mp4",
       "board": {
         "id": "about-card-front",
         "layout": "canvas",
         "heading": "About card",
         "canvasWidth": 640,
         "canvasHeight": 400,
-        "canvasBg": "",
+        "canvasBg": "rgba(0, 0, 0, 0.99)",
         "layers": [],
         "canvasImage": "/uploads/portfolio-card-879f46.png",
         "canvasImageX": 50,

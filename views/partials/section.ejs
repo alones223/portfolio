@@ -70,6 +70,8 @@
               <span class="layer-frame" style="border-radius:<%= __rad %>px">
               <% if (/\.(mp4|webm)(\?|$)/i.test(l.src)) { %>
                 <video class="layer-media" src="<%= safeUrl(l.src) %>" muted loop playsinline controls style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>;border-radius:<%= __rad %>px"></video>
+              <% } else if (/\.(mp3|wav|ogg|aac|m4a)(\?|$)/i.test(l.src)) { %>
+                <audio class="layer-audio" src="<%= safeUrl(l.src) %>" controls preload="metadata"></audio>
               <% } else { %>
                 <img class="layer-media" src="<%= safeUrl(l.src) %>" alt="<%= l.alt || '' %>" loading="lazy" style="object-fit:<%= LAYER_FITS.has(l.fit) ? l.fit : 'cover' %>;border-radius:<%= __rad %>px">
               <% } %>

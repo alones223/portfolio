@@ -354,7 +354,9 @@ window.CanvasEditorUI = (function () {
       const mediaStyle = `border-radius:${Math.max(0, Number(l.radius) || 0)}px;object-fit:${fit}`;
       const media = /\.(mp4|webm)(\?|$)/i.test(l.src)
         ? h('video', { src: safeUrl(l.src), muted: true, playsinline: true, preload: 'metadata', style: mediaStyle })
-        : h('img', { src: safeUrl(l.src), alt: '', draggable: 'false', style: mediaStyle });
+        : /\.(mp3|wav|ogg|aac|m4a)(\?|$)/i.test(l.src)
+          ? h('audio', { src: safeUrl(l.src), controls: true, preload: 'metadata', style: 'width:100%' })
+          : h('img', { src: safeUrl(l.src), alt: '', draggable: 'false', style: mediaStyle });
       return [media];
     }
     if (l.type === 'group') {
@@ -1997,7 +1999,7 @@ window.CanvasEditorUI = (function () {
           if (url) { l[key] = url; onChange(); render(); }
         });
       }
-      const upload = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm', hidden: true });
+      const upload = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm,audio/mp3,audio/wav,audio/ogg,audio/aac,audio/mp4,.mp3,.wav,.ogg,.aac,.m4a', hidden: true });
       upload.addEventListener('change', async () => {
         if (locked) return;
         const urls = await onRequestFiles([...upload.files]);
@@ -2019,7 +2021,7 @@ window.CanvasEditorUI = (function () {
     function galleryField(l) {
       l.images = l.images || [];
       const list = h('div', { class: 'cv-gal-list' });
-      const fileIn = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm', multiple: true, hidden: true });
+      const fileIn = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm,audio/mp3,audio/wav,audio/ogg,audio/aac,audio/mp4,.mp3,.wav,.ogg,.aac,.m4a', multiple: true, hidden: true });
       fileIn.addEventListener('change', async () => {
         const urls = await onRequestFiles([...fileIn.files]);
         fileIn.value = '';
@@ -2043,7 +2045,7 @@ window.CanvasEditorUI = (function () {
             const url = await onRequestImage();
             if (url) { item.image = url; onChange(); render(); }
           });
-          const itemUpload = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm', hidden: true });
+          const itemUpload = h('input', { type: 'file', accept: 'image/*,video/mp4,video/webm,audio/mp3,audio/wav,audio/ogg,audio/aac,audio/mp4,.mp3,.wav,.ogg,.aac,.m4a', hidden: true });
           itemUpload.addEventListener('change', async () => {
             const urls = await onRequestFiles([...itemUpload.files]);
             itemUpload.value = '';
